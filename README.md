@@ -13,6 +13,10 @@
 [![TailwindCSS: v4](https://img.shields.io/badge/TailwindCSS-v4-38B2AC.svg)](https://tailwindcss.com/)
 [![Tencent Cloud IM: 166 APIs](https://img.shields.io/badge/REST_APIs-166_All_Supported-ff69b4.svg)](https://cloud.tencent.com/document/product/269/1520)
 
+<br/>
+
+<img src="docs/images/workbench.png" alt="TIM Studio 接口调试工作台" width="100%" style="border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,0.12);" />
+
 </div>
 
 ---
@@ -50,23 +54,54 @@
 - **预览模式（Dry-Run）**：开启后仅执行入参校验与请求报文结构生成，不向腾讯云发起真实网络写入，防止生产误操作。
 - **调用历史对账**：每个接口独立记录本地调用历史与完整回执，刷新页面默认持久化保留。
 
+---
+
 ### 3. 🚀 批量调用中心 (Runner) 与审计台账
+
+<img src="docs/images/batch_runner.png" alt="批量任务执行中心" width="100%" style="border-radius: 8px; margin-bottom: 12px;" />
+
 - **高频场景预设**：开箱即用内置批量撤回违规单聊消息、批量撤回群违规消息、批量禁言违规用户、批量导入账号、全员广播推送等模板。
 - **表格无缝导入导出**：支持 CSV / Excel（.xlsx）批量数据拖拽解析，支持一键下载标准 CSV 模板（UTF-8 BOM 编码，Excel 双击打开无乱码）。
 - **智能风控与频率限制**：系统自动结合官方文档频控规则，动态推荐与限制最小执行间隔（如 20 QPS / 5 QPS），防止触发腾讯云控制台风控封停。
 - **流式终端监控**：执行过程支持实时暂停、继续、强制终止，日志流式输出并统计成功率与耗时。
+
+<br/>
+
+<img src="docs/images/history.png" alt="历史任务归档与审计台账" width="100%" style="border-radius: 8px;" />
+
 - **失败重试与历史台账**：单键重试失败项，所有批次调用自动持久化归档至审计台账，支持全量与失败项独立导出。
 
+---
+
 ### 4. 📚 原生级官方文档中心 (Doc Center)
+
+<img src="docs/images/docs_center.png" alt="官方原生文档中心" width="100%" style="border-radius: 8px;" />
+
 - **离线全量文档**：内置全量 166 项 API 结构化文档与错误码字典，离线环境亦可快速查阅。
 - **在线同步引擎**：支持直接在线同步腾讯云官方目录树与最新文档正文，支持动态接口与静态 HTML 两种抓取模式，热重载生效。
 - **一键直达沙箱**：在文档中心查阅任意接口时，可一键将其装载到调试工作台中直接发起测试。
 
+---
+
 ### 5. 🌐 多环境与密钥安全管理 (Settings)
+
+<img src="docs/images/environments.png" alt="多环境配置与密钥安全管理" width="100%" style="border-radius: 8px;" />
+
 - **多套凭据隔离**：支持配置多套环境（如 PROD 生产环境、DEV 开发沙箱、TEST 测试等），支持打标、备注与一键平滑切换。
 - **全球 8 大地域支持**：内置官方中国、新加坡、首尔、东京、法兰克福、硅谷、雅加达、利雅得主备域名映射。
 - **防覆盖保护与脱敏**：前端展示时密钥自动前4后4星号脱敏；提交更新时即便携带掩码亦不会覆盖后台真实密钥。
 - **一键连通性测试**：一键检测当前环境鉴权配置、网络延迟与腾讯云连通性。
+
+---
+
+### 6. 📱 全视口响应式设计 (Mobile & Split-Screen)
+
+<div align="center">
+  <img src="docs/images/mobile.png" alt="移动端原生底栏自适应" width="360" style="border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.15);" />
+</div>
+
+- **分屏与移动端原生体验**：在屏幕宽度小于 768px 时自动激活原生风格的**底部导航栏**与**侧边抽屉**。
+- **单手自适应**：接口调试、文档查阅、批处理控制台均可在手机与平板设备上顺畅触控操作。
 
 ---
 
@@ -85,6 +120,8 @@
 │   ├── task_runner.py      # 批处理执行器与审计台账
 │   ├── doc_syncer.py       # 官方文档抓取与解析引擎
 │   └── tree_syncer.py      # 官方目录树在线同步引擎
+├── docs/                   # 项目文档与展示资源
+│   └── images/             # 高清脱敏界面截图 (WebP / 压缩 PNG)
 ├── scripts/                # 运维工具与离线维护脚本
 │   ├── run_withdraw.py     # 独立单聊消息批量撤回命令行工具 (CLI)
 │   ├── build_full_tim_catalog.py # 目录元数据离线重构工具
@@ -96,6 +133,8 @@
 ├── storage/                # 本地持久化数据
 │   ├── docs/               # 官方全量 166 API 离线结构化文档库 (JSON)
 │   └── official_live_tree.json # 官方在线同步目录树缓存
+├── tests/                  # 自动化单元测试套件 (pytest)
+│   └── test_studio.py
 ├── web/                    # 前端源代码 (React 19 + Tailwind v4 + Vite)
 │   ├── src/                # 现代化组件、状态管理 (Zustand) 与面板
 │   ├── package.json
@@ -145,7 +184,7 @@ cp config.example.json config.json
       "tag": "DEV",
       "remark": "开发联调与测试沙箱环境",
       "sdkappid": 1400000000,
-      "secret_key": "YOUR_SECRET_KEY_HERE",
+      "secret_key": "YOUR_DEV_SECRET_KEY_HERE",
       "admin_user": "administrator",
       "domain": "console.tim.qq.com",
       "delay_sec": 0.05
