@@ -1,0 +1,190 @@
+{
+  "doc_id": 74740,
+  "api_id": "c2c_modify_msg",
+  "title": "修改单聊历史消息",
+  "doc_url": "https://cloud.tencent.com/document/product/269/74740",
+  "sync_time": "2026-10-24 01:28:49",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "本文说明腾讯云IM修改单聊历史消息的REST API，支持修改MsgBody或CloudCustomData字段，需通过MsgKey定位消息，调用频率200次/秒，修改后不可恢复。 获取MsgKey：可通过发消息前后回调、查询单聊消息或发消息接口返回包获取。 请求与应答：需指定From_Account、To_Account、MsgKey及可选字段，应答返回ActionStatus、ErrorCode、ErrorInfo。 限制与错误码：仅支持SDK 6.2及以上版本处理修改后的消息，私有错误码涵盖请求包非法、UserSig失效等场景。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/openim/modify_c2c_msg?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/openim/modify_c2c_msg",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "From_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "消息发送方 UserID。"
+    },
+    {
+      "name": "To_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "消息接收方 UserID。"
+    },
+    {
+      "name": "MsgKey",
+      "type": "String",
+      "required": "必填",
+      "description": "待修改消息的唯一标识。获取消息 MsgKey 的方法请参见本接口的接口说明。"
+    },
+    {
+      "name": "MsgBody",
+      "type": "Array",
+      "required": "选填",
+      "description": "消息内容，具体格式请参考 消息格式描述（注意，一条消息可包括多种消息元素，MsgBody 为 Array 类型）。"
+    },
+    {
+      "name": "CloudCustomData",
+      "type": "String",
+      "required": "选填",
+      "description": "消息自定义数据（云端保存，会发送到对端，程序卸载重装后还能拉取到）。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "只修改消息的 MsgBody",
+      "content": "{\n\n    \"From_Account\": \"dramon1\",\n\n    \"To_Account\": \"dramon2\",\n\n    \"MsgKey\": \"1_2_3\",\n\n    \"MsgBody\": [\n\n        {\n\n            \"MsgType\": \"TIMTextElem\",\n\n            \"MsgContent\": {\n\n                \"Text\": \"hello\"\n\n            }\n\n        }\n\n    ]\n\n}\n\n﻿",
+      "clean_json": "{\n\n    \"From_Account\": \"dramon1\",\n\n    \"To_Account\": \"dramon2\",\n\n    \"MsgKey\": \"1_2_3\",\n\n    \"MsgBody\": [\n\n        {\n\n            \"MsgType\": \"TIMTextElem\",\n\n            \"MsgContent\": {\n\n                \"Text\": \"hello\"\n\n            }\n\n        }\n\n    ]\n\n}\n\n﻿"
+    },
+    {
+      "title": "只修改消息的 CloudCustomData",
+      "content": "{\n\n    \"From_Account\": \"dramon1\",\n\n    \"To_Account\": \"dramon2\",\n\n    \"MsgKey\": \"1_2_3\",\n\n    \"CloudCustomData\": \"your cloud custom data\"\n\n}\n\n﻿",
+      "clean_json": "{\n\n    \"From_Account\": \"dramon1\",\n\n    \"To_Account\": \"dramon2\",\n\n    \"MsgKey\": \"1_2_3\",\n\n    \"CloudCustomData\": \"your cloud custom data\"\n\n}\n\n﻿"
+    },
+    {
+      "title": "同时修改消息的 MsgBody 和 CloudCustomData",
+      "content": "{\n\n    \"From_Account\": \"dramon1\",\n\n    \"To_Account\": \"dramon2\",\n\n    \"MsgKey\": \"1_2_3\",\n\n    \"MsgBody\": [\n\n        {\n\n            \"MsgType\": \"TIMTextElem\",\n\n            \"MsgContent\": {\n\n                \"Text\": \"hello\"\n\n            }\n\n        }\n\n    ],\n\n    \"CloudCustomData\": \"your cloud custom data\"\n\n}\n\n﻿",
+      "clean_json": "{\n\n    \"From_Account\": \"dramon1\",\n\n    \"To_Account\": \"dramon2\",\n\n    \"MsgKey\": \"1_2_3\",\n\n    \"MsgBody\": [\n\n        {\n\n            \"MsgType\": \"TIMTextElem\",\n\n            \"MsgContent\": {\n\n                \"Text\": \"hello\"\n\n            }\n\n        }\n\n    ],\n\n    \"CloudCustomData\": \"your cloud custom data\"\n\n}\n\n﻿"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"succeed\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"succeed\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "20001",
+      "description": "请求包非法。",
+      "solution": ""
+    },
+    {
+      "code": "20002",
+      "description": "UserSig 或 A2 失效。",
+      "solution": ""
+    },
+    {
+      "code": "20003",
+      "description": "消息发送方或接收方 UserID 无效或不存在，请检查 UserID 是否已导入即时通信 IM。",
+      "solution": ""
+    },
+    {
+      "code": "20004",
+      "description": "网络异常，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "20005",
+      "description": "服务器内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "90001",
+      "description": "JSON 格式解析失败，请检查请求包是否符合 JSON 规范。",
+      "solution": ""
+    },
+    {
+      "code": "90002",
+      "description": "JSON 格式请求包中 MsgBody 不符合消息格式描述，或者 MsgBody 不是 Array 类型，请参考 TIMMsgElement 对象 的定义。",
+      "solution": ""
+    },
+    {
+      "code": "90003",
+      "description": "JSON 格式请求包体中缺少 To_Account 字段或者 To_Account 字段不是 String 类型。",
+      "solution": ""
+    },
+    {
+      "code": "90007",
+      "description": "JSON 格式请求包体中 MsgBody 类型不是 Array 类型，请将其修改为 Array 类型。",
+      "solution": ""
+    },
+    {
+      "code": "90009",
+      "description": "请求需要 App 管理员权限。",
+      "solution": ""
+    },
+    {
+      "code": "90010",
+      "description": "JSON 格式请求包不符合消息格式描述，请参考 TIMMsgElement 对象 的定义。",
+      "solution": ""
+    },
+    {
+      "code": "90012",
+      "description": "To_Account 没有注册或不存在，请确认 To_Account 是否导入即时通信 IM 或者是否拼写错误。",
+      "solution": ""
+    },
+    {
+      "code": "91000",
+      "description": "服务内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "90992",
+      "description": "服务内部错误，请重试。如果所有请求都返回该错误码，且 App 配置了第三方回调，请检查 App 服务器是否正常向即时通信 IM 后台服务器返回回调结果。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,148 @@
+{
+  "doc_id": 79267,
+  "api_id": "",
+  "title": "设置直播群成员标记",
+  "doc_url": "https://cloud.tencent.com/document/product/269/79267",
+  "sync_time": "2026-10-24 01:43:28",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "App 管理员和群主可以对直播群成员设置不同的标记以区分不同类型的群成员。该功能需旗舰版或企业版，并且在 IM 控制台“群功能配置”中开通“直播群在线成员列表”功能。其他套餐版本调用该 API 将返回失败。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/group_open_avchatroom_http_svc/modify_user_info?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/group_open_avchatroom_http_svc/modify_user_info",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "GroupId",
+      "type": "String",
+      "required": "必填",
+      "description": "操作的群 ID。"
+    },
+    {
+      "name": "CommandType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "1：设置标记。2：删除标记。"
+    },
+    {
+      "name": "MemberList",
+      "type": "Array",
+      "required": "必填",
+      "description": "需要设置的账号列表，每次可以设置最多不超过500个账号，每个群最多只能设置10个不同的标记。标记为大于等于1000的数字。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "最高调用频率",
+      "content": "{\n\n    \"GroupId\": \"@TGS#a6I4ZUUGO\",\n\n    \"CommandType\": 1,\n\n    \"MemberList\": [\n\n        {\n\n            \"Member_Account\": \"teacher10\",\n\n            \"Marks\": [1000]\n\n        },\n\n        {\n\n            \"Member_Account\": \"student9\",\n\n            \"Marks\": [1001]\n\n        }\n\n    ]\n\n}",
+      "clean_json": "{\n  \"GroupId\": \"@TGS#a6I4ZUUGO\",\n  \"CommandType\": 1,\n  \"MemberList\": [\n    {\n      \"Member_Account\": \"teacher10\",\n      \"Marks\": [\n        1000\n      ]\n    },\n    {\n      \"Member_Account\": \"student9\",\n      \"Marks\": [\n        1001\n      ]\n    }\n  ]\n}"
+    },
+    {
+      "title": "示例 2",
+      "content": "{\n\n    \"GroupId\": \"@TGS#a6I4ZUUGO\",\n\n    \"CommandType\": 2,\n\n    \"MemberList\": [\n\n        {\n\n            \"Member_Account\": \"teacher10\",\n\n            \"Marks\": [1000]\n\n        },\n\n        {\n\n            \"Member_Account\": \"student9\",\n\n            \"Marks\": [1001]\n\n        }\n\n    ]\n\n}",
+      "clean_json": "{\n  \"GroupId\": \"@TGS#a6I4ZUUGO\",\n  \"CommandType\": 2,\n  \"MemberList\": [\n    {\n      \"Member_Account\": \"teacher10\",\n      \"Marks\": [\n        1000\n      ]\n    },\n    {\n      \"Member_Account\": \"student9\",\n      \"Marks\": [\n        1001\n      ]\n    }\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "MemberList",
+      "type": "Array",
+      "description": "设置成功的成员列表。批量设置多个账号时，如果其中某个账号不在线则该账号不会返回。当所有被设置的账号不在线/不存在时，后台返回失败。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "应答包体示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"\",\n\n    \"CommandType\": 1,\n\n    \"MemberList\": [\n\n        {\n\n            \"Member_Account\": \"teacher10\",\n\n            \"Marks\": [1000]\n\n        },\n\n        {\n\n            \"Member_Account\": \"student9\",\n\n            \"Marks\": [1001]\n\n        }\n\n    ],\n\n    \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\",\n  \"CommandType\": 1,\n  \"MemberList\": [\n    {\n      \"Member_Account\": \"teacher10\",\n      \"Marks\": [\n        1000\n      ]\n    },\n    {\n      \"Member_Account\": \"student9\",\n      \"Marks\": [\n        1001\n      ]\n    }\n  ],\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10001",
+      "description": "用户未登录错误，请检查 admin 账号和 usersig 是否正确。",
+      "solution": ""
+    },
+    {
+      "code": "10002",
+      "description": "系统错误，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10003",
+      "description": "请求命令非法，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法。请根据应答包中的 ErrorInfo 字段，检查必填字段是否填充，或者字段的填充是否满足协议要求。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "权限不足，本 API 需 App 管理员或者群主调用。",
+      "solution": ""
+    },
+    {
+      "code": "10010",
+      "description": "群组不存在，或者曾经存在过，但是目前已经被解散。",
+      "solution": ""
+    },
+    {
+      "code": "10015",
+      "description": "群组 ID 非法，请检查群组 ID 是否填写正确。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,252 @@
+{
+  "doc_id": 128596,
+  "api_id": "stream_msg_send_c2c_stream_msg",
+  "title": "发送 C2C 流式消息",
+  "doc_url": "https://cloud.tencent.com/document/product/269/128596",
+  "sync_time": "2026-10-24 01:28:49",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "从一个账号向另一个账号发送 C2C（单聊）流式消息。\n流式消息支持实时内容流式传输，适用于 AI 助手回复、大文本传输等场景。\n接口支持消息分片，允许内容分多次发送，客户端可以逐步接收。\n接口不检查发送方和接收方的好友关系（包括黑名单），也不检查发送者是否被禁言。\n流式消息        MsgSeq        字段：该字段由用户在发送消息时指定，可以重复。不由后台生成，也不是全局唯一的。",
+  "rate_limit": "分片间隔限制：每次分片之间的最长间隔不能超过 15 秒，超时后流式消息会自动结束。 体验版和开发版限制日累计发送量：1000条/天。 消息大小 < 128KB。 终止规则：流式消息一旦终止，该流式消息的后续请求将被拒绝。 调用频率：后台接口限制了续流频率为5次/秒。建议使用缓冲逻辑，而非每个字符都立即调用接口，推荐每 200 毫秒调用一次。",
+  "request_url_sample": "https://xxxxxx/v4/stream_msg/send_c2c_stream_msg?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名:中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com其他数据中心暂不支持。"
+    },
+    {
+      "name": "v4/stream_msg/send_c2c_stream_msg",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 sdkappid。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "From_Account",
+      "type": "String",
+      "required": "选填",
+      "description": "消息发送方 UserID（用于指定发送消息方账号）。"
+    },
+    {
+      "name": "To_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "消息接收方 UserID。"
+    },
+    {
+      "name": "MsgSeq",
+      "type": "Integer",
+      "required": "选填",
+      "description": "消息序号（32位无符号整数），由用户指定，用于消息排序和去重。详细规则请看本接口的功能说明。若不填写，后台会自动生成。"
+    },
+    {
+      "name": "MsgRandom",
+      "type": "Integer",
+      "required": "必填",
+      "description": "消息随机数（32位无符号整数），后台用于同一秒内的消息去重。请确保该字段填的是随机数。"
+    },
+    {
+      "name": "SendMsgControl",
+      "type": "Array",
+      "required": "选填",
+      "description": "消息发送控制选项，是一个 String 数组，只对本条消息有效。NoUnread 表示该条消息不计入未读数。NoLastMsg 表示该条消息不更新会话列表。WithMuteNotifications 表示该条消息的接收方对发送方的消息提示音设置生效（默认不生效）。WithBlackListCheck 表示该条消息检查发送方和接收方黑名单。WithFriendCheck 表示该条消息检查发送方和接收方好友关系。WithSpeakingCheck 表示该条消息检查发送方是否被禁言。"
+    },
+    {
+      "name": "MsgBody",
+      "type": "Array",
+      "required": "必填",
+      "description": "消息内容，必须包含 TIMStreamElem 类型的消息元素。"
+    },
+    {
+      "name": "MsgType",
+      "type": "String",
+      "required": "必填",
+      "description": "流式消息必须为 TIMStreamElem。"
+    },
+    {
+      "name": "MsgContent",
+      "type": "Object",
+      "required": "必填",
+      "description": "流式消息内容对象，详见下文 StreamMsgContent 结构。"
+    },
+    {
+      "name": "IsNeedReadReceipt",
+      "type": "Integer",
+      "required": "选填",
+      "description": "该条消息是否需要已读回执：0 为不需要。1 为需要。默认为 0。"
+    },
+    {
+      "name": "OfflinePushInfo",
+      "type": "Object",
+      "required": "选填",
+      "description": "离线推送信息配置，具体可参考 公共参数（OfflinePushInfo 说明）。"
+    },
+    {
+      "name": "CompatibleText",
+      "type": "String",
+      "required": "选填",
+      "description": "用于系统兼容，设置提示文本，默认值为“当前版本过低，请升级后查看流式消息”。"
+    },
+    {
+      "name": "StreamMsgID",
+      "type": "String",
+      "required": "选填",
+      "description": "首次流式消息不需要填写此字段，后续续流需要包含此字段（首次响应中返回）。"
+    },
+    {
+      "name": "Chunks",
+      "type": "Array",
+      "required": "必填",
+      "description": "流式消息分片数组，详见下文 StreamChunk 结构。"
+    },
+    {
+      "name": "EventType",
+      "type": "String",
+      "required": "必填",
+      "description": "分片类型：data ：AI 回复流式内容或普通数据。"
+    },
+    {
+      "name": "Index",
+      "type": "Integer",
+      "required": "必填",
+      "description": "分片索引，从1开始，严格递增。"
+    },
+    {
+      "name": "Markdown",
+      "type": "String",
+      "required": "必填",
+      "description": "流式 Markdown 内容。"
+    },
+    {
+      "name": "IsLast",
+      "type": "Boolean",
+      "required": "必填",
+      "description": "是否为最后一个分片；最后一个分片 IsLast=true。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "Running Environment",
+      "content": "Operating System: Ubuntu 24.04.3 LTS / x86_64\n\nRuntime Version: GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+      "clean_json": "Operating System: Ubuntu 24.04.3 LTS / x86_64\n\nRuntime Version: GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)"
+    },
+    {
+      "title": "发送初始流式消息分片",
+      "content": "{\n\n    \"SyncOtherMachine\": 1,\n\n    \"To_Account\": \"123456789\",\n\n    \"MsgSeq\": 93847636,\n\n    \"MsgRandom\": 1287657,\n\n    \"MsgBody\": [\n\n        {\n\n            \"MsgType\": \"TIMStreamElem\",\n\n            \"MsgContent\": {\n\n                \"CompatibleText\": \"当前版本过低，请升级后查看流式消息\",\n\n                \"Chunks\": [\n\n                    {\n\n                        \"EventType\": \"data\",\n\n                        \"Index\": 1,\n\n                        \"Markdown\": \"你好，这是流式消息的第一个分片\",\n\n                        \"IsLast\": false\n\n                    }\n\n                ]\n\n            }\n\n        }\n\n    ],\n\n    \"CloudCustomData\": \"your cloud custom data\"\n\n}",
+      "clean_json": "{\n  \"SyncOtherMachine\": 1,\n  \"To_Account\": \"123456789\",\n  \"MsgSeq\": 93847636,\n  \"MsgRandom\": 1287657,\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMStreamElem\",\n      \"MsgContent\": {\n        \"CompatibleText\": \"当前版本过低，请升级后查看流式消息\",\n        \"Chunks\": [\n          {\n            \"EventType\": \"data\",\n            \"Index\": 1,\n            \"Markdown\": \"你好，这是流式消息的第一个分片\",\n            \"IsLast\": false\n          }\n        ]\n      }\n    }\n  ],\n  \"CloudCustomData\": \"your cloud custom data\"\n}"
+    },
+    {
+      "title": "继续发送流式消息分片",
+      "content": "{\n\n    \"SyncOtherMachine\": 1,\n\n    \"To_Account\": \"123456789\",\n\n    \"MsgSeq\": 93847636,\n\n    \"MsgRandom\": 1287657,\n\n    \"MsgBody\": [\n\n        {\n\n            \"MsgType\": \"TIMStreamElem\",\n\n            \"MsgContent\": {\n\n                \"StreamMsgID\": \"stream_msg_id_from_first_response\",\n\n                \"Chunks\": [\n\n                    {\n\n                        \"EventType\": \"data\",\n\n                        \"Index\": 2,\n\n                        \"Markdown\": \" - 继续的内容\",\n\n                        \"IsLast\": false\n\n                    },\n\n                    {\n\n                        \"EventType\": \"data\",\n\n                        \"Index\": 3,\n\n                        \"Markdown\": \" - 最后一个分片\",\n\n                        \"IsLast\": true\n\n                    }\n\n                ]\n\n            }\n\n        }\n\n    ]\n\n}",
+      "clean_json": "{\n  \"SyncOtherMachine\": 1,\n  \"To_Account\": \"123456789\",\n  \"MsgSeq\": 93847636,\n  \"MsgRandom\": 1287657,\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMStreamElem\",\n      \"MsgContent\": {\n        \"StreamMsgID\": \"stream_msg_id_from_first_response\",\n        \"Chunks\": [\n          {\n            \"EventType\": \"data\",\n            \"Index\": 2,\n            \"Markdown\": \" - 继续的内容\",\n            \"IsLast\": false\n          },\n          {\n            \"EventType\": \"data\",\n            \"Index\": 3,\n            \"Markdown\": \" - 最后一个分片\",\n            \"IsLast\": true\n          }\n        ]\n      }\n    }\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：处理成功。FAIL：处理失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：成功。非0：失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "StreamMsgID",
+      "type": "String",
+      "description": "流式消息唯一标识，用于续流发送。"
+    },
+    {
+      "name": "MsgKey",
+      "type": "String",
+      "description": "消息的唯一键。"
+    },
+    {
+      "name": "MsgId",
+      "type": "String",
+      "description": "消息 ID。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"StreamMsgID\": \"stream_c2c_1234567890_abcdef\",\n\n    \"MsgKey\": \"c2c_msg_key_xxx\",      \n\n    \"MsgId\": \"c2c_msg_id_xxx\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"StreamMsgID\": \"stream_c2c_1234567890_abcdef\",\n  \"MsgKey\": \"c2c_msg_key_xxx\",\n  \"MsgId\": \"c2c_msg_id_xxx\"\n}"
+    },
+    {
+      "title": "失败应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"FAIL\",\n\n    \"ErrorInfo\": \"流式消息格式错误\",\n\n    \"ErrorCode\": 90300\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"FAIL\",\n  \"ErrorInfo\": \"流式消息格式错误\",\n  \"ErrorCode\": 90300\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "90300",
+      "description": "流式消息格式错误。",
+      "solution": ""
+    },
+    {
+      "code": "90306",
+      "description": "StreamMsgID 解析失败。",
+      "solution": ""
+    },
+    {
+      "code": "90308",
+      "description": "UserSig 或 A2 无效。",
+      "solution": ""
+    },
+    {
+      "code": "90309",
+      "description": "服务器内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "90310",
+      "description": "JSON 格式解析失败。",
+      "solution": ""
+    },
+    {
+      "code": "90311",
+      "description": "MsgBody 格式错误。",
+      "solution": ""
+    },
+    {
+      "code": "90312",
+      "description": "MsgBody 不是数组类型。",
+      "solution": ""
+    },
+    {
+      "code": "90315",
+      "description": "请求频率超限。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,176 @@
+{
+  "doc_id": 102302,
+  "api_id": "official_create",
+  "title": "创建公众号",
+  "doc_url": "https://cloud.tencent.com/document/product/269/102302",
+  "sync_time": "2026-10-24 01:28:55",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "App 管理员可以通过该接口创建公众号。\n说明：该功能仅支持旗舰版或企业版使用，如需启用，请         升级应用         后         联系我们        。您也可申请         开发版         体验此功能，开发版创建公众号数量上限       5       个。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/official_account_open_http_svc/create_official_account?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/official_account_open_http_svc/create_official_account",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "Owner_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "公众号所属的账号 ID（需是 已导入 的账号），代表公众号的拥有者。"
+    },
+    {
+      "name": "OfficialAccountUserID",
+      "type": "String",
+      "required": "选填",
+      "description": "公众号的 ID。为了使公众号 ID 更加简单，便于记忆传播，腾讯云支持 App 在通过 REST API 创建公众号时 自定义公众号 ID。  若不填，则系统会默认生成一个公众号 ID 返回。"
+    },
+    {
+      "name": "Name",
+      "type": "String",
+      "required": "必填",
+      "description": "公众号的名称，最长150字节，使用 UTF-8 编码，1个汉字占3个字节。"
+    },
+    {
+      "name": "Introduction",
+      "type": "String",
+      "required": "选填",
+      "description": "公众号简介，最长400字节，使用 UTF-8 编码，1个汉字占3个字节。"
+    },
+    {
+      "name": "FaceUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "公众号头像，最长500字节。"
+    },
+    {
+      "name": "MaxSubscriberNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "一个公众号的最大可订阅人数，缺省时的默认值为100000。"
+    },
+    {
+      "name": "Organization",
+      "type": "String",
+      "required": "选填",
+      "description": "公众号所属的团体组织，最长500字节，使用 UTF-8 编码，1个汉字占3个字节。"
+    },
+    {
+      "name": "CustomString",
+      "type": "String",
+      "required": "选填",
+      "description": "公众号的自定义字段，最长3000字节，业务层可以使用此字段来实现特殊场景的需求。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"OfficialAccountUserID\": \"@TOA#_test_id\", // 自定义公众号ID的前缀必须是@TOA#_\n\n    \"Owner_Account\": \"107867\",\n\n    \"CustomString\": \"test_custom_string\",\n\n    \"FaceUrl\": \"http://this.is.face.url\",\n\n    \"Introduction\": \"This is test Introduction\",\n\n    \"MaxSubscriberNum\": 1000,\n\n    \"Name\": \"test_official_account\",\n\n    \"Organization\": \"test_organization\"\n\n}",
+      "clean_json": "{\n\n    \"OfficialAccountUserID\": \"@TOA#_test_id\", // 自定义公众号ID的前缀必须是@TOA#_\n\n    \"Owner_Account\": \"107867\",\n\n    \"CustomString\": \"test_custom_string\",\n\n    \"FaceUrl\": \"http://this.is.face.url\",\n\n    \"Introduction\": \"This is test Introduction\",\n\n    \"MaxSubscriberNum\": 1000,\n\n    \"Name\": \"test_official_account\",\n\n    \"Organization\": \"test_organization\"\n\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "OfficialAccountUserID",
+      "type": "String",
+      "description": "创建成功之后的公众号 ID，返回用户自定义或者由即时通信 IM 后台默认分配的 ID。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"OfficialAccountUserID\": \"@TOA#_test_id\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"OfficialAccountUserID\": \"@TOA#_test_id\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "6017",
+      "description": "请求参数非法，请修改后重试。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "服务器内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "20001",
+      "description": "请求包非法，请修改后重试。",
+      "solution": ""
+    },
+    {
+      "code": "20005",
+      "description": "服务器内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "130007",
+      "description": "公众号用户 ID 错误，请修改后重试。",
+      "solution": ""
+    },
+    {
+      "code": "130008",
+      "description": "公众号用户 ID 已经被使用，请修改后重试。",
+      "solution": ""
+    },
+    {
+      "code": "131000",
+      "description": "此 AppId 暂未开通公众号服务，请开通后重试，公众号只支持旗舰版、企业版或开发版。",
+      "solution": ""
+    },
+    {
+      "code": "130010",
+      "description": "创建的公众号数量超过限制，请解散部分公众号或者进行服务升级。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [
+    "创建公众号之前回调",
+    "创建公众号之后回调"
+  ],
+  "notes": []
+}

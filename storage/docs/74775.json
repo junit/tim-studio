@@ -1,0 +1,77 @@
+{
+  "doc_id": 74775,
+  "api_id": "im_cos_msg_forbid_illegal_object",
+  "title": "聊天文件封禁",
+  "doc_url": "https://cloud.tencent.com/document/product/269/74775",
+  "sync_time": "2026-10-24 01:28:54",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "本文介绍腾讯云IM封禁聊天消息中富媒体文件的接口，包括请求URL、参数说明、请求包示例及应答包字段说明，核心结论是调用该接口可封禁通过IM SDK上传的文件。 请求参数：需提供sdkappid、管理员identifier、usersig及随机数random。 请求包字段：必填字段RawURL为文件URL，可从IM富媒体消息获取。 应答包字段：返回ActionStatus、ErrorCode和ErrorInfo，OK和0表示成功。",
+  "rate_limit": "",
+  "request_url_sample": "https://console.tim.qq.com/v4/im_cos_msg/forbid_illegal_object?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "v4/im_cos_msg/forbid_illegal_object",
+      "description": "对象封禁接口"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员﻿"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig﻿"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "RawURL",
+      "type": "String",
+      "required": "必填",
+      "description": "文件 URL，可从 IM 富媒体消息的 URL 字段获取"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n   \"RawURL\":\"https://cos.ap-shanghai.myqcloud.com/005f-shanghai-360-shared-01-1256635546/76aa-1400152839/2f3b-2273451635034382/699eb4ee5ffa9aeb70627958766f2927-142072.jpg\"\n\n}",
+      "clean_json": "{\n\n   \"RawURL\":\"https://cos.ap-shanghai.myqcloud.com/005f-shanghai-360-shared-01-1256635546/76aa-1400152839/2f3b-2273451635034382/699eb4ee5ffa9aeb70627958766f2927-142072.jpg\"\n\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功FAIL：表示失败"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功非0：表示失败"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\"\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

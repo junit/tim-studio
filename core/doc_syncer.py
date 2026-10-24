@@ -1,0 +1,639 @@
+# -*- coding: utf-8 -*-
+"""
+腾讯云 IM 官方文档结构化解析与异步/批量同步引擎
+"""
+
+import concurrent.futures
+from datetime import datetime, timezone, timedelta
+import gzip
+import html
+import json
+import os
+import re
+import threading
+import time
+import urllib.request
+from typing import Dict, List, Optional, Union
+
+# 存储目录
+STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "docs"))
+os.makedirs(STORAGE_DIR, exist_ok=True)
+
+BEIJING_TZ = timezone(timedelta(hours=8))
+
+
+def get_current_time_str() -> str:
+    return datetime.now(BEIJING_TZ).strftime("%Y-%m-%d %H:%M:%S")
+
+
+def get_doc_path(doc_id: int) -> str:
+    return os.path.join(STORAGE_DIR, f"{doc_id}.json")
+
+
+def clean_json_str(raw: str) -> str:
+    """尝试将带注释或特殊字符的 JSON 文本清洗为格式化标准 JSON，失败则保留原字符串"""
+    if not raw:
+        return ""
+    # 移除单行与多行注释
+    no_comments = re.sub(r"//[^\n]*", "", raw)
+    no_comments = re.sub(r"/\*.*?\*/", "", no_comments, flags=re.DOTALL)
+    # 移除末尾逗号
+    no_trailing = re.sub(r",\s*([\}\]])", r"\1", no_comments)
+    # 移除省略号 ...
+    no_dots = re.sub(r"\.\.\.+", "", no_trailing)
+    try:
+        parsed = json.loads(no_dots)
+        return json.dumps(parsed, ensure_ascii=False, indent=2)
+    except Exception:
+        return raw.strip()
+
+
+def parse_official_doc(
+    doc_id: int,
+    api_id: str = "",
+    doc_url: str = "",
+    mode: str = "auto",  # 'auto' | 'html' | 'api'
+) -> dict:
+    """
+    抓取腾讯云 IM 官方文档并结构化解析为标准数据模型：
+    - mode='auto': 优先通过官方 getDocPageDetail 接口拉取结构化正文，若失败或受限优雅回退至原生网页 HTML 抓取；
+    - mode='html': 纯净抓取官方原生网页 HTML 解析（防封防限频，不调用动态 CGI 接口）；
+    - mode='api': 纯净调用官方 getDocPageDetail 接口（极小数据量快速提取）。
+    """
+    if not doc_url:
+        doc_url = f"https://cloud.tencent.com/document/product/269/{doc_id}"
+
+    text = ""
+    title = ""
+    overview = ""
+    actual_source = "html"
+
+    # 1. 若为 auto 或 api 模式，优先尝试官方 getDocPageDetail 接口
+    detail = None
+    if mode in ("auto", "api"):
+        try:
+            from core.tree_syncer import fetch_doc_detail_api
+            detail = fetch_doc_detail_api(doc_id)
+            if detail and detail.get("body"):
+                text = detail.get("body", "")
+                title = detail.get("title", "")
+                actual_source = "api"
+        except Exception as e:
+            if mode == "api":
+                raise RuntimeError(f"动态接口 (getDocPageDetail) 获取失败: {e}")
+            print(f"[DEBUG] getDocPageDetail fallback to html for {doc_id}: {e}")
+
+    # 2. 若正文仍为空且允许 html 抓取（auto 回退或明确指定 html 模式）
+    if not text:
+        if mode == "api":
+            raise RuntimeError(f"动态接口 (getDocPageDetail) 未返回有效文档正文 (doc_id={doc_id})")
+
+        actual_source = "html"
+        req = urllib.request.Request(
+            doc_url,
+            headers={
+                "User-Agent": (
+                    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+                    "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                ),
+                "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+                "Accept-Encoding": "gzip, deflate",
+            },
+        )
+        with urllib.request.urlopen(req, timeout=12) as resp:
+            raw_bytes = resp.read()
+            try:
+                decompressed = gzip.decompress(raw_bytes)
+            except Exception:
+                decompressed = raw_bytes
+            text = decompressed.decode("utf-8", errors="ignore")
+
+    # 3. 提取/补充标题
+    if not title:
+        title_m = re.search(r"<h[1-2][^>]*>(.*?)</h[1-2]>", text, re.DOTALL)
+        title = html.unescape(re.sub(r"<[^>]+>", "", title_m.group(1))).strip() if title_m else ""
+
+    # 4. 提取功能说明 (真实正文内容，逐项解析)
+    desc_m = re.search(r"<h[1-6][^>]*>(?:(?!</h[1-6]>).)*?(?:功能说明|接口说明|接口描述).*?</h[1-6]>(.*?)(?:<h[1-6]|\Z)", text, re.DOTALL)
+    if desc_m:
+        d = re.sub(r"</?(p|div|br|li|ul|ol)[^>]*>", "\n", desc_m.group(1))
+        d_clean = html.unescape(re.sub(r"<[^>]+>", " ", d)).strip()
+        raw_lines = [
+            re.sub(r"^[•\-\*\s]+", "", line.strip())
+            for line in d_clean.split("\n")
+            if line.strip()
+            and not line.strip().startswith("!function")
+            and line.strip() not in ("功能说明", "接口说明", "接口描述")
+            and not line.strip().startswith(("以下视频", "﻿"))
+        ]
+        merged_lines = []
+        skip_next = False
+        for idx, line in enumerate(raw_lines):
+            if skip_next:
+                skip_next = False
+                continue
+            if line in ("注意", "注意：", "说明", "说明：", "提示", "提示：") and idx + 1 < len(raw_lines):
+                tag = line.rstrip("：:")
+                merged_lines.append(f"{tag}：{raw_lines[idx + 1].lstrip('：:')}")
+                skip_next = True
+            else:
+                merged_lines.append(line)
+        overview = "\n".join(merged_lines)
+
+    # 兜底：若正文中无功能说明标题，使用 API description 作为备用
+    if not overview and detail and detail.get("description"):
+        overview = detail.get("description", "")
+
+    # 3. 频率限制
+    rate_limit = ""
+    rate_m = re.search(r"<h[1-6][^>]*>(?:(?!</h[1-6]>).)*?(?:频率|限频|最高调用).*?</h[1-6]>(.*?)(?:<h[1-6]|\Z)", text, re.DOTALL)
+    if rate_m:
+        r_clean = html.unescape(re.sub(r"<[^>]+>", " ", rate_m.group(1))).strip()
+        rate_limit = " ".join(r_clean.split())
+
+    # 4. 遍历文档节点序列：Heading、Table、Pre Code
+    elem_pattern = re.compile(
+        r"(<h[2-5][^>]*>(.*?)</h[2-5]>)|(<table[^>]*>(.*?)</table>)|(<pre[^>]*>(.*?)</pre>)",
+        re.DOTALL,
+    )
+
+    current_major_section = ""
+    current_sub_heading = ""
+    url_sample = ""
+    url_params = []
+    req_fields = []
+    resp_fields = []
+    err_codes = []
+    req_examples = []
+    resp_examples = []
+    callbacks = []
+    notes = []
+    last_pre_end = 0
+
+    for m in elem_pattern.finditer(text):
+        if m.group(1):
+            h_text = html.unescape(re.sub(r"<[^>]+>", "", m.group(2))).strip()
+            current_sub_heading = h_text
+            if any(k in h_text for k in ["请求包", "请求示例", "请求 URL", "请求参数", "最高调用频率", "功能说明", "应答包", "错误码", "回调"]):
+                current_major_section = h_text
+        elif m.group(3):
+            # 表格解析
+            tbl_html = m.group(4)
+            rows = re.findall(r"<tr[^>]*>(.*?)</tr>", tbl_html, re.DOTALL)
+            if not rows:
+                continue
+
+            headers = []
+            parsed_rows = []
+            for r_idx, row in enumerate(rows):
+                cells = re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", row, re.DOTALL)
+                clean_cells = [
+                    html.unescape(re.sub(r"<[^>]+>", "", c)).strip().replace("\n", " ")
+                    for c in cells
+                ]
+                if r_idx == 0:
+                    headers = clean_cells
+                else:
+                    if len(clean_cells) == len(headers):
+                        parsed_rows.append(dict(zip(headers, clean_cells)))
+                    else:
+                        parsed_rows.append({f"col_{i}": c for i, c in enumerate(clean_cells)})
+
+            def get_cell(row_dict, *aliases):
+                for a in aliases:
+                    if a in row_dict and row_dict[a] is not None:
+                        val = str(row_dict[a]).strip()
+                        if val:
+                            return val
+                for k, v in row_dict.items():
+                    for a in aliases:
+                        if a in k and v is not None:
+                            val = str(v).strip()
+                            if val:
+                                return val
+                return ""
+
+            h_str = " ".join(headers)
+            heading_ctx = f"{current_major_section} {current_sub_heading}"
+
+            has_err = any(k in h_str for k in ["错误码", "ErrorCode", "code", "Code"])
+            has_field = any(k in h_str for k in ["字段", "参数", "属性名", "名称", "Field", "Name", "key"])
+            has_type = any(k in h_str for k in ["类型", "数据类型", "Type"])
+            has_req = any(k in h_str for k in ["属性", "必填", "必选", "是否必填", "Required"])
+
+            if has_err:
+                for r in parsed_rows:
+                    code = get_cell(r, "错误码", "ErrorCode", "code")
+                    desc = get_cell(r, "含义说明", "描述", "说明", "含义")
+                    sol = get_cell(r, "处理建议", "解决建议", "排查建议", "建议")
+                    if code and code != "错误码":
+                        err_codes.append({"code": code, "description": desc, "solution": sol})
+            elif ("URL" in heading_ctx or "请求参数" in heading_ctx or "参数说明" in heading_ctx) and not has_type and (len(headers) <= 2 or "参数" in h_str):
+                for r in parsed_rows:
+                    name = get_cell(r, "参数", "参数名", "字段", "字段名")
+                    desc = get_cell(r, "说明", "描述", "含义")
+                    if name and name not in ("参数", "字段", "参数名", "字段名"):
+                        url_params.append({"name": name, "description": desc})
+            elif has_field or has_type:
+                is_resp = any(k in heading_ctx for k in ["应答", "回包", "返回", "响应", "Response", "response"])
+                is_req = any(k in heading_ctx for k in ["请求包", "请求字段", "请求参数", "Request", "request"])
+
+                if is_resp or (not is_req and not has_req and len(req_fields) > 0):
+                    for r in parsed_rows:
+                        name = get_cell(r, "字段名", "字段", "参数名", "参数", "属性名", "名称")
+                        typ = get_cell(r, "类型", "数据类型", "Type")
+                        desc = get_cell(r, "说明", "描述", "含义", "含义说明")
+                        if name and name not in ("字段", "字段名", "参数", "参数名"):
+                            resp_fields.append({"name": name, "type": typ, "description": desc})
+                else:
+                    for r in parsed_rows:
+                        name = get_cell(r, "字段名", "字段", "参数名", "参数", "属性名", "名称")
+                        typ = get_cell(r, "类型", "数据类型", "Type")
+                        req_val = get_cell(r, "必填", "是否必填", "属性", "必选", "Required")
+                        desc = get_cell(r, "说明", "描述", "含义", "含义说明")
+                        if req_val in ("是", "true", "True", "Y", "YES"):
+                            req_val = "必填"
+                        elif req_val in ("否", "false", "False", "N", "NO"):
+                            req_val = "选填"
+                        if name and name not in ("字段", "字段名", "参数", "参数名"):
+                            req_fields.append({"name": name, "type": typ, "required": req_val, "description": desc})
+        elif m.group(5):
+            # Pre 代码块
+            pr_html = m.group(6)
+            p_clean = re.sub(r"</?(div|p|br|li|tr)[^>]*>", "\n", pr_html)
+            clean = html.unescape(re.sub(r"<[^>]+>", "", p_clean)).strip()
+            if not clean:
+                continue
+
+            # 智能提取当前代码块的所属场景标题（分析与上一个代码块之间的文本）
+            pre_start = m.start()
+            between = text[last_pre_end:pre_start]
+            last_pre_end = m.end()
+
+            candidate_tags = re.findall(r"<(h[2-6]|b|strong)[^>]*>(.*?)</\1>", between, re.DOTALL)
+            context_title = ""
+            for tag_name, content in candidate_tags:
+                clean_t = html.unescape(re.sub(r"<[^>]+>", "", content)).strip()
+                clean_t = re.sub(r"^[0-9一二三四五六七八九十\.\、\s\-\*]+", "", clean_t).strip().rstrip("：:")
+                # 排除通用章节和提示性标题
+                if (
+                    clean_t
+                    and len(clean_t) <= 80
+                    and clean_t not in (
+                        "注意", "说明", "提示", "请求包示例", "请求包", "应答包",
+                        "应答包示例", "JSON", "HTTP", "请求 URL 示例", "请求参数说明",
+                        "请求频率限制", "请求包字段说明", "适用的群组类型", "功能说明",
+                        "接口调用说明", "参数说明", "示例说明", "回包字段说明", "返回结果",
+                        "调用频率限制", "最高调用频率", "频率限制", "调用频率"
+                    )
+                    and not clean_t.startswith(("http", "https", "curl", "{", "["))
+                ):
+                    context_title = clean_t
+
+            if "请求 URL" in current_sub_heading or (clean.startswith("http") and "?" in clean):
+                url_sample = clean
+            elif "应答" in current_major_section or "应答" in current_sub_heading or any(k in clean for k in ("ActionStatus", "ErrorCode", "ErrorInfo")):
+                title_ex = context_title or (current_sub_heading if "应答" in current_sub_heading else "应答示例")
+                if not context_title:
+                    if "FAIL" in clean:
+                        title_ex = "失败应答示例"
+                    elif "OK" in clean or '"ErrorCode": 0' in clean:
+                        title_ex = "成功应答示例"
+                resp_examples.append({
+                    "title": title_ex,
+                    "content": clean,
+                    "clean_json": clean_json_str(clean)
+                })
+            else:
+                title_ex = context_title or (current_sub_heading if current_sub_heading not in ("请求包示例", "请求包") else f"示例 {len(req_examples) + 1}")
+                req_examples.append({
+                    "title": title_ex,
+                    "content": clean,
+                    "clean_json": clean_json_str(clean)
+                })
+
+    # 提取回调列表
+    cb_m = re.search(r"<h[1-6][^>]*>(?:(?!</h[1-6]>).)*?(?:回调).*?</h[1-6]>(.*?)(?:<h[1-6]|\Z)", text, re.DOTALL)
+    if cb_m:
+        cb_links = re.findall(r"<a[^>]*>(.*?)</a>", cb_m.group(1))
+        for cl in cb_links:
+            clean_l = html.unescape(re.sub(r"<[^>]+>", "", cl)).strip()
+            if clean_l and "回调" in clean_l and clean_l not in callbacks:
+                callbacks.append(clean_l)
+
+    return {
+        "doc_id": doc_id,
+        "api_id": api_id,
+        "title": title,
+        "doc_url": doc_url,
+        "sync_time": get_current_time_str(),
+        "status": "synced",
+        "source_mode": actual_source,  # 'html' | 'api'
+        "requested_mode": mode,        # 'auto' | 'html' | 'api'
+        "overview": overview,
+        "rate_limit": rate_limit,
+        "request_url_sample": url_sample,
+        "url_params": url_params,
+        "request_body_fields": req_fields,
+        "request_examples": req_examples,
+        "response_body_fields": resp_fields,
+        "response_examples": resp_examples,
+        "error_codes": err_codes,
+        "callbacks": callbacks,
+        "notes": notes,
+    }
+
+
+def save_doc(doc_data: dict) -> str:
+    doc_id = doc_data.get("doc_id")
+    if not doc_id:
+        raise ValueError("Missing doc_id in doc_data")
+    filepath = get_doc_path(doc_id)
+    with open(filepath, "w", encoding="utf-8") as f:
+        json.dump(doc_data, f, ensure_ascii=False, indent=2)
+    return filepath
+
+
+def get_doc_by_id(doc_id: int) -> Optional[dict]:
+    filepath = get_doc_path(doc_id)
+    if os.path.exists(filepath):
+        try:
+            with open(filepath, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            return None
+    return None
+
+
+class DocSyncManager:
+    """
+    文档同步管理器：支持单接口即时同步、后台多线程异步批量同步、进度监控与中断控制
+    """
+
+    def __init__(self):
+        self._lock = threading.Lock()
+        self._is_running = False
+        self._cancel_requested = False
+        self._thread: Optional[threading.Thread] = None
+
+        self._status = {
+            "is_running": False,
+            "total": 0,
+            "completed": 0,
+            "success_count": 0,
+            "error_count": 0,
+            "percent": 0,
+            "current_name": "",
+            "current_doc_id": 0,
+            "start_time": None,
+            "end_time": None,
+            "errors": [],
+        }
+
+    def get_status(self) -> dict:
+        with self._lock:
+            return dict(self._status)
+
+    def get_doc_for_api(self, api_meta: dict) -> dict:
+        """
+        获取指定 API 的结构化文档。若本地已同步则返回完整文档；否则返回未同步骨架与降级字段。
+        """
+        doc_id = api_meta.get("doc_id")
+        api_id = api_meta.get("api_id")
+        name = api_meta.get("name", "")
+        doc_url = api_meta.get("doc_url", "")
+        desc = api_meta.get("description", "")
+        sample_payload = api_meta.get("sample_payload", {})
+        fields = api_meta.get("fields", [])
+
+        if doc_id:
+            saved = get_doc_by_id(doc_id)
+            if saved:
+                # 补充 api_id 若缺失
+                saved["api_id"] = api_id
+                return saved
+
+        # 本地未同步时提供友好骨架
+        req_fields = [
+            {
+                "name": f.get("name"),
+                "type": f.get("type", "string"),
+                "required": "必填" if f.get("required") else "选填",
+                "description": f.get("help_text") or f.get("label") or "",
+            }
+            for f in fields
+        ]
+
+        req_examples = []
+        if sample_payload:
+            payload_str = json.dumps(sample_payload, ensure_ascii=False, indent=2)
+            req_examples.append({
+                "title": "官方基础示例",
+                "content": payload_str,
+                "clean_json": payload_str,
+            })
+
+        return {
+            "doc_id": doc_id or 0,
+            "api_id": api_id,
+            "title": name,
+            "doc_url": doc_url,
+            "sync_time": None,
+            "status": "not_synced",
+            "overview": desc,
+            "rate_limit": "",
+            "request_url_sample": "",
+            "url_params": [
+                {"name": "sdkappid", "description": "创建应用时分配的 SDKAppID"},
+                {"name": "identifier", "description": "必须为 App 管理员账号"},
+                {"name": "usersig", "description": "管理员 UserSig 签名"},
+                {"name": "random", "description": "32位无符号整数随机数"},
+                {"name": "contenttype", "description": "固定为 json"},
+            ],
+            "request_body_fields": req_fields,
+            "request_examples": req_examples,
+            "response_body_fields": [
+                {"name": "ActionStatus", "type": "String", "description": "请求处理结果：OK 或 FAIL"},
+                {"name": "ErrorCode", "type": "Integer", "description": "错误码：0为成功，非0为失败"},
+                {"name": "ErrorInfo", "type": "String", "description": "详细错误信息"},
+            ],
+            "response_examples": [
+                {
+                    "title": "标准成功响应",
+                    "content": '{\n  "ActionStatus": "OK",\n  "ErrorCode": 0,\n  "ErrorInfo": ""\n}',
+                    "clean_json": '{\n  "ActionStatus": "OK",\n  "ErrorCode": 0,\n  "ErrorInfo": ""\n}',
+                }
+            ],
+            "error_codes": [
+                {"code": "0", "description": "操作成功", "solution": "无需处理"},
+                {"code": "60002", "description": "UserSig 签名过期或无效", "solution": "请重新生成管理员 UserSig"},
+                {"code": "70001", "description": "SecretKey 不匹配或应用未配置", "solution": "核对控制台密钥配置"},
+                {"code": "90001", "description": "请求频率超限 (触发 QPS 限制)", "solution": "降低调用速率或联系腾讯云提频"},
+            ],
+            "callbacks": [],
+            "notes": [],
+        }
+
+    def sync_single(self, doc_id: int, api_id: str = "", doc_url: str = "", mode: str = "auto") -> dict:
+        """
+        同步单个文档并持久化保存
+        """
+        parsed = parse_official_doc(doc_id, api_id, doc_url, mode=mode)
+        save_doc(parsed)
+        return parsed
+
+    def start_batch_sync(self, apis_list: List[dict], force: bool = False, mode: str = "auto") -> dict:
+        """
+        启动后台多线程异步批量同步
+        """
+        with self._lock:
+            if self._is_running:
+                return {
+                    "status": "already_running",
+                    "message": "批量同步任务正在后台运行中",
+                    "sync_status": self._status,
+                }
+
+            self._is_running = True
+            self._cancel_requested = False
+            total_items = len(apis_list)
+
+            self._status = {
+                "is_running": True,
+                "total": total_items,
+                "mode": mode,
+                "completed": 0,
+                "success_count": 0,
+                "error_count": 0,
+                "percent": 0,
+                "current_name": "准备中...",
+                "current_doc_id": 0,
+                "start_time": get_current_time_str(),
+                "end_time": None,
+                "errors": [],
+            }
+
+        def worker():
+            max_workers = 5
+            completed_count = 0
+            success_count = 0
+            error_count = 0
+
+            def process_item(item):
+                nonlocal completed_count, success_count, error_count
+
+                if self._cancel_requested:
+                    return
+
+                doc_id = item.get("doc_id")
+                api_id = item.get("api_id")
+                name = item.get("name", "")
+                doc_url = item.get("doc_url", "")
+
+                if not doc_id:
+                    with self._lock:
+                        completed_count += 1
+                    return
+
+                # 若不是强制全量同步且已存在本地文件，可跳过
+                if not force and os.path.exists(get_doc_path(doc_id)):
+                    with self._lock:
+                        completed_count += 1
+                        success_count += 1
+                        pct = int((completed_count / total_items) * 100)
+                        self._status.update({
+                            "completed": completed_count,
+                            "success_count": success_count,
+                            "percent": pct,
+                            "current_name": f"{name} (已跳过本地已有)",
+                            "current_doc_id": doc_id,
+                        })
+                    return
+
+                with self._lock:
+                    self._status["current_name"] = name
+                    self._status["current_doc_id"] = doc_id
+
+                try:
+                    parsed = parse_official_doc(doc_id, api_id, doc_url, mode=mode)
+                    save_doc(parsed)
+                    with self._lock:
+                        success_count += 1
+                except Exception as e:
+                    with self._lock:
+                        error_count += 1
+                        self._status["errors"].append({
+                            "doc_id": doc_id,
+                            "name": name,
+                            "error": str(e),
+                        })
+
+                with self._lock:
+                    completed_count += 1
+                    pct = int((completed_count / total_items) * 100) if total_items > 0 else 100
+                    self._status.update({
+                        "completed": completed_count,
+                        "success_count": success_count,
+                        "error_count": error_count,
+                        "percent": pct,
+                    })
+
+                # 温和间隔避免过于激进的请求突发
+                time.sleep(0.08)
+
+            with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+                futures = [executor.submit(process_item, item) for item in apis_list]
+                for f in concurrent.futures.as_completed(futures):
+                    if self._cancel_requested:
+                        break
+
+            with self._lock:
+                self._is_running = False
+                self._status["is_running"] = False
+                self._status["end_time"] = get_current_time_str()
+                self._status["current_name"] = "已完成" if not self._cancel_requested else "已取消"
+
+        self._thread = threading.Thread(target=worker, daemon=True)
+        self._thread.start()
+
+        return {
+            "status": "started",
+            "message": f"已启动 {total_items} 项文档异步后台同步任务",
+            "sync_status": self.get_status(),
+        }
+
+    def cancel_batch_sync(self) -> dict:
+        with self._lock:
+            if not self._is_running:
+                return {"status": "not_running", "message": "当前没有运行中的同步任务"}
+            self._cancel_requested = True
+            return {"status": "cancelling", "message": "已发送取消同步请求"}
+
+    def get_summary(self, apis_list: List[dict]) -> dict:
+        total = len(apis_list)
+        synced_count = 0
+        last_sync_time = None
+
+        for item in apis_list:
+            doc_id = item.get("doc_id")
+            if doc_id and os.path.exists(get_doc_path(doc_id)):
+                synced_count += 1
+                try:
+                    mtime = datetime.fromtimestamp(os.path.getmtime(get_doc_path(doc_id)), tz=BEIJING_TZ)
+                    mtime_str = mtime.strftime("%Y-%m-%d %H:%M:%S")
+                    if not last_sync_time or mtime_str > last_sync_time:
+                        last_sync_time = mtime_str
+                except Exception:
+                    pass
+
+        return {
+            "total_apis": total,
+            "synced_count": synced_count,
+            "not_synced_count": max(0, total - synced_count),
+            "synced_percent": int((synced_count / total) * 100) if total > 0 else 0,
+            "last_sync_time": last_sync_time,
+            "is_running": self.get_status()["is_running"],
+        }
+
+
+doc_sync_manager = DocSyncManager()

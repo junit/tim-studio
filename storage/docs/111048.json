@@ -1,0 +1,292 @@
+{
+  "doc_id": 111048,
+  "api_id": "tim_111048",
+  "title": "全员/标签消息",
+  "doc_url": "https://cloud.tencent.com/document/product/269/111048",
+  "sync_time": "2026-10-24 01:28:55",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "支持向全部用户发送推送。\n支持按用户属性发送推送。\n支持按用户标签发送推送。\n管理员推送消息，接收方看到消息发送者是管理员。\n管理员指定某一账号向其他账号推送消息，接收方看到发送者不是管理员，而是管理员指定的账号。\n支持漫游，漫游存储时长与普通消息的存储时长一致。\n由于全员/标签推送需要下发的账号数量巨大，下发完全部账号需要一定时间（根据账号总数而定）。\n支持通过 OnlineOnlyFlag 设置为1，则可以只发送推送，不保存会话和漫游以及未读消息。",
+  "rate_limit": "本接口包含全员、属性、标签推送，默认每天最多调用100次，每两次推送间隔必须大于1s。 注意： 接口调用频率，默认可免费调用100次/日。每提高1次/日，费用将增加20元/日。如需调整接口频率，请前往 IM 控制台 操作。",
+  "request_url_sample": "https://xxxxxx/v4/timpush/push?usersig=xxx&identifier=admin&sdkappid=88888888&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "https",
+      "description": "请求协议：HTTPS。请求方式：POST。"
+    },
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名。中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/timpush/push",
+      "description": "请求接口。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，参见 UserSig 后台 API。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员﻿。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时，即时通信控制台分配的 SdkAppid。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "固定值为：json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "From_Account",
+      "type": "String",
+      "required": "选填",
+      "description": "消息推送方账号（支持指定为任意存在的账号）。如果未指定发送方或指定的发送方不存在，则默认取接口调用方账号。"
+    },
+    {
+      "name": "MsgRandom",
+      "type": "Integer",
+      "required": "必填",
+      "description": "32位无符号整数随机数，取值范围0 - 4294967295后台用于同一秒内的消息去重，请确保是随机数。"
+    },
+    {
+      "name": "OnlineOnlyFlag",
+      "type": "Integer",
+      "required": "选填",
+      "description": "默认为 0，表示存漫游和未读，推送并发限制200人/秒。1 表示不存历史消息且不计未读。说明：如需调整推送并发限制，请联系 腾讯云客服 或商务工作人员。"
+    },
+    {
+      "name": "Condition",
+      "type": "Object",
+      "required": "选填",
+      "description": "推送目前人群的筛选条件，如果不填写 Condition 则推送给所有用户。详细请参见 Condition 字段说明。"
+    },
+    {
+      "name": "MsgBody",
+      "type": "Array",
+      "required": "必填",
+      "description": "消息内容，具体格式请参见 MsgBody 消息内容说明（一条消息可包括多种消息元素，所以 MsgBody 为 Array 类型）。"
+    },
+    {
+      "name": "MsgType",
+      "type": "String",
+      "required": "必填",
+      "description": "TIM 消息对象类型，目前支持的消息对象包括：TIMTextElem（文本消息）TIMLocationElem（位置消息）TIMFaceElem（表情消息）TIMCustomElem（自定义消息）TIMSoundElem（语音消息）TIMImageElem（图像消息）TIMFileElem（文件消息）TIMVideoFileElem（视频消息）"
+    },
+    {
+      "name": "MsgContent",
+      "type": "Object",
+      "required": "必填",
+      "description": "对于每种 MsgType，用不同的 MsgContent 格式，具体请参见 TIMMsgElement 对象 的定义。"
+    },
+    {
+      "name": "OfflinePushInfo",
+      "type": "Object",
+      "required": "选填",
+      "description": "离线推送信息配置，具体请参见 公共参数（OfflinePushInfo 说明）。"
+    },
+    {
+      "name": "TagsOr",
+      "type": "String Array",
+      "required": "选填",
+      "description": "标签条件的并集，数组长度不超过10个。"
+    },
+    {
+      "name": "TagsAnd",
+      "type": "String Array",
+      "required": "选填",
+      "description": "标签条件的交集，数组长度不超过10个。"
+    },
+    {
+      "name": "TagsNot",
+      "type": "String Array",
+      "required": "选填",
+      "description": "标签条件的非集（多个标签之间，先取多标签的并集，再对该结果取补集），数组长度不超过10个。推送条件仅有 TagsNot 时， 会先取30天的活跃用户，再用 TagsNot 取反进行推送。"
+    },
+    {
+      "name": "AttrsOr",
+      "type": "Object",
+      "required": "选填",
+      "description": "属性条件的并集，数组长度不超过10个。"
+    },
+    {
+      "name": "AttrsAnd",
+      "type": "Object",
+      "required": "选填",
+      "description": "属性条件的交集，数组长度不超过10个。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "全员推送示例",
+      "content": "{\n\n  \"From_Account\": \"admin\",\n\n  \"MsgRandom\": 3674128,\n\n  \"OnlineOnlyFlag\": 0, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 0,  // 0表示进行离线推送，1表示不进行离线推送\n\n      \"Title\": \"离线推送标题\",\n\n      \"Desc\": \"离线推送内容\"\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"admin\",\n  \"MsgRandom\": 3674128,\n  \"OnlineOnlyFlag\": 0,\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Title\": \"离线推送标题\",\n    \"Desc\": \"离线推送内容\"\n  }\n}"
+    },
+    {
+      "title": "全员推送示例",
+      "content": "{\n\n  \"From_Account\": \"xiaoming\",\n\n  \"MsgRandom\": 3674128,\n\n  \"OnlineOnlyFlag\": 0, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 0,  // 0表示进行离线推送，1表示不进行离线推送\n\n      \"Title\": \"离线推送标题\",\n\n      \"Desc\": \"离线推送内容\"\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"xiaoming\",\n  \"MsgRandom\": 3674128,\n  \"OnlineOnlyFlag\": 0,\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Title\": \"离线推送标题\",\n    \"Desc\": \"离线推送内容\"\n  }\n}"
+    },
+    {
+      "title": "全员推送示例",
+      "content": "{\n\n  \"From_Account\": \"xiaoming\",\n\n  \"MsgRandom\": 3674128,\n\n  \"OnlineOnlyFlag\": 1, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 1  // 0表示进行离线推送，1表示不进行离线推送\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"xiaoming\",\n  \"MsgRandom\": 3674128,\n  \"OnlineOnlyFlag\": 1,\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 1\n  }\n}"
+    },
+    {
+      "title": "按用户标签推送示例",
+      "content": "{\n\n  \"From_Account\": \"admin\",\n\n  \"MsgRandom\": 124032,\n\n  \"OnlineOnlyFlag\": 0, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"Condition\": {\n\n      \"TagsAnd\": [\"股票A\",\"股票B\"]\n\n  },\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 0, // 0表示进行离线推送，1表示不进行离线推送\n\n      \"Title\": \"离线推送标题\",\n\n      \"Desc\": \"离线推送内容\"\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"admin\",\n  \"MsgRandom\": 124032,\n  \"OnlineOnlyFlag\": 0,\n  \"Condition\": {\n    \"TagsAnd\": [\n      \"股票A\",\n      \"股票B\"\n    ]\n  },\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Title\": \"离线推送标题\",\n    \"Desc\": \"离线推送内容\"\n  }\n}"
+    },
+    {
+      "title": "按用户标签推送示例",
+      "content": "{\n\n  \"From_Account\": \"admin\",\n\n  \"MsgRandom\": 124032,\n\n  \"OnlineOnlyFlag\": 0, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"Condition\": {\n\n      \"TagsOr\": [\"股票A\",\"股票B\"]\n\n  },\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 0, // 0表示进行离线推送，1表示不进行离线推送\n\n      \"Title\": \"离线推送标题\",\n\n      \"Desc\": \"离线推送内容\"\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"admin\",\n  \"MsgRandom\": 124032,\n  \"OnlineOnlyFlag\": 0,\n  \"Condition\": {\n    \"TagsOr\": [\n      \"股票A\",\n      \"股票B\"\n    ]\n  },\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Title\": \"离线推送标题\",\n    \"Desc\": \"离线推送内容\"\n  }\n}"
+    },
+    {
+      "title": "按用户标签推送示例",
+      "content": "{\n\n  \"From_Account\": \"admin\",\n\n  \"MsgRandom\": 124032,\n\n  \"OnlineOnlyFlag\": 0, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"Condition\": {\n\n      \"TagsAnd\": [\"股票A\",\"股票B\"],\n\n      \"TagsNot\": [\"股票C\",\"股票D\"] // 最终推送范围：（\"股票A\"或\"股票B\"）且非（\"股票C\"且\"股票D\"）\n\n  },\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 0, // 0表示进行离线推送，1表示不进行离线推送\n\n      \"Title\": \"离线推送标题\",\n\n      \"Desc\": \"离线推送内容\"\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"admin\",\n  \"MsgRandom\": 124032,\n  \"OnlineOnlyFlag\": 0,\n  \"Condition\": {\n    \"TagsAnd\": [\n      \"股票A\",\n      \"股票B\"\n    ],\n    \"TagsNot\": [\n      \"股票C\",\n      \"股票D\"\n    ]\n  },\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Title\": \"离线推送标题\",\n    \"Desc\": \"离线推送内容\"\n  }\n}"
+    },
+    {
+      "title": "按用户属性推送",
+      "content": "{\n\n  \"From_Account\": \"admin\",\n\n  \"MsgRandom\": 389475,\n\n  \"OnlineOnlyFlag\": 0, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"Condition\": {\n\n      \"AttrsAnd\": {\n\n          \"会员等级\": \"超白金会员\",\n\n          \"city\": \"深圳\"\n\n      }\n\n  },\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 0, // 0表示进行离线推送，1表示不进行离线推送\n\n      \"Title\": \"离线推送标题\",\n\n      \"Desc\": \"离线推送内容\"\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"admin\",\n  \"MsgRandom\": 389475,\n  \"OnlineOnlyFlag\": 0,\n  \"Condition\": {\n    \"AttrsAnd\": {\n      \"会员等级\": \"超白金会员\",\n      \"city\": \"深圳\"\n    }\n  },\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Title\": \"离线推送标题\",\n    \"Desc\": \"离线推送内容\"\n  }\n}"
+    },
+    {
+      "title": "按用户属性推送",
+      "content": "{\n\n  \"From_Account\": \"admin\",\n\n  \"MsgRandom\": 389475,\n\n  \"OnlineOnlyFlag\": 0, // 0表示存漫游和未读，推送并发限制200人/秒；1表示不存漫游和未读\n\n  \"Condition\": {\n\n      \"AttrsOr\": {\n\n          \"会员等级\": \"超白金用户\",\n\n          \"city\": \"深圳\"\n\n      }\n\n  },\n\n  \"MsgBody\": [\n\n      {\n\n          \"MsgType\": \"TIMTextElem\",\n\n          \"MsgContent\": {\n\n              \"Text\": \"hi, beauty\"\n\n          }\n\n      }\n\n  ],\n\n  \"OfflinePushInfo\": {\n\n      \"PushFlag\": 0, // 0表示进行离线推送，1表示不进行离线推送\n\n      \"Title\": \"离线推送标题\",\n\n      \"Desc\": \"离线推送内容\"\n\n  }\n\n}",
+      "clean_json": "{\n  \"From_Account\": \"admin\",\n  \"MsgRandom\": 389475,\n  \"OnlineOnlyFlag\": 0,\n  \"Condition\": {\n    \"AttrsOr\": {\n      \"会员等级\": \"超白金用户\",\n      \"city\": \"深圳\"\n    }\n  },\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Title\": \"离线推送标题\",\n    \"Desc\": \"离线推送内容\"\n  }\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "TaskId",
+      "type": "String",
+      "description": "推送任务 ID。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"TaskId\": \"667015d4_537529d8_2000005e80aa873_d03ac87_56f5e750\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"TaskId\": \"667015d4_537529d8_2000005e80aa873_d03ac87_56f5e750\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "90001",
+      "description": "JSON 格式解析失败，请检查请求包是否符合 JSON 规范。",
+      "solution": ""
+    },
+    {
+      "code": "90002",
+      "description": "JSON 格式请求包中 MsgBody 不符合消息格式描述，或者 MsgBody 不是 Array 类型，请参见 TIMMsgElement 对象 的定义。",
+      "solution": ""
+    },
+    {
+      "code": "90005",
+      "description": "JSON 格式请求包体中缺少 MsgRandom 字段或者 MsgRandom 字段不是 Integer 类型。",
+      "solution": ""
+    },
+    {
+      "code": "90007",
+      "description": "JSON 格式请求包体中 MsgBody 类型不是 Array 类型，请将其修改为 Array 类型。",
+      "solution": ""
+    },
+    {
+      "code": "90009",
+      "description": "请求需要 App 管理员权限。",
+      "solution": ""
+    },
+    {
+      "code": "90010",
+      "description": "JSON 格式请求包不符合消息格式描述，请参见 TIMMsgElement 对象 的定义。",
+      "solution": ""
+    },
+    {
+      "code": "90020",
+      "description": "标签长度超过限制（不能超过50字节）。",
+      "solution": ""
+    },
+    {
+      "code": "90022",
+      "description": "推送条件中的 TagsOr 和 TagsAnd 有重复标签。",
+      "solution": ""
+    },
+    {
+      "code": "90024",
+      "description": "推送过于频繁，每两次推送间隔必须大于1秒。",
+      "solution": ""
+    },
+    {
+      "code": "90026",
+      "description": "消息离线存储时间错误。",
+      "solution": ""
+    },
+    {
+      "code": "90032",
+      "description": "推送条件中的 tag 数量大于10，或添加标签请求中的标签数量大于10。",
+      "solution": ""
+    },
+    {
+      "code": "90033",
+      "description": "属性无效。",
+      "solution": ""
+    },
+    {
+      "code": "90039",
+      "description": "按属性推送和按标签推送不可同时存在。",
+      "solution": ""
+    },
+    {
+      "code": "90040",
+      "description": "推送条件中其中1个 tag 为空。",
+      "solution": ""
+    },
+    {
+      "code": "90045",
+      "description": "未开通全员/标签推送功能。",
+      "solution": ""
+    },
+    {
+      "code": "90047",
+      "description": "推送次数超过当天限额（默认为100次）。",
+      "solution": ""
+    },
+    {
+      "code": "90056",
+      "description": "全员推送的请求体过大，目前支持最大 10K 长度。",
+      "solution": ""
+    },
+    {
+      "code": "91000",
+      "description": "服务内部错误，请重试。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

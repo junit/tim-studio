@@ -1,0 +1,128 @@
+{
+  "doc_id": 1633,
+  "api_id": "group_change_owner",
+  "title": "转让群主",
+  "doc_url": "https://cloud.tencent.com/document/product/269/1633",
+  "sync_time": "2026-10-23 23:20:55",
+  "status": "synced",
+  "overview": "App 管理员可以通过该接口将群主身份转移给他人。\n没有群主的群，App 管理员可以通过此接口指定他人作为群主。\n新群主必须为群内成员。\n转让群主后，原群主的“群主”身份会被移除，但转让操作       不会重置       其此前被设置的管理员身份：若原群主在成为群主之前已经是管理员，转让后会恢复为管理员身份；若成为群主之前是普通成员，则转让后为普通成员。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/group_open_http_svc/change_group_owner?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/group_open_http_svc/change_group_owner",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "GroupId",
+      "type": "String",
+      "required": "必填",
+      "description": "要被转移的群组 ID。"
+    },
+    {
+      "name": "NewOwner_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "新群主 ID。"
+    },
+    {
+      "name": "From_Account",
+      "type": "String",
+      "required": "选填",
+      "description": "指定的操作者账号。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"GroupId\": \"@TGS#1NVTZEAE4\",  // 要被转移的群 ID（必填）\n\n    \"NewOwner_Account\": \"peter\", // 新群主 ID（必填）\n\n    \"From_Account\": \"emily\" //指定转让群主的操作者（选填）\n\n}",
+      "clean_json": "{\n  \"GroupId\": \"@TGS#1NVTZEAE4\",\n  \"NewOwner_Account\": \"peter\",\n  \"From_Account\": \"emily\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10002",
+      "description": "系统错误，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法。请根据应答包中的 ErrorInfo 字段，检查必填字段是否填充，或者字段的填充是否满足协议要求。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "操作权限不足。请确认操作者是否是 App 管理员。",
+      "solution": ""
+    },
+    {
+      "code": "10010",
+      "description": "群组不存在，或者曾经存在过，但是目前已经被解散。",
+      "solution": ""
+    },
+    {
+      "code": "10015",
+      "description": "群组 ID 非法，请检查群组 ID 是否填写正确。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [
+    "转让群主后回调"
+  ],
+  "notes": []
+}

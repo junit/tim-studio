@@ -1,0 +1,1492 @@
+[
+  {
+    "doc_id": 1519,
+    "title": "REST API 简介",
+    "link": "https://cloud.tencent.com/document/product/269/1519",
+    "path": []
+  },
+  {
+    "doc_id": 1520,
+    "title": "REST API 接口列表",
+    "link": "https://cloud.tencent.com/document/product/269/1520",
+    "path": []
+  },
+  {
+    "doc_id": 2282,
+    "title": "单发单聊消息",
+    "link": "https://cloud.tencent.com/document/product/269/2282",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 1612,
+    "title": "批量发单聊消息",
+    "link": "https://cloud.tencent.com/document/product/269/1612",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 1629,
+    "title": "在群组中发送普通消息",
+    "link": "https://cloud.tencent.com/document/product/269/1629",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 128596,
+    "title": "发送 C2C 流式消息",
+    "link": "https://cloud.tencent.com/document/product/269/128596",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 128597,
+    "title": "发送群流式消息",
+    "link": "https://cloud.tencent.com/document/product/269/128597",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 77402,
+    "title": "直播群广播消息",
+    "link": "https://cloud.tencent.com/document/product/269/77402",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 1635,
+    "title": "导入群消息",
+    "link": "https://cloud.tencent.com/document/product/269/1635",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 2568,
+    "title": "导入单聊消息",
+    "link": "https://cloud.tencent.com/document/product/269/2568",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 102298,
+    "title": "公众号用户发送广播消息",
+    "link": "https://cloud.tencent.com/document/product/269/102298",
+    "path": [
+      "消息相关",
+      "发送消息"
+    ]
+  },
+  {
+    "doc_id": 74740,
+    "title": "修改单聊历史消息",
+    "link": "https://cloud.tencent.com/document/product/269/74740",
+    "path": [
+      "消息相关",
+      "历史消息"
+    ]
+  },
+  {
+    "doc_id": 74741,
+    "title": "修改群聊历史消息",
+    "link": "https://cloud.tencent.com/document/product/269/74741",
+    "path": [
+      "消息相关",
+      "历史消息"
+    ]
+  },
+  {
+    "doc_id": 42794,
+    "title": "拉取单聊历史消息",
+    "link": "https://cloud.tencent.com/document/product/269/42794",
+    "path": [
+      "消息相关",
+      "历史消息"
+    ]
+  },
+  {
+    "doc_id": 2738,
+    "title": "拉取群聊历史消息",
+    "link": "https://cloud.tencent.com/document/product/269/2738",
+    "path": [
+      "消息相关",
+      "历史消息"
+    ]
+  },
+  {
+    "doc_id": 102299,
+    "title": "拉取公众号用户历史消息",
+    "link": "https://cloud.tencent.com/document/product/269/102299",
+    "path": [
+      "消息相关",
+      "历史消息"
+    ]
+  },
+  {
+    "doc_id": 101439,
+    "title": "单向删除单聊历史消息",
+    "link": "https://cloud.tencent.com/document/product/269/101439",
+    "path": [
+      "消息相关",
+      "删除消息"
+    ]
+  },
+  {
+    "doc_id": 95617,
+    "title": "清空群聊历史消息",
+    "link": "https://cloud.tencent.com/document/product/269/95617",
+    "path": [
+      "消息相关",
+      "删除消息"
+    ]
+  },
+  {
+    "doc_id": 2359,
+    "title": "删除指定群成员的消息",
+    "link": "https://cloud.tencent.com/document/product/269/2359",
+    "path": [
+      "消息相关",
+      "删除消息"
+    ]
+  },
+  {
+    "doc_id": 38980,
+    "title": "撤回单聊消息",
+    "link": "https://cloud.tencent.com/document/product/269/38980",
+    "path": [
+      "消息相关",
+      "撤回消息"
+    ]
+  },
+  {
+    "doc_id": 12341,
+    "title": "撤回群消息",
+    "link": "https://cloud.tencent.com/document/product/269/12341",
+    "path": [
+      "消息相关",
+      "撤回消息"
+    ]
+  },
+  {
+    "doc_id": 102327,
+    "title": "撤回公众号消息",
+    "link": "https://cloud.tencent.com/document/product/269/102327",
+    "path": [
+      "消息相关",
+      "撤回消息"
+    ]
+  },
+  {
+    "doc_id": 107478,
+    "title": "群消息已读回执",
+    "link": "https://cloud.tencent.com/document/product/269/107478",
+    "path": [
+      "消息相关",
+      "已读回执"
+    ]
+  },
+  {
+    "doc_id": 104121,
+    "title": "发送单聊消息已读回执",
+    "link": "https://cloud.tencent.com/document/product/269/104121",
+    "path": [
+      "消息相关",
+      "已读回执"
+    ]
+  },
+  {
+    "doc_id": 77693,
+    "title": "拉取群消息已读回执详情",
+    "link": "https://cloud.tencent.com/document/product/269/77693",
+    "path": [
+      "消息相关",
+      "已读回执"
+    ]
+  },
+  {
+    "doc_id": 77694,
+    "title": "拉取群消息已读回执信息",
+    "link": "https://cloud.tencent.com/document/product/269/77694",
+    "path": [
+      "消息相关",
+      "已读回执"
+    ]
+  },
+  {
+    "doc_id": 82029,
+    "title": "拉取单聊消息扩展",
+    "link": "https://cloud.tencent.com/document/product/269/82029",
+    "path": [
+      "消息相关",
+      "消息扩展"
+    ]
+  },
+  {
+    "doc_id": 82030,
+    "title": "设置单聊消息扩展",
+    "link": "https://cloud.tencent.com/document/product/269/82030",
+    "path": [
+      "消息相关",
+      "消息扩展"
+    ]
+  },
+  {
+    "doc_id": 82031,
+    "title": "拉取群消息扩展",
+    "link": "https://cloud.tencent.com/document/product/269/82031",
+    "path": [
+      "消息相关",
+      "消息扩展"
+    ]
+  },
+  {
+    "doc_id": 82032,
+    "title": "设置群消息扩展",
+    "link": "https://cloud.tencent.com/document/product/269/82032",
+    "path": [
+      "消息相关",
+      "消息扩展"
+    ]
+  },
+  {
+    "doc_id": 133874,
+    "title": "群消息置顶",
+    "link": "https://cloud.tencent.com/document/product/269/133874",
+    "path": [
+      "消息相关",
+      "消息置顶"
+    ]
+  },
+  {
+    "doc_id": 134119,
+    "title": "取消群消息置顶",
+    "link": "https://cloud.tencent.com/document/product/269/134119",
+    "path": [
+      "消息相关",
+      "消息置顶"
+    ]
+  },
+  {
+    "doc_id": 134120,
+    "title": "获取置顶消息",
+    "link": "https://cloud.tencent.com/document/product/269/134120",
+    "path": [
+      "消息相关",
+      "消息置顶"
+    ]
+  },
+  {
+    "doc_id": 133901,
+    "title": "批量翻译文本",
+    "link": "https://cloud.tencent.com/document/product/269/133901",
+    "path": [
+      "消息相关",
+      "AI 智能服务"
+    ]
+  },
+  {
+    "doc_id": 133902,
+    "title": "语音转文本（SpeechToText）",
+    "link": "https://cloud.tencent.com/document/product/269/133902",
+    "path": [
+      "消息相关",
+      "AI 智能服务"
+    ]
+  },
+  {
+    "doc_id": 62118,
+    "title": "拉取会话列表",
+    "link": "https://cloud.tencent.com/document/product/269/62118",
+    "path": [
+      "会话相关",
+      "会话列表"
+    ]
+  },
+  {
+    "doc_id": 1637,
+    "title": "设置群成员未读消息计数",
+    "link": "https://cloud.tencent.com/document/product/269/1637",
+    "path": [
+      "会话相关",
+      "会话未读数"
+    ]
+  },
+  {
+    "doc_id": 50349,
+    "title": "清理单聊会话的未读消息计数",
+    "link": "https://cloud.tencent.com/document/product/269/50349",
+    "path": [
+      "会话相关",
+      "会话未读数"
+    ]
+  },
+  {
+    "doc_id": 103772,
+    "title": "设置置顶会话",
+    "link": "https://cloud.tencent.com/document/product/269/103772",
+    "path": [
+      "会话相关",
+      "会话置顶"
+    ]
+  },
+  {
+    "doc_id": 62119,
+    "title": "删除单个会话",
+    "link": "https://cloud.tencent.com/document/product/269/62119",
+    "path": [
+      "会话相关",
+      "删除会话"
+    ]
+  },
+  {
+    "doc_id": 85791,
+    "title": "创建会话分组数据",
+    "link": "https://cloud.tencent.com/document/product/269/85791",
+    "path": [
+      "会话相关",
+      "会话分组标记"
+    ]
+  },
+  {
+    "doc_id": 85793,
+    "title": "更新会话分组数据",
+    "link": "https://cloud.tencent.com/document/product/269/85793",
+    "path": [
+      "会话相关",
+      "会话分组标记"
+    ]
+  },
+  {
+    "doc_id": 85795,
+    "title": "删除会话分组数据",
+    "link": "https://cloud.tencent.com/document/product/269/85795",
+    "path": [
+      "会话相关",
+      "会话分组标记"
+    ]
+  },
+  {
+    "doc_id": 85792,
+    "title": "创建或更新会话标记数据",
+    "link": "https://cloud.tencent.com/document/product/269/85792",
+    "path": [
+      "会话相关",
+      "会话分组标记"
+    ]
+  },
+  {
+    "doc_id": 85796,
+    "title": "搜索会话分组标记",
+    "link": "https://cloud.tencent.com/document/product/269/85796",
+    "path": [
+      "会话相关",
+      "会话分组标记"
+    ]
+  },
+  {
+    "doc_id": 85794,
+    "title": "拉取会话分组标记数据",
+    "link": "https://cloud.tencent.com/document/product/269/85794",
+    "path": [
+      "会话相关",
+      "会话分组标记"
+    ]
+  },
+  {
+    "doc_id": 1615,
+    "title": "创建群组",
+    "link": "https://cloud.tencent.com/document/product/269/1615",
+    "path": [
+      "群组相关",
+      "群组管理"
+    ]
+  },
+  {
+    "doc_id": 1624,
+    "title": "解散群组",
+    "link": "https://cloud.tencent.com/document/product/269/1624",
+    "path": [
+      "群组相关",
+      "群组管理"
+    ]
+  },
+  {
+    "doc_id": 1625,
+    "title": "获取用户所加入的群组",
+    "link": "https://cloud.tencent.com/document/product/269/1625",
+    "path": [
+      "群组相关",
+      "群组管理"
+    ]
+  },
+  {
+    "doc_id": 1614,
+    "title": "获取 App 中的所有群组",
+    "link": "https://cloud.tencent.com/document/product/269/1614",
+    "path": [
+      "群组相关",
+      "群组管理"
+    ]
+  },
+  {
+    "doc_id": 1616,
+    "title": "获取群详细资料",
+    "link": "https://cloud.tencent.com/document/product/269/1616",
+    "path": [
+      "群组相关",
+      "群资料"
+    ]
+  },
+  {
+    "doc_id": 1620,
+    "title": "修改群基础资料",
+    "link": "https://cloud.tencent.com/document/product/269/1620",
+    "path": [
+      "群组相关",
+      "群资料"
+    ]
+  },
+  {
+    "doc_id": 1634,
+    "title": "导入群基础资料",
+    "link": "https://cloud.tencent.com/document/product/269/1634",
+    "path": [
+      "群组相关",
+      "群资料"
+    ]
+  },
+  {
+    "doc_id": 1621,
+    "title": "增加群成员",
+    "link": "https://cloud.tencent.com/document/product/269/1621",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 1622,
+    "title": "删除群成员",
+    "link": "https://cloud.tencent.com/document/product/269/1622",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 79249,
+    "title": "群成员封禁",
+    "link": "https://cloud.tencent.com/document/product/269/79249",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 79250,
+    "title": "群成员解封",
+    "link": "https://cloud.tencent.com/document/product/269/79250",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 79248,
+    "title": "获取封禁群成员列表",
+    "link": "https://cloud.tencent.com/document/product/269/79248",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 1627,
+    "title": "批量禁言和取消禁言",
+    "link": "https://cloud.tencent.com/document/product/269/1627",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 2925,
+    "title": "获取被禁言群成员列表",
+    "link": "https://cloud.tencent.com/document/product/269/2925",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 1633,
+    "title": "转让群主",
+    "link": "https://cloud.tencent.com/document/product/269/1633",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 1626,
+    "title": "查询用户在群组中的身份",
+    "link": "https://cloud.tencent.com/document/product/269/1626",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 1636,
+    "title": "导入群成员",
+    "link": "https://cloud.tencent.com/document/product/269/1636",
+    "path": [
+      "群组相关",
+      "群成员管理"
+    ]
+  },
+  {
+    "doc_id": 1617,
+    "title": "获取群成员详细资料",
+    "link": "https://cloud.tencent.com/document/product/269/1617",
+    "path": [
+      "群组相关",
+      "群成员资料"
+    ]
+  },
+  {
+    "doc_id": 112002,
+    "title": "获取指定群成员详细资料",
+    "link": "https://cloud.tencent.com/document/product/269/112002",
+    "path": [
+      "群组相关",
+      "群成员资料"
+    ]
+  },
+  {
+    "doc_id": 1623,
+    "title": "修改群成员资料",
+    "link": "https://cloud.tencent.com/document/product/269/1623",
+    "path": [
+      "群组相关",
+      "群成员资料"
+    ]
+  },
+  {
+    "doc_id": 67012,
+    "title": "获取群自定义属性",
+    "link": "https://cloud.tencent.com/document/product/269/67012",
+    "path": [
+      "群组相关",
+      "群自定义属性"
+    ]
+  },
+  {
+    "doc_id": 67010,
+    "title": "修改群自定义属性",
+    "link": "https://cloud.tencent.com/document/product/269/67010",
+    "path": [
+      "群组相关",
+      "群自定义属性"
+    ]
+  },
+  {
+    "doc_id": 67009,
+    "title": "清空群自定义属性",
+    "link": "https://cloud.tencent.com/document/product/269/67009",
+    "path": [
+      "群组相关",
+      "群自定义属性"
+    ]
+  },
+  {
+    "doc_id": 67011,
+    "title": "重置群自定义属性",
+    "link": "https://cloud.tencent.com/document/product/269/67011",
+    "path": [
+      "群组相关",
+      "群自定义属性"
+    ]
+  },
+  {
+    "doc_id": 104440,
+    "title": "删除群自定义属性",
+    "link": "https://cloud.tencent.com/document/product/269/104440",
+    "path": [
+      "群组相关",
+      "群自定义属性"
+    ]
+  },
+  {
+    "doc_id": 103784,
+    "title": "设置直播群机器人",
+    "link": "https://cloud.tencent.com/document/product/269/103784",
+    "path": [
+      "群组相关",
+      "直播群管理"
+    ]
+  },
+  {
+    "doc_id": 103785,
+    "title": "取消直播群机器人",
+    "link": "https://cloud.tencent.com/document/product/269/103785",
+    "path": [
+      "群组相关",
+      "直播群管理"
+    ]
+  },
+  {
+    "doc_id": 102857,
+    "title": "设置/取消直播群管理员",
+    "link": "https://cloud.tencent.com/document/product/269/102857",
+    "path": [
+      "群组相关",
+      "直播群管理"
+    ]
+  },
+  {
+    "doc_id": 102858,
+    "title": "获取直播群管理员列表",
+    "link": "https://cloud.tencent.com/document/product/269/102858",
+    "path": [
+      "群组相关",
+      "直播群管理"
+    ]
+  },
+  {
+    "doc_id": 49180,
+    "title": "获取直播群在线人数",
+    "link": "https://cloud.tencent.com/document/product/269/49180",
+    "path": [
+      "群组相关",
+      "直播群管理"
+    ]
+  },
+  {
+    "doc_id": 77266,
+    "title": "获取直播群在线成员列表",
+    "link": "https://cloud.tencent.com/document/product/269/77266",
+    "path": [
+      "群组相关",
+      "直播群管理"
+    ]
+  },
+  {
+    "doc_id": 79267,
+    "title": "设置直播群成员标记",
+    "link": "https://cloud.tencent.com/document/product/269/79267",
+    "path": [
+      "群组相关",
+      "直播群管理"
+    ]
+  },
+  {
+    "doc_id": 78203,
+    "title": "创建话题",
+    "link": "https://cloud.tencent.com/document/product/269/78203",
+    "path": [
+      "群组相关",
+      "社群管理"
+    ]
+  },
+  {
+    "doc_id": 78202,
+    "title": "解散话题",
+    "link": "https://cloud.tencent.com/document/product/269/78202",
+    "path": [
+      "群组相关",
+      "社群管理"
+    ]
+  },
+  {
+    "doc_id": 78204,
+    "title": "获取话题资料",
+    "link": "https://cloud.tencent.com/document/product/269/78204",
+    "path": [
+      "群组相关",
+      "社群管理"
+    ]
+  },
+  {
+    "doc_id": 78205,
+    "title": "修改话题资料",
+    "link": "https://cloud.tencent.com/document/product/269/78205",
+    "path": [
+      "群组相关",
+      "社群管理"
+    ]
+  },
+  {
+    "doc_id": 85313,
+    "title": "导入话题基础资料",
+    "link": "https://cloud.tencent.com/document/product/269/85313",
+    "path": [
+      "群组相关",
+      "社群管理"
+    ]
+  },
+  {
+    "doc_id": 103966,
+    "title": "创建权限组",
+    "link": "https://cloud.tencent.com/document/product/269/103966",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103967,
+    "title": "销毁权限组",
+    "link": "https://cloud.tencent.com/document/product/269/103967",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103968,
+    "title": "修改权限组资料",
+    "link": "https://cloud.tencent.com/document/product/269/103968",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103969,
+    "title": "获取权限组资料",
+    "link": "https://cloud.tencent.com/document/product/269/103969",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103970,
+    "title": "添加话题权限",
+    "link": "https://cloud.tencent.com/document/product/269/103970",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103971,
+    "title": "修改话题权限",
+    "link": "https://cloud.tencent.com/document/product/269/103971",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103972,
+    "title": "删除话题权限",
+    "link": "https://cloud.tencent.com/document/product/269/103972",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103973,
+    "title": "获取话题权限",
+    "link": "https://cloud.tencent.com/document/product/269/103973",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103974,
+    "title": "增加权限组成员",
+    "link": "https://cloud.tencent.com/document/product/269/103974",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103975,
+    "title": "删除权限组成员",
+    "link": "https://cloud.tencent.com/document/product/269/103975",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 103976,
+    "title": "获取权限组成员列表",
+    "link": "https://cloud.tencent.com/document/product/269/103976",
+    "path": [
+      "群组相关",
+      "社群管理",
+      "权限组管理"
+    ]
+  },
+  {
+    "doc_id": 102707,
+    "title": "获取社群在线人数",
+    "link": "https://cloud.tencent.com/document/product/269/102707",
+    "path": [
+      "群组相关",
+      "社群管理"
+    ]
+  },
+  {
+    "doc_id": 85953,
+    "title": "获取群计数器",
+    "link": "https://cloud.tencent.com/document/product/269/85953",
+    "path": [
+      "群组相关",
+      "群计数器"
+    ]
+  },
+  {
+    "doc_id": 85952,
+    "title": "更新群计数器",
+    "link": "https://cloud.tencent.com/document/product/269/85952",
+    "path": [
+      "群组相关",
+      "群计数器"
+    ]
+  },
+  {
+    "doc_id": 85954,
+    "title": "删除群计数器",
+    "link": "https://cloud.tencent.com/document/product/269/85954",
+    "path": [
+      "群组相关",
+      "群计数器"
+    ]
+  },
+  {
+    "doc_id": 1608,
+    "title": "导入单个账号",
+    "link": "https://cloud.tencent.com/document/product/269/1608",
+    "path": [
+      "用户管理",
+      "账号管理"
+    ]
+  },
+  {
+    "doc_id": 4919,
+    "title": "导入多个账号",
+    "link": "https://cloud.tencent.com/document/product/269/4919",
+    "path": [
+      "用户管理",
+      "账号管理"
+    ]
+  },
+  {
+    "doc_id": 36443,
+    "title": "删除账号",
+    "link": "https://cloud.tencent.com/document/product/269/36443",
+    "path": [
+      "用户管理",
+      "账号管理"
+    ]
+  },
+  {
+    "doc_id": 38417,
+    "title": "查询账号",
+    "link": "https://cloud.tencent.com/document/product/269/38417",
+    "path": [
+      "用户管理",
+      "账号管理"
+    ]
+  },
+  {
+    "doc_id": 1640,
+    "title": "设置资料",
+    "link": "https://cloud.tencent.com/document/product/269/1640",
+    "path": [
+      "用户管理",
+      "用户资料"
+    ]
+  },
+  {
+    "doc_id": 1639,
+    "title": "拉取资料",
+    "link": "https://cloud.tencent.com/document/product/269/1639",
+    "path": [
+      "用户管理",
+      "用户资料"
+    ]
+  },
+  {
+    "doc_id": 3853,
+    "title": "失效账号登录状态",
+    "link": "https://cloud.tencent.com/document/product/269/3853",
+    "path": [
+      "用户管理",
+      "用户状态"
+    ]
+  },
+  {
+    "doc_id": 2566,
+    "title": "查询账号在线状态",
+    "link": "https://cloud.tencent.com/document/product/269/2566",
+    "path": [
+      "用户管理",
+      "用户状态"
+    ]
+  },
+  {
+    "doc_id": 1643,
+    "title": "添加好友",
+    "link": "https://cloud.tencent.com/document/product/269/1643",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 8301,
+    "title": "导入好友",
+    "link": "https://cloud.tencent.com/document/product/269/8301",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 12525,
+    "title": "更新好友",
+    "link": "https://cloud.tencent.com/document/product/269/12525",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 1644,
+    "title": "删除好友",
+    "link": "https://cloud.tencent.com/document/product/269/1644",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 1645,
+    "title": "删除所有好友",
+    "link": "https://cloud.tencent.com/document/product/269/1645",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 1646,
+    "title": "校验好友",
+    "link": "https://cloud.tencent.com/document/product/269/1646",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 1647,
+    "title": "拉取好友",
+    "link": "https://cloud.tencent.com/document/product/269/1647",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 8609,
+    "title": "拉取指定好友",
+    "link": "https://cloud.tencent.com/document/product/269/8609",
+    "path": [
+      "用户管理",
+      "好友管理"
+    ]
+  },
+  {
+    "doc_id": 10107,
+    "title": "添加分组",
+    "link": "https://cloud.tencent.com/document/product/269/10107",
+    "path": [
+      "用户管理",
+      "好友分组"
+    ]
+  },
+  {
+    "doc_id": 10108,
+    "title": "删除分组",
+    "link": "https://cloud.tencent.com/document/product/269/10108",
+    "path": [
+      "用户管理",
+      "好友分组"
+    ]
+  },
+  {
+    "doc_id": 54763,
+    "title": "拉取分组",
+    "link": "https://cloud.tencent.com/document/product/269/54763",
+    "path": [
+      "用户管理",
+      "好友分组"
+    ]
+  },
+  {
+    "doc_id": 3718,
+    "title": "添加黑名单",
+    "link": "https://cloud.tencent.com/document/product/269/3718",
+    "path": [
+      "用户管理",
+      "黑名单"
+    ]
+  },
+  {
+    "doc_id": 3719,
+    "title": "删除黑名单",
+    "link": "https://cloud.tencent.com/document/product/269/3719",
+    "path": [
+      "用户管理",
+      "黑名单"
+    ]
+  },
+  {
+    "doc_id": 3722,
+    "title": "拉取黑名单",
+    "link": "https://cloud.tencent.com/document/product/269/3722",
+    "path": [
+      "用户管理",
+      "黑名单"
+    ]
+  },
+  {
+    "doc_id": 3725,
+    "title": "校验黑名单",
+    "link": "https://cloud.tencent.com/document/product/269/3725",
+    "path": [
+      "用户管理",
+      "黑名单"
+    ]
+  },
+  {
+    "doc_id": 118909,
+    "title": "关注用户",
+    "link": "https://cloud.tencent.com/document/product/269/118909",
+    "path": [
+      "用户管理",
+      "关注与粉丝"
+    ]
+  },
+  {
+    "doc_id": 118910,
+    "title": "取消关注用户",
+    "link": "https://cloud.tencent.com/document/product/269/118910",
+    "path": [
+      "用户管理",
+      "关注与粉丝"
+    ]
+  },
+  {
+    "doc_id": 118911,
+    "title": "拉取关注、粉丝与互关列表",
+    "link": "https://cloud.tencent.com/document/product/269/118911",
+    "path": [
+      "用户管理",
+      "关注与粉丝"
+    ]
+  },
+  {
+    "doc_id": 118912,
+    "title": "检查关注关系",
+    "link": "https://cloud.tencent.com/document/product/269/118912",
+    "path": [
+      "用户管理",
+      "关注与粉丝"
+    ]
+  },
+  {
+    "doc_id": 118913,
+    "title": "获取用户的关注、粉丝与互关数",
+    "link": "https://cloud.tencent.com/document/product/269/118913",
+    "path": [
+      "用户管理",
+      "关注与粉丝"
+    ]
+  },
+  {
+    "doc_id": 4230,
+    "title": "设置全局禁言",
+    "link": "https://cloud.tencent.com/document/product/269/4230",
+    "path": [
+      "全局禁言管理"
+    ]
+  },
+  {
+    "doc_id": 4229,
+    "title": "查询全局禁言",
+    "link": "https://cloud.tencent.com/document/product/269/4229",
+    "path": [
+      "全局禁言管理"
+    ]
+  },
+  {
+    "doc_id": 4193,
+    "title": "拉取运营数据",
+    "link": "https://cloud.tencent.com/document/product/269/4193",
+    "path": [
+      "运营管理"
+    ]
+  },
+  {
+    "doc_id": 1650,
+    "title": "下载最近消息记录",
+    "link": "https://cloud.tencent.com/document/product/269/1650",
+    "path": [
+      "运营管理"
+    ]
+  },
+  {
+    "doc_id": 45438,
+    "title": "获取服务器 IP 地址",
+    "link": "https://cloud.tencent.com/document/product/269/45438",
+    "path": [
+      "运营管理"
+    ]
+  },
+  {
+    "doc_id": 74775,
+    "title": "聊天文件封禁",
+    "link": "https://cloud.tencent.com/document/product/269/74775",
+    "path": [
+      "运营管理"
+    ]
+  },
+  {
+    "doc_id": 74776,
+    "title": "聊天文件解封",
+    "link": "https://cloud.tencent.com/document/product/269/74776",
+    "path": [
+      "运营管理"
+    ]
+  },
+  {
+    "doc_id": 74777,
+    "title": "聊天文件签名",
+    "link": "https://cloud.tencent.com/document/product/269/74777",
+    "path": [
+      "运营管理"
+    ]
+  },
+  {
+    "doc_id": 89991,
+    "title": "创建机器人",
+    "link": "https://cloud.tencent.com/document/product/269/89991",
+    "path": [
+      "机器人"
+    ]
+  },
+  {
+    "doc_id": 89992,
+    "title": "删除机器人",
+    "link": "https://cloud.tencent.com/document/product/269/89992",
+    "path": [
+      "机器人"
+    ]
+  },
+  {
+    "doc_id": 89993,
+    "title": "拉取所有机器人",
+    "link": "https://cloud.tencent.com/document/product/269/89993",
+    "path": [
+      "机器人"
+    ]
+  },
+  {
+    "doc_id": 94300,
+    "title": "主动审核接口",
+    "link": "https://cloud.tencent.com/document/product/269/94300",
+    "path": [
+      "内容审核",
+      "云端审核"
+    ]
+  },
+  {
+    "doc_id": 100243,
+    "title": "主动批量审核接口",
+    "link": "https://cloud.tencent.com/document/product/269/100243",
+    "path": [
+      "内容审核",
+      "云端审核"
+    ]
+  },
+  {
+    "doc_id": 94301,
+    "title": "获取词库列表",
+    "link": "https://cloud.tencent.com/document/product/269/94301",
+    "path": [
+      "内容审核",
+      "云端审核"
+    ]
+  },
+  {
+    "doc_id": 94302,
+    "title": "获取敏感词",
+    "link": "https://cloud.tencent.com/document/product/269/94302",
+    "path": [
+      "内容审核",
+      "云端审核"
+    ]
+  },
+  {
+    "doc_id": 94303,
+    "title": "添加敏感词",
+    "link": "https://cloud.tencent.com/document/product/269/94303",
+    "path": [
+      "内容审核",
+      "云端审核"
+    ]
+  },
+  {
+    "doc_id": 94304,
+    "title": "删除敏感词",
+    "link": "https://cloud.tencent.com/document/product/269/94304",
+    "path": [
+      "内容审核",
+      "云端审核"
+    ]
+  },
+  {
+    "doc_id": 114547,
+    "title": "用户搜索",
+    "link": "https://cloud.tencent.com/document/product/269/114547",
+    "path": [
+      "云端搜索"
+    ]
+  },
+  {
+    "doc_id": 114548,
+    "title": "群成员搜索",
+    "link": "https://cloud.tencent.com/document/product/269/114548",
+    "path": [
+      "云端搜索"
+    ]
+  },
+  {
+    "doc_id": 114549,
+    "title": "群组搜索",
+    "link": "https://cloud.tencent.com/document/product/269/114549",
+    "path": [
+      "云端搜索"
+    ]
+  },
+  {
+    "doc_id": 114550,
+    "title": "隐藏搜索对象",
+    "link": "https://cloud.tencent.com/document/product/269/114550",
+    "path": [
+      "云端搜索"
+    ]
+  },
+  {
+    "doc_id": 114551,
+    "title": "查询隐藏搜索对象",
+    "link": "https://cloud.tencent.com/document/product/269/114551",
+    "path": [
+      "云端搜索"
+    ]
+  },
+  {
+    "doc_id": 102302,
+    "title": "创建公众号",
+    "link": "https://cloud.tencent.com/document/product/269/102302",
+    "path": [
+      "公众号管理",
+      "公众号相关"
+    ]
+  },
+  {
+    "doc_id": 102303,
+    "title": "销毁公众号",
+    "link": "https://cloud.tencent.com/document/product/269/102303",
+    "path": [
+      "公众号管理",
+      "公众号相关"
+    ]
+  },
+  {
+    "doc_id": 102304,
+    "title": "修改公众号资料",
+    "link": "https://cloud.tencent.com/document/product/269/102304",
+    "path": [
+      "公众号管理",
+      "公众号相关"
+    ]
+  },
+  {
+    "doc_id": 102305,
+    "title": "获取公众号详细资料",
+    "link": "https://cloud.tencent.com/document/product/269/102305",
+    "path": [
+      "公众号管理",
+      "公众号相关"
+    ]
+  },
+  {
+    "doc_id": 102306,
+    "title": "获取公众号的订阅成员资料",
+    "link": "https://cloud.tencent.com/document/product/269/102306",
+    "path": [
+      "公众号管理",
+      "公众号相关"
+    ]
+  },
+  {
+    "doc_id": 102308,
+    "title": "添加订阅者",
+    "link": "https://cloud.tencent.com/document/product/269/102308",
+    "path": [
+      "公众号管理",
+      "订阅者相关"
+    ]
+  },
+  {
+    "doc_id": 102309,
+    "title": "删除订阅者",
+    "link": "https://cloud.tencent.com/document/product/269/102309",
+    "path": [
+      "公众号管理",
+      "订阅者相关"
+    ]
+  },
+  {
+    "doc_id": 102310,
+    "title": "修改订阅者资料",
+    "link": "https://cloud.tencent.com/document/product/269/102310",
+    "path": [
+      "公众号管理",
+      "订阅者相关"
+    ]
+  },
+  {
+    "doc_id": 102311,
+    "title": "获取订阅的公众号列表",
+    "link": "https://cloud.tencent.com/document/product/269/102311",
+    "path": [
+      "公众号管理",
+      "订阅者相关"
+    ]
+  },
+  {
+    "doc_id": 111048,
+    "title": "全员/标签消息",
+    "link": "https://cloud.tencent.com/document/product/269/111048",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111050,
+    "title": "设置应用属性名称",
+    "link": "https://cloud.tencent.com/document/product/269/111050",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111049,
+    "title": "获取应用属性名称",
+    "link": "https://cloud.tencent.com/document/product/269/111049",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111051,
+    "title": "获取用户属性",
+    "link": "https://cloud.tencent.com/document/product/269/111051",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111052,
+    "title": "设置用户属性",
+    "link": "https://cloud.tencent.com/document/product/269/111052",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111053,
+    "title": "删除用户属性",
+    "link": "https://cloud.tencent.com/document/product/269/111053",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111054,
+    "title": "获取用户标签",
+    "link": "https://cloud.tencent.com/document/product/269/111054",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111055,
+    "title": "添加用户标签",
+    "link": "https://cloud.tencent.com/document/product/269/111055",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111056,
+    "title": "删除用户标签",
+    "link": "https://cloud.tencent.com/document/product/269/111056",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111057,
+    "title": "清空用户标签",
+    "link": "https://cloud.tencent.com/document/product/269/111057",
+    "path": [
+      "全员/标签推送"
+    ]
+  },
+  {
+    "doc_id": 111058,
+    "title": "全员/标签消息撤回",
+    "link": "https://cloud.tencent.com/document/product/269/111058",
+    "path": [
+      "全员/标签推送"
+    ]
+  }
+]

@@ -1,0 +1,134 @@
+{
+  "doc_id": 111058,
+  "api_id": "timpush_revoke",
+  "title": "全员/标签消息撤回",
+  "doc_url": "https://cloud.tencent.com/document/product/269/111058",
+  "sync_time": "2026-10-23 23:21:04",
+  "status": "synced",
+  "overview": "终止：推送任务下发需要一定时间，未下发的账号会终止下发。\n撤回：已下发的账号，支持撤回未读/漫游。\n覆盖：若已下发的账号收到了离线推送，支持覆盖该条推送。\n本接口支持全员/标签推送任务的终止/操作\n/覆盖。本文后续默认将终止/撤回/覆盖简称为撤回。\n撤回有效期为24小时，从任务发起时间开始计算，超过24小时的推送任务无法撤回。",
+  "rate_limit": "本接口调用限制1次/s。",
+  "request_url_sample": "https://xxxxxx/v4/timpush/revoke?usersig=xxx&identifier=admin&sdkappid=88888888&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "https",
+      "description": "请求协议：HTTPS。请求方式：POST。"
+    },
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名。中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得: adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/timpush/revoke",
+      "description": "请求接口。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，参见 UserSig 后台 API﻿。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员﻿。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时，即时通信控制台分配的 SdkAppid。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "固定值为：json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "TaskId",
+      "type": "String",
+      "required": "必填",
+      "description": "全员/标签推送任务 ID。"
+    },
+    {
+      "name": "OfflinePushInfo",
+      "type": "Object",
+      "required": "选填",
+      "description": "离线推送信息配置，具体请参见 公共参数（OfflinePushInfo 说明）。注意：若设置 OfflinePushInfo.PushFlag=1或者不设置 OfflinePushInfo，不会覆盖离线推送。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"TaskId\": \"660cc447_537ed82a_200000cd7ee17f5_84035729_bc614e\",  // 24小时内发送的推送taskId\n\n     \"OfflinePushInfo\": {   // 若推送时指定不存漫游/未读（OnlineOnlyFlag=0），则撤回时必须带上OfflinePushInfo\n\n        \"Title\": \"撤回标题\",\n\n        \"Desc\": \"对方撤回了一条消息\",\n\n        \"Ext\": \"{\\\\\"entity\\\\\":{\\\\\"key1\\\\\":\\\\\"value1\\\\\",\\\\\"key2\\\\\":\\\\\"value2\\\\\"}}\" // 透传字段，推送使用 JSON 格式字符串\n\n    }\n\n}",
+      "clean_json": "{\n\n    \"TaskId\": \"660cc447_537ed82a_200000cd7ee17f5_84035729_bc614e\",  // 24小时内发送的推送taskId\n\n     \"OfflinePushInfo\": {   // 若推送时指定不存漫游/未读（OnlineOnlyFlag=0），则撤回时必须带上OfflinePushInfo\n\n        \"Title\": \"撤回标题\",\n\n        \"Desc\": \"对方撤回了一条消息\",\n\n        \"Ext\": \"{\\\\\"entity\\\\\":{\\\\\"key1\\\\\":\\\\\"value1\\\\\",\\\\\"key2\\\\\":\\\\\"value2\\\\\"}}\" // 透传字段，推送使用 JSON 格式字符串\n\n    }\n\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0 表示成功。非0 表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "90001",
+      "description": "JSON 格式解析失败，请检查请求包是否符合 JSON 规范。",
+      "solution": ""
+    },
+    {
+      "code": "90009",
+      "description": "请求需要 App 管理员权限。",
+      "solution": ""
+    },
+    {
+      "code": "90049",
+      "description": "撤回 TaskId 不合法，无推送记录。通过 发起全员/标签推送 接口进行推送，返回的 TaskId 才能用于撤回。",
+      "solution": ""
+    },
+    {
+      "code": "90050",
+      "description": "重复撤回，已经撤回的推送任务不能重复调用。",
+      "solution": ""
+    },
+    {
+      "code": "90051",
+      "description": "撤回过于频繁，撤回限频1次/s。",
+      "solution": ""
+    },
+    {
+      "code": "90052",
+      "description": "超过撤回有效期，撤回要求在24小时内，超过24小时的推送任务无法撤回。",
+      "solution": ""
+    },
+    {
+      "code": "90053",
+      "description": "撤回无效。推送任务指定不存在漫游/未读（OnlineOnlyFlag=0），但是撤回时没有带上 OfflinePushInfo。",
+      "solution": ""
+    },
+    {
+      "code": "91000",
+      "description": "服务内部错误，请重试。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

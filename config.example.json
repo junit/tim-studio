@@ -1,0 +1,27 @@
+{
+  "active_env_id": "env_dev",
+  "environments": [
+    {
+      "id": "env_dev",
+      "name": "开发联调沙箱",
+      "tag": "DEV",
+      "remark": "开发联调与测试沙箱环境",
+      "sdkappid": 1400000000,
+      "secret_key": "YOUR_DEV_SECRET_KEY_HERE",
+      "admin_user": "administrator",
+      "domain": "console.tim.qq.com",
+      "delay_sec": 0.05
+    },
+    {
+      "id": "env_prod",
+      "name": "正式生产环境",
+      "tag": "PROD",
+      "remark": "腾讯云 IM 官方主业务正式生产环境",
+      "sdkappid": 1400000001,
+      "secret_key": "YOUR_PROD_SECRET_KEY_HERE",
+      "admin_user": "administrator",
+      "domain": "console.tim.qq.com",
+      "delay_sec": 0.05
+    }
+  ]
+}

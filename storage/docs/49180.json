@@ -1,0 +1,124 @@
+{
+  "doc_id": 49180,
+  "api_id": "group_get_online_member_num",
+  "title": "获取直播群在线人数",
+  "doc_url": "https://cloud.tencent.com/document/product/269/49180",
+  "sync_time": "2026-10-23 23:20:56",
+  "status": "synced",
+  "overview": "App 管理员可以根据群组 ID 获取直播群在线人数。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/group_open_http_svc/get_online_member_num?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得: adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/group_open_http_svc/get_online_member_num",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "GroupId",
+      "type": "String",
+      "required": "必填",
+      "description": "操作的群 ID。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"GroupId\":\"@TGS#a6I4ZUUGO\"\n\n}",
+      "clean_json": "{\n  \"GroupId\": \"@TGS#a6I4ZUUGO\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "OnlineMemberNum",
+      "type": "Integer",
+      "description": "该群组的在线人数。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\", \n\n    \"ErrorCode\": 0, \n\n    \"OnlineMemberNum\":1000, //在线人数\n\n    \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"OnlineMemberNum\": 1000,\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10002",
+      "description": "系统错误，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10003",
+      "description": "请求命令非法，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法。请根据应答包中的 ErrorInfo 字段，检查必填字段是否填充，或者字段的填充是否满足协议要求。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "权限不足。未使用 App 管理员账号操作。",
+      "solution": ""
+    },
+    {
+      "code": "10010",
+      "description": "群组不存在，或者曾经存在过，但是目前已经被解散。",
+      "solution": ""
+    },
+    {
+      "code": "10015",
+      "description": "群组 ID 非法，请检查群组 ID 是否填写正确。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

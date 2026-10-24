@@ -1,0 +1,198 @@
+{
+  "doc_id": 133901,
+  "api_id": "im_open_translate_http_svc_batch_trans_text",
+  "title": "批量翻译文本",
+  "doc_url": "https://cloud.tencent.com/document/product/269/133901",
+  "sync_time": "2026-10-24 13:35:47",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "api",
+  "overview": "该接口提供批量文本翻译能力，支持将一组源文本从源语言翻译为目标语言。\n源语言支持自动检测（设置为 \"auto\" 或留空）。\n单次请求所有源文本的总字节长度不超过 3000 字节。\n需要先开通消息翻译服务后才能调用。",
+  "rate_limit": "5次/秒。",
+  "request_url_sample": "﻿\n\n\nhttps://xxxxxx/v4/im_open_translate_http_svc/batch_trans_text?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/im_open_translate_http_svc/batch_trans_text",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "SourceText",
+      "type": "string[]",
+      "required": "必填",
+      "description": "待翻译的源文本数组，每个元素为一段待翻译文本。所有文本总长度不超过 3000 字节。"
+    },
+    {
+      "name": "Source",
+      "type": "string",
+      "required": "选填",
+      "description": "源语言代码（例如 \"zh\"、\"en\"），不传或传 \"auto\" 时自动检测源语言。"
+    },
+    {
+      "name": "Target",
+      "type": "string",
+      "required": "必填",
+      "description": "目标语言代码（例如 \"en\"、\"zh\"、\"ja\" 等），指定翻译的目标语言。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "示例 1",
+      "content": "{\n\n  \"SourceText\": [\n\n    \"你好，世界\",\n\n    \"今天天气不错\"\n\n  ],\n\n  \"Source\": \"zh\",\n\n  \"Target\": \"en\"\n\n}",
+      "clean_json": "{\n  \"SourceText\": [\n    \"你好，世界\",\n    \"今天天气不错\"\n  ],\n  \"Source\": \"zh\",\n  \"Target\": \"en\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "string",
+      "description": "请求处理结果。\"OK\" 表示成功，\"FAIL\" 表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "uint32",
+      "description": "错误码。0 表示成功，非 0 表示失败，具体参见下方错误码表。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "string",
+      "description": "错误信息。成功时为空字符串，失败时返回具体错误描述。"
+    },
+    {
+      "name": "TargetText",
+      "type": "string[]",
+      "description": "翻译后的目标文本数组，与请求的 SourceText 一一对应。"
+    },
+    {
+      "name": "Source",
+      "type": "string",
+      "description": "实际使用的源语言代码（自动检测时会返回检测到的语言代码）。"
+    },
+    {
+      "name": "Target",
+      "type": "string",
+      "description": "实际使用的目标语言代码。"
+    },
+    {
+      "name": "RequestId",
+      "type": "string",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "应答包体示例",
+      "content": "{\n\n  \"ActionStatus\": \"OK\",\n\n  \"ErrorCode\": 0,\n\n  \"ErrorInfo\": \"\",\n\n  \"TargetText\": [\n\n    \"Hello, World\",\n\n    \"The weather is nice today\"\n\n  ],\n\n  \"Source\": \"zh\",\n\n  \"Target\": \"en\",\n\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\",\n  \"TargetText\": [\n    \"Hello, World\",\n    \"The weather is nice today\"\n  ],\n  \"Source\": \"zh\",\n  \"Target\": \"en\",\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "140101",
+      "description": "请求参数无效。",
+      "solution": ""
+    },
+    {
+      "code": "140102",
+      "description": "服务内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "140103",
+      "description": "服务内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "140104",
+      "description": "服务内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "140105",
+      "description": "请求体解析失败。",
+      "solution": ""
+    },
+    {
+      "code": "140106",
+      "description": "未开通文本翻译能力，需付费购买后才能使用。",
+      "solution": ""
+    },
+    {
+      "code": "140107",
+      "description": "不支持对当前语言的翻译。",
+      "solution": ""
+    },
+    {
+      "code": "140108",
+      "description": "服务内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "140109",
+      "description": "请求频率超过 QPS 限制，请降低请求频率或联系客服。",
+      "solution": ""
+    },
+    {
+      "code": "140110",
+      "description": "当月免费翻译额度已用完，请下月重试或购买更多额度。",
+      "solution": ""
+    },
+    {
+      "code": "140111",
+      "description": "当月免费翻译额度已过期，请联系相关负责人。",
+      "solution": ""
+    },
+    {
+      "code": "140112",
+      "description": "服务内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "140113",
+      "description": "文本翻译失败，请稍后重试。",
+      "solution": ""
+    },
+    {
+      "code": "140114",
+      "description": "请求内容过长，请减少字符数后重试（所有源文本总长度不超过 3000 字节）。",
+      "solution": ""
+    },
+    {
+      "code": "140115",
+      "description": "请求与返回数量不一致。",
+      "solution": ""
+    },
+    {
+      "code": "140116",
+      "description": "内容包含敏感信息，无法翻译。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

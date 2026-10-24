@@ -1,0 +1,177 @@
+{
+  "doc_id": 104121,
+  "api_id": "tim_104121",
+  "title": "发送单聊消息已读回执",
+  "doc_url": "https://cloud.tencent.com/document/product/269/104121",
+  "sync_time": "2026-10-24 01:28:50",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "App 管理员可以通过该接口发送单聊消息已读回执。\n注意：该功能仅对旗舰版或企业版客户开放，需         购买旗舰版或企业版套餐包         。",
+  "rate_limit": "",
+  "request_url_sample": "https://console.tim.qq.com/v4/openim/c2c_msg_read_receipt?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "v4/openim/c2c_msg_read_receipt",
+      "description": "请求接口"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员﻿"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig﻿"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为json"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "Operator_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "发送已读回执的用户 UserID。"
+    },
+    {
+      "name": "Peer_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "会话的另一方用户 UserID。"
+    },
+    {
+      "name": "C2CMsgInfo",
+      "type": "Array",
+      "required": "必填",
+      "description": "发送已读回执的消息列表。"
+    },
+    {
+      "name": "From_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "消息的发送方 UserID，需与 Peer_Account 保持一致。"
+    },
+    {
+      "name": "To_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "消息的接收方 UserID，需与 Operator_Account 保持一致。"
+    },
+    {
+      "name": "MsgKey",
+      "type": "String",
+      "required": "必填",
+      "description": "消息的 MsgKey。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"Operator_Account\":\"user1\",\n\n    \"Peer_Account\": \"user2\",\n\n    \"C2CMsgInfo\": [\n\n        {\n\n            \"From_Account\": \"user2\",\n\n            \"To_Account\": \"user1\",\n\n            \"MsgKey\": \"1467329515_5675354_1708676941\"\n\n        }\n\n    ]\n\n}\n\n﻿",
+      "clean_json": "{\n\n    \"Operator_Account\":\"user1\",\n\n    \"Peer_Account\": \"user2\",\n\n    \"C2CMsgInfo\": [\n\n        {\n\n            \"From_Account\": \"user2\",\n\n            \"To_Account\": \"user1\",\n\n            \"MsgKey\": \"1467329515_5675354_1708676941\"\n\n        }\n\n    ]\n\n}\n\n﻿"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0表示成功。非0表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "20001",
+      "description": "请求包非法。",
+      "solution": ""
+    },
+    {
+      "code": "20002",
+      "description": "UserSig 或 A2 失效。",
+      "solution": ""
+    },
+    {
+      "code": "20003",
+      "description": "消息发送方或接收方 UserID 无效或不存在，请检查 UserID 是否已导入即时通信 IM。",
+      "solution": ""
+    },
+    {
+      "code": "20004",
+      "description": "网络异常，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "20005",
+      "description": "服务器内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "20006",
+      "description": "触发发送单聊消息之前回调，App 后台返回禁止下发该消息。",
+      "solution": ""
+    },
+    {
+      "code": "90001",
+      "description": "JSON 格式解析失败，请检查请求包是否符合 JSON 规范。",
+      "solution": ""
+    },
+    {
+      "code": "90003",
+      "description": "JSON 格式请求包体中缺少 To_Account 字段或者 To_Account 字段不是 String 类型。",
+      "solution": ""
+    },
+    {
+      "code": "90009",
+      "description": "请求需要 App 管理员权限。",
+      "solution": ""
+    },
+    {
+      "code": "90012",
+      "description": "To_Account 没有注册或不存在，请确认 To_Account 是否导入即时通信 IM 或者是否拼写错误。",
+      "solution": ""
+    },
+    {
+      "code": "91000",
+      "description": "服务内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "90992",
+      "description": "服务内部错误，请重试；如果所有请求都返回该错误码，且 App 配置了第三方回调，请检查 App 服务器是否正常向即时通信 IM 后台服务器返回回调结果。",
+      "solution": ""
+    },
+    {
+      "code": "90048",
+      "description": "请求的用户账号不存在。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,124 @@
+{
+  "doc_id": 114550,
+  "api_id": "tim_114550",
+  "title": "隐藏搜索对象",
+  "doc_url": "https://cloud.tencent.com/document/product/269/114550",
+  "sync_time": "2026-10-24 01:28:55",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "购买云端搜索插件，可以通过本接口，隐藏搜索对象（用户/群组/群成员），避免该对象被搜索出来。",
+  "rate_limit": "2次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/im_open_search/set_visibility?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "当前仅支持中国和新加坡，SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com其他数据中心暂不支持。"
+    },
+    {
+      "name": "v4/im_open_search/set_visibility",
+      "description": "隐藏搜索对象接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "SetType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "搜索对象类型：1=用户搜索。2=群组搜索。3=群成员搜索。"
+    },
+    {
+      "name": "UserID",
+      "type": "String",
+      "required": "选填",
+      "description": "需要隐藏的用户 UserID，SetType为1和3时需要。"
+    },
+    {
+      "name": "GroupID",
+      "type": "String",
+      "required": "选填",
+      "description": "需要隐藏的群组 GroupID，SetType为1和2时需要。"
+    },
+    {
+      "name": "IsDisable",
+      "type": "Bool",
+      "required": "选填",
+      "description": "默认为 false，true 表示隐藏对应搜索对象，false 表示显示对应搜索对象。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"SetType\":1,\n\n    \"UserID\":\"test\",\n\n    \"IsDisable\":true\n\n}",
+      "clean_json": "{\n  \"SetType\": 1,\n  \"UserID\": \"test\",\n  \"IsDisable\": true\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果，OK 表示处理成功，FAIL 表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码，0表示成功，非0表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "27003",
+      "description": "请求参数异常，请根据错误提示排查原因。",
+      "solution": ""
+    },
+    {
+      "code": "27004",
+      "description": "服务内部异常，重试后仍有问题可以通过工单联系我们。",
+      "solution": ""
+    },
+    {
+      "code": "60018",
+      "description": "请求过于频繁，请稍后重试。",
+      "solution": ""
+    },
+    {
+      "code": "60020",
+      "description": "云端搜索套餐包过期或者相应搜索场景没有开启，请检查后重试。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

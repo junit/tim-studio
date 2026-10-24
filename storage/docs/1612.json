@@ -1,0 +1,283 @@
+{
+  "doc_id": 1612,
+  "api_id": "c2c_batch_send_msg",
+  "title": "批量发单聊消息",
+  "doc_url": "https://cloud.tencent.com/document/product/269/1612",
+  "sync_time": "2026-10-24 01:28:49",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "支持一次对最多500个用户进行单发消息。\n若消息不需要计入未读数，也不需要存储历史聊天记录，则可将 OnlineOnlyFlag 字段设置为1，这样可以带来更快的消息下发速度。\n管理员指定某一账号向目标账号批量发消息，接收方看到发送者不是管理员，而是管理员指定的账号。\n该接口不触发回调请求。\n该接口不会检查发送者和接收者的好友关系（包括黑名单），同时不会检查发送者是否被禁言。\n该接口默认不会检查接收者对发送者是否设置了免打扰，如需检查，请在\"SendMsgControl\"字段填上\"WithMuteNotifications\"。\n单聊消息 MsgSeq 字段的作用及说明：该字段在发送消息时由用户自行指定，该值可以重复，非后台生成，非全局唯一。与群聊消息的 MsgSeq 字段不同，群聊消息的 MsgSeq 由后台生成，每个群都维护一个 MsgSeq，从1开始严格递增。单聊消息历史记录对同一个会话的消息先以时间戳排序，同秒内的消息再以 MsgSeq 排序。\n注意：当使用服务端集成 REST API 发送单聊消息时，可选择是否将消息同步至发送方（管理员账号或管理员指定的账号）。同步方式支持在线终端和漫游两种模式。REST API 通过 SyncOtherMachine 参数说明是否进行同步，具体使用方法请参考下文请求包示例。",
+  "rate_limit": "批量发单聊消息同时存在每秒接口请求次数和每分钟发送消息条数限制： 默认接口请求频率限制：200次/秒。 默认发送消息条数限制：12000条/分钟。按接收消息数量计算条数，若一次发送给500个用户，计作500条。 注意： 体验版和开发版无法调整接口请求频率和发送消息条数限制，专业版、旗舰版和企业版可在控制台自助调整，详细参见 控制台指南-功能配置-服务端 API 调频 。 超出默认发送消息条数限制需要额外付费 ，详细参见 基础服务计费说明-服务端 API 调用频率叠加包 。",
+  "request_url_sample": "https://xxxxxx/v4/openim/batchsendmsg?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/openim/batchsendmsg",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "SyncOtherMachine",
+      "type": "Integer",
+      "required": "选填",
+      "description": "1：把消息同步到 From_Account 在线终端和漫游上。2：消息不同步至 From_Account；若不填写默认情况下会将消息存 From_Account 漫游。"
+    },
+    {
+      "name": "From_Account",
+      "type": "String",
+      "required": "选填",
+      "description": "管理员指定消息发送方账号（若需设置 From_Account 信息，则该参数取值不能为空）。"
+    },
+    {
+      "name": "To_Account",
+      "type": "Array",
+      "required": "必填",
+      "description": "消息接收方的用户账号，即 UserID。"
+    },
+    {
+      "name": "MsgSeq",
+      "type": "Integer",
+      "required": "选填",
+      "description": "消息序列号（32位无符号整数），后台会根据该字段去重及进行同秒内消息的排序，详细规则请看本接口的功能说明。若不填该字段，则由后台填入随机数。"
+    },
+    {
+      "name": "MsgRandom",
+      "type": "Integer",
+      "required": "必填",
+      "description": "消息随机数（32位无符号整数），后台用于同一秒内的消息去重。请确保该字段填的是随机。"
+    },
+    {
+      "name": "MsgBody",
+      "type": "Array",
+      "required": "必填",
+      "description": "TIM 消息，请参考 消息格式描述。"
+    },
+    {
+      "name": "OnlineOnlyFlag",
+      "type": "Integer",
+      "required": "选填",
+      "description": "默认为 0，表示消息存历史聊天记录。1表示消息不存历史聊天记录，即发送消息时，若接收方在线，则能收到此消息，若接收方不在线，则收不到该消息。适用于实现一些实时状态类的功能。"
+    },
+    {
+      "name": "MsgType",
+      "type": "String",
+      "required": "必填",
+      "description": "TIM 消息对象类型，目前支持的消息对象包括：TIMTextElem（文本消息）TIMLocationElem（位置消息）TIMFaceElem（表情消息）TIMCustomElem（自定义消息）TIMSoundElem（语音消息）TIMImageElem（图像消息）TIMFileElem（文件消息）TIMVideoFileElem（视频消息）"
+    },
+    {
+      "name": "MsgContent",
+      "type": "Object",
+      "required": "必填",
+      "description": "MsgContent 为 TIM 消息对象，具体可参见 消息格式描述。"
+    },
+    {
+      "name": "CloudCustomData",
+      "type": "String",
+      "required": "选填",
+      "description": "消息自定义数据（云端保存，会发送到对端，程序卸载重装后还能拉取到）。"
+    },
+    {
+      "name": "SendMsgControl",
+      "type": "Array",
+      "required": "选填",
+      "description": "消息发送控制选项，是一个 String 数组，只对本次请求有效。\"NoUnread\"表示该条消息不计入未读数。\"NoLastMsg\"表示该条消息不更新会话列表。\"WithMuteNotifications\"表示该条消息的接收方对发送方设置的免打扰选项生效（默认不生效）。示例：\"SendMsgControl\": [\"NoUnread\",\"NoLastMsg\",\"WithMuteNotifications\"]"
+    },
+    {
+      "name": "OfflinePushInfo",
+      "type": "Object",
+      "required": "选填",
+      "description": "离线推送信息配置，具体可参见 公共参数（OfflinePushInfo 说明）。"
+    },
+    {
+      "name": "IsNeedReadReceipt",
+      "type": "Integer",
+      "required": "选填",
+      "description": "该条消息是否需要已读回执，0为不需要，1为需要，默认为0。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "管理员向目标账号批量发消息",
+      "content": "{\n\n    \"SyncOtherMachine\": 2, // 消息不同步至发送方\n\n    \"To_Account\": [ // 目标账号列表\n\n        \"bonnie\",\n\n        \"rong\"\n\n    ],\n\n    \"MsgSeq\": 28360, // 消息序列号\n\n    \"MsgRandom\": 19901224, // 消息随机数\n\n    \"MsgBody\": [ // 消息\n\n        {\n\n            \"MsgType\": \"TIMTextElem\", // 消息类型，TIMTextElem为文本消息\n\n            \"MsgContent\": {\n\n                \"Text\": \"hi, beauty\" // 消息文本\n\n            }\n\n        }\n\n    ],\n\n    \"CloudCustomData\": \"your cloud custom data\"\n\n}",
+      "clean_json": "{\n  \"SyncOtherMachine\": 2,\n  \"To_Account\": [\n    \"bonnie\",\n    \"rong\"\n  ],\n  \"MsgSeq\": 28360,\n  \"MsgRandom\": 19901224,\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"CloudCustomData\": \"your cloud custom data\"\n}"
+    },
+    {
+      "title": "管理员指定某一账号向目标账号批量发消息，同时设置离线推送信息",
+      "content": "{\n\n    \"SyncOtherMachine\": 1, // 消息同步至发送方\n\n    \"From_Account\": \"dave\",\n\n    \"To_Account\": [\n\n        \"bonnie\",\n\n        \"rong\"\n\n    ],\n\n    \"MsgSeq\": 28360, // 消息序列号\n\n    \"MsgRandom\": 19901224, // 消息随机数\n\n    \"MsgBody\": [\n\n        {\n\n            \"MsgType\": \"TIMTextElem\",\n\n            \"MsgContent\": {\n\n                \"Text\": \"hi, beauty\"\n\n            }\n\n        }\n\n    ],\n\n    \"CloudCustomData\": \"your cloud custom data\",\n\n    \"SendMsgControl\": [\"NoUnread\",\"NoLastMsg\",\"WithMuteNotifications\"],\n\n    \"OfflinePushInfo\": {\n\n        \"PushFlag\": 0,\n\n        \"Desc\": \"离线推送内容\",\n\n        \"Ext\": \"这是透传的内容\",\n\n        \"AndroidInfo\": {\n\n            \"Sound\": \"shake\" //Android 系统通知铃声文件名，详情见“消息格式描述”。\n\n        },\n\n        \"ApnsInfo\": {\n\n            \"Sound\": \"apns.mp3\", // iOS 系统通知铃声文件名，详情见“消息格式描述”。\n\n            \"BadgeMode\": 1, // 这个字段缺省或者为 0 表示需要计数，为 1 表示本条消息不需要计数，即右上角图标数字不增加\n\n            \"Title\":\"apns title\", // apns title\n\n            \"SubTitle\":\"apns subtitle\", // apns subtitle\n\n            \"Image\":\"www.image.com\" // image url\n\n        }\n\n    }\n\n}",
+      "clean_json": "{\n  \"SyncOtherMachine\": 1,\n  \"From_Account\": \"dave\",\n  \"To_Account\": [\n    \"bonnie\",\n    \"rong\"\n  ],\n  \"MsgSeq\": 28360,\n  \"MsgRandom\": 19901224,\n  \"MsgBody\": [\n    {\n      \"MsgType\": \"TIMTextElem\",\n      \"MsgContent\": {\n        \"Text\": \"hi, beauty\"\n      }\n    }\n  ],\n  \"CloudCustomData\": \"your cloud custom data\",\n  \"SendMsgControl\": [\n    \"NoUnread\",\n    \"NoLastMsg\",\n    \"WithMuteNotifications\"\n  ],\n  \"OfflinePushInfo\": {\n    \"PushFlag\": 0,\n    \"Desc\": \"离线推送内容\",\n    \"Ext\": \"这是透传的内容\",\n    \"AndroidInfo\": {\n      \"Sound\": \"shake\"\n    },\n    \"ApnsInfo\": {\n      \"Sound\": \"apns.mp3\",\n      \"BadgeMode\": 1,\n      \"Title\": \"apns title\",\n      \"SubTitle\": \"apns subtitle\",\n      \"Image\": \"www.image.com\"\n    }\n  }\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果OK 表示处理成功FAIL 表示失败SomeError 表示部分成功"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "本次请求的错误码。如有任意账号发送成功，则此字段返回0。全部账号都发送失败，则此字段返回非0。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "详细的错误信息。"
+    },
+    {
+      "name": "ErrorList",
+      "type": "Array",
+      "description": "发消息失败的账号列表，在此列表中的目标账号，消息发送失败或账号不存在。若消息全部发送成功，则 ErrorList 为空。"
+    },
+    {
+      "name": "ErrorList.To_Account",
+      "type": "String",
+      "description": "消息发送失败的目标账号。"
+    },
+    {
+      "name": "ErrorList.ErrorCode",
+      "type": "Integer",
+      "description": "消息发送失败的错误码，若目标账号的错误码为70107表示该账号不存在。"
+    },
+    {
+      "name": "MsgKey",
+      "type": "String",
+      "description": "消息唯一标识，用于撤回。长度不超过50个字符。"
+    },
+    {
+      "name": "MsgId",
+      "type": "String",
+      "description": "该条消息在客户端唯一标识。2024 年 12 月 10 日新增字段。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n  \"ErrorInfo\": \"\",\n\n  \"ActionStatus\": \"OK\",\n\n  \"ErrorCode\": 0,\n\n  \"MsgKey\": \"128493_903762_1572870301\",\n\n  \"MsgId\": \"144015217074523023-1734398005-1067690400\"\n\n}",
+      "clean_json": "{\n  \"ErrorInfo\": \"\",\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"MsgKey\": \"128493_903762_1572870301\",\n  \"MsgId\": \"144015217074523023-1734398005-1067690400\"\n}"
+    },
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n  \"ActionStatus\": \"SomeError\",\n\n  \"ErrorCode\": 0,\n\n  \"ErrorInfo\": \"\",\n\n  \"MsgKey\": \"4852_28135_1579678877\",\n\n  \"MsgId\": \"144015217074523023-1734398005-1067690400\",\n\n  \"ErrorList\": [ // 发送消息失败列表\n\n      {\n\n          \"To_Account\": \"rong\", // 失败账号\n\n          \"ErrorCode\":  70107 // 错误码，70107表示该账号不存在\n\n      }\n\n  ]\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"SomeError\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\",\n  \"MsgKey\": \"4852_28135_1579678877\",\n  \"MsgId\": \"144015217074523023-1734398005-1067690400\",\n  \"ErrorList\": [\n    {\n      \"To_Account\": \"rong\",\n      \"ErrorCode\": 70107\n    }\n  ]\n}"
+    },
+    {
+      "title": "失败应答示例",
+      "content": "{\n\n  \"ActionStatus\": \"FAIL\",\n\n  \"ErrorInfo\": \"invalid To_Account\",\n\n  \"ErrorCode\": 90012\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"FAIL\",\n  \"ErrorInfo\": \"invalid To_Account\",\n  \"ErrorCode\": 90012\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "70107",
+      "description": "请求的用户账号不存在。",
+      "solution": ""
+    },
+    {
+      "code": "70169",
+      "description": "服务端内部超时，请稍后重试。",
+      "solution": ""
+    },
+    {
+      "code": "90001",
+      "description": "JSON 格式解析失败，请检查请求包是否符合 JSON 规范。",
+      "solution": ""
+    },
+    {
+      "code": "90002",
+      "description": "JSON 格式请求包中 MsgBody 不符合消息格式描述，或者 MsgBody 不是 Array 类型，请参考 TIMMsgElement 对象 的定义。",
+      "solution": ""
+    },
+    {
+      "code": "90004",
+      "description": "JSON 格式请求包中 MsgSeq 字段非法。",
+      "solution": ""
+    },
+    {
+      "code": "90007",
+      "description": "JSON 格式请求包体中 MsgBody 类型不是 Array 类型，请将其修改为 Array 类型。",
+      "solution": ""
+    },
+    {
+      "code": "90008",
+      "description": "JSON 格式请求包体中缺少 From_Account 字段，或者 From_Account 不存在。",
+      "solution": ""
+    },
+    {
+      "code": "90009",
+      "description": "请求需要 App 管理员权限。",
+      "solution": ""
+    },
+    {
+      "code": "90010",
+      "description": "JSON 格式请求包不符合消息格式描述，请参考 TIMMsgElement 对象 的定义。",
+      "solution": ""
+    },
+    {
+      "code": "90011",
+      "description": "批量发消息目标账号超过500，请减少 To_Account 中目标账号数量。",
+      "solution": ""
+    },
+    {
+      "code": "90012",
+      "description": "To_Account 没有注册或不存在，请确认 To_Account 是否导入即时通信 IM 或者是否拼写错误。",
+      "solution": ""
+    },
+    {
+      "code": "90026",
+      "description": "消息离线存储时间错误（最多不能超过7天）。",
+      "solution": ""
+    },
+    {
+      "code": "90048",
+      "description": "请求的用户账号不存在。",
+      "solution": ""
+    },
+    {
+      "code": "90992",
+      "description": "服务内部错误，请重试；如果所有请求都返回该错误码，且 App 配置了第三方回调，请检查 App 服务器是否正常向即时通信 IM 后台服务器返回回调结果。",
+      "solution": ""
+    },
+    {
+      "code": "91000",
+      "description": "服务内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "93000",
+      "description": "JSON 数据包超长，消息包体请不要超过12k。",
+      "solution": ""
+    },
+    {
+      "code": "90057",
+      "description": "批量发单聊消息超出接口请求频率限制，需要在控制台进行相关配置，请参考 服务端 API 调频。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

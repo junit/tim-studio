@@ -1,0 +1,133 @@
+{
+  "doc_id": 104440,
+  "api_id": "group_open_http_svc_delete_group_attr",
+  "title": "删除群自定义属性",
+  "doc_url": "https://cloud.tencent.com/document/product/269/104440",
+  "sync_time": "2026-10-23 23:20:55",
+  "status": "synced",
+  "overview": "﻿        App 管理员        可以通过该接口删除群自定义属性。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://console.tim.qq.com/v4/group_open_http_svc/delete_group_attr?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "v4/group_open_http_svc/delete_group_attr",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "GroupId",
+      "type": "String",
+      "required": "必填",
+      "description": "删除自定义属性的群 ID。"
+    },
+    {
+      "name": "GroupAttr",
+      "type": "Array",
+      "required": "必填",
+      "description": "删除自定义属性列表，key 为自定义属性的键。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n  \"GroupId\": \"@TGS#aC5SZEAEF\",\n\n  \"GroupAttr\":[\n\n      {\n\n          \"key\":\"attr_key\" //属性 key\n\n      },\n\n      {\n\n          \"key\":\"attr_key1\"\n\n      }\n\n  ]\n\n}",
+      "clean_json": "{\n  \"GroupId\": \"@TGS#aC5SZEAEF\",\n  \"GroupAttr\": [\n    {\n      \"key\": \"attr_key\"\n    },\n    {\n      \"key\": \"attr_key1\"\n    }\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10002",
+      "description": "服务器内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法，请根据错误描述检查请求是否正确。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "操作权限不足，例如该类型群不支持自定义属性操作。",
+      "solution": ""
+    },
+    {
+      "code": "10010",
+      "description": "群组不存在，或者曾经存在过，但是目前已经被解散。",
+      "solution": ""
+    },
+    {
+      "code": "10015",
+      "description": "群组 ID 非法，请检查群组 ID 是否填写正确，群不存在。",
+      "solution": ""
+    },
+    {
+      "code": "10045",
+      "description": "自定义属性 key 大小超过限制，最大32字节。",
+      "solution": ""
+    },
+    {
+      "code": "10049",
+      "description": "单个群自定义属性写操作超频，增加删除修改合计写操作5次/秒。",
+      "solution": ""
+    },
+    {
+      "code": "10050",
+      "description": "删除不存在的自定义属性。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [
+    "群自定义属性变更后回调"
+  ],
+  "notes": []
+}

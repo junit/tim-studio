@@ -1,0 +1,190 @@
+{
+  "doc_id": 77693,
+  "api_id": "group_open_http_svc_get_group_msg_receipt_detail",
+  "title": "拉取群消息已读回执详情",
+  "doc_url": "https://cloud.tencent.com/document/product/269/77693",
+  "sync_time": "2026-10-24 01:28:50",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "App 管理员可以通过该接口拉取群消息已读或未读成员列表。\n注意：该功能仅对旗舰版或企业版客户开放，需         购买旗舰版或企业版套餐包         并在          控制台          >        功能配置        >        群组配置        >        群消息已读回执       开启开关后方可使用。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/group_open_http_svc/get_group_msg_receipt_detail?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/group_open_http_svc/get_group_msg_receipt_detail",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "GroupId",
+      "type": "String",
+      "required": "必填",
+      "description": "要拉取已读回执详情的群组 ID。"
+    },
+    {
+      "name": "MsgSeq",
+      "type": "Integer",
+      "required": "必填",
+      "description": "拉取消息的 Seq。"
+    },
+    {
+      "name": "Filter",
+      "type": "Integer",
+      "required": "必填",
+      "description": "拉取已读，未读成员列表：0：表示拉取已读成员列表。1：表示拉取未读列表。"
+    },
+    {
+      "name": "Cursor",
+      "type": "String",
+      "required": "必填",
+      "description": "上一次拉取到的成员位置，第一次填写 \"\"。"
+    },
+    {
+      "name": "Count",
+      "type": "Integer",
+      "required": "必填",
+      "description": "一次最多拉取多少个成员数，最高可填200。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n \"GroupId\":\"@TGS#2TTV7VSII\",\n\n \"MsgSeq\": 1,\n\n \"Filter\": 1,        // 0表示拉取已读成员列表，1表示拉取未读列表\n\n \"Cursor\":\"\",      // 上一次拉取到的成员位置，第一次填写\"\"\n\n \"Count\":5           // 最多拉取多少个成员\n\n}",
+      "clean_json": "{\n  \"GroupId\": \"@TGS#2TTV7VSII\",\n  \"MsgSeq\": 1,\n  \"Filter\": 1,\n  \"Cursor\": \"\",\n  \"Count\": 5\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "IsFinish",
+      "type": "Integer",
+      "description": "是否已经拉取完毕：0：表示未拉取完毕。1：表示拉取完毕。"
+    },
+    {
+      "name": "MsgSeq",
+      "type": "Integer",
+      "description": "拉取消息的 Seq。"
+    },
+    {
+      "name": "ReadList",
+      "type": "Array",
+      "description": "已读成员列表。"
+    },
+    {
+      "name": "Read_Account",
+      "type": "String",
+      "description": "已读成员。"
+    },
+    {
+      "name": "UnreadList",
+      "type": "Array",
+      "description": "未读成员列表。"
+    },
+    {
+      "name": "Unread_Account",
+      "type": "String",
+      "description": "未读成员。"
+    },
+    {
+      "name": "Cursor",
+      "type": "String",
+      "description": "下一次请求应该传的 Cursor 值。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"Cursor\": \"0\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"\",\n\n    \"IsFinish\": 1,     // 拉取完毕，不用续拉 \n\n    \"MsgSeq\": 1,  \n\n    \"ReadList\": [    // 已读成员列表\n\n        {\n\n            \"Read_Account\": \"test1\"\n\n        }\n\n    ],\n\n    \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"Cursor\": \"0\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\",\n  \"IsFinish\": 1,\n  \"MsgSeq\": 1,\n  \"ReadList\": [\n    {\n      \"Read_Account\": \"test1\"\n    }\n  ],\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    },
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n  \"ActionStatus\": \"OK\",\n\n  \"Cursor\": \"144115213529088617\", // 下一次请求应该传的 Cursor 值\n\n  \"ErrorCode\": 0,\n\n  \"ErrorInfo\": \"\",\n\n  \"IsFinish\": 0,   // 未拉取完毕，需要续拉\n\n  \"MsgSeq\": 1,\n\n  \"UnreadList\": [  // 未读成员列表\n\n      {\n\n          \"Unread_Account\": \"test\"\n\n      },\n\n      {\n\n          \"Unread_Account\": \"test6\"\n\n      },\n\n      {\n\n          \"Unread_Account\": \"test3\"\n\n      },\n\n      {\n\n          \"Unread_Account\": \"test5\"\n\n      },\n\n      {\n\n          \"Unread_Account\": \"test4\"\n\n      }\n\n  ],\n\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"Cursor\": \"144115213529088617\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\",\n  \"IsFinish\": 0,\n  \"MsgSeq\": 1,\n  \"UnreadList\": [\n    {\n      \"Unread_Account\": \"test\"\n    },\n    {\n      \"Unread_Account\": \"test6\"\n    },\n    {\n      \"Unread_Account\": \"test3\"\n    },\n    {\n      \"Unread_Account\": \"test5\"\n    },\n    {\n      \"Unread_Account\": \"test4\"\n    }\n  ],\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10002",
+      "description": "服务器内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "10003",
+      "description": "请求命令字非法。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法，请根据错误描述检查请求是否正确。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "操作权限不足。操作人必须为该群类型中有权限执行对应操作的成员角色。",
+      "solution": ""
+    },
+    {
+      "code": "10010",
+      "description": "群组不存在，或者曾经存在过，但是目前已经被解散。",
+      "solution": ""
+    },
+    {
+      "code": "10015",
+      "description": "群组 ID 非法，请检查群组 ID 是否填写正确。",
+      "solution": ""
+    },
+    {
+      "code": "10062",
+      "description": "已读回执信息不存在。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

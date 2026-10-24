@@ -1,0 +1,118 @@
+{
+  "doc_id": 101439,
+  "api_id": "c2c_delete_ramble",
+  "title": "单向删除单聊历史消息",
+  "doc_url": "https://cloud.tencent.com/document/product/269/101439",
+  "sync_time": "2026-10-24 01:28:49",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "App 管理员调用该接口单向删除一个单聊会话的多条消息。\n只能以消息的发送方或接收方的身份去删除单聊会话的历史消息。\n只能单向删除（以会话其中一方的身份去删除某条消息后，自己看不到这条消息，会话的对方仍然可以看到这条消息）\n删除的消息的 MsgKey 可通过以下方式获取：\n开通         发单聊消息之前回调         或         发单聊消息之后回调         ，通过该回调接口记录每条单聊消息的 MsgKey 。\n通过         查询单聊消息         查询出待删除的单聊消息的 MsgKey 。\n由 REST API         单发单聊消息         和         批量发单聊消息         接口发出的单聊消息，记录回包里的 MsgKey 字段 。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/openim/delete_c2c_msg_ramble?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/openim/delete_c2c_msg_ramble",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "Operator_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "发起删除操作的账号，即以 Operator_Account 的身份删除消息。"
+    },
+    {
+      "name": "Peer_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "会话的另一方账号。"
+    },
+    {
+      "name": "MsgKeyList",
+      "type": "Array",
+      "required": "必填",
+      "description": "待删除消息的 MsgKey 数组。一次最多删除30条消息。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n   \"Operator_Account\": \"user0\",\n\n   \"Peer_Account\": \"user1\",\n\n   \"MsgKeyList\": [\n\n       \"1472765512_1000001_1697790495\",\n\n       \"1085536171_2000001_1697790694\"\n\n   ]\n\n}",
+      "clean_json": "{\n  \"Operator_Account\": \"user0\",\n  \"Peer_Account\": \"user1\",\n  \"MsgKeyList\": [\n    \"1472765512_1000001_1697790495\",\n    \"1085536171_2000001_1697790694\"\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "InvalidMsgKeyList",
+      "type": "Array",
+      "description": "请求中格式非法的 MsgKey。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"InvalidMsgKeyList\": [\"1085536171_2000001_1697790694\"]\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"InvalidMsgKeyList\": [\n    \"1085536171_2000001_1697790694\"\n  ]\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "90001",
+      "description": "JSON 格式解析失败，请检查请求包是否符合 JSON 规范。",
+      "solution": ""
+    },
+    {
+      "code": "90003",
+      "description": "JSON 格式请求包体中缺少 To_Account 字段或者 To_Account 账号不存在。",
+      "solution": ""
+    },
+    {
+      "code": "90008",
+      "description": "JSON 格式请求包体中缺少 From_Account 字段或者 From_Account 账号不存在。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

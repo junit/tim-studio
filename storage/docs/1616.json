@@ -1,0 +1,171 @@
+{
+  "doc_id": 1616,
+  "api_id": "",
+  "title": "获取群详细资料",
+  "doc_url": "https://cloud.tencent.com/document/product/269/1616",
+  "sync_time": "2026-10-24 01:43:27",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "App 管理员可以根据群组 ID 获取群组的详细信息。",
+  "rate_limit": "默认接口请求频率限制：200次/秒。 注意： 超出默认发送消息条数限制需要额外付费 ，详细请参见 基础服务计费说明 > 服务端 API 调用频率叠加包 。",
+  "request_url_sample": "https://xxxxxx/v4/group_open_http_svc/get_group_info?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/group_open_http_svc/get_group_info",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "GroupIdList",
+      "type": "Array",
+      "required": "必填",
+      "description": "需要拉取的群组列表。"
+    },
+    {
+      "name": "ResponseFilter",
+      "type": "Object",
+      "required": "选填",
+      "description": "包含以下过滤器：GroupBaseInfoFilter，MemberInfoFilter，AppDefinedDataFilter_Group，AppDefinedDataFilter_GroupMember 分别是基础信息字段过滤器，成员信息字段过滤器，群组维度的自定义字段过滤器，群成员维度的自定义字段过滤器。"
+    },
+    {
+      "name": "GroupBaseInfoFilter",
+      "type": "Array",
+      "required": "选填",
+      "description": "基础信息字段过滤器，指定需要获取的基础信息字段，基础信息字段详情请参阅 群基础资料。"
+    },
+    {
+      "name": "MemberInfoFilter",
+      "type": "Array",
+      "required": "选填",
+      "description": "成员信息字段过滤器，指定需要获取的成员信息字段，成员信息字段详情请参阅 群成员资料。"
+    },
+    {
+      "name": "AppDefinedDataFilter_Group",
+      "type": "Array",
+      "required": "选填",
+      "description": "该字段用来群组维度的自定义字段过滤器，指定需要获取的群组维度的自定义字段，详情请参阅 自定义字段。"
+    },
+    {
+      "name": "AppDefinedDataFilter_GroupMember",
+      "type": "Array",
+      "required": "选填",
+      "description": "该字段用来群成员维度的自定义字段过滤器，指定需要获取的群成员维度的自定义字段，详情请参阅 自定义字段。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "基础形式",
+      "content": "{\n\n  \"GroupIdList\": [ // 群组列表（必填）\n\n      \"@TGS#1NVTZEAE4\",\n\n      \"@TGS#1CXTZEAET\"\n\n  ]\n\n}",
+      "clean_json": "{\n  \"GroupIdList\": [\n    \"@TGS#1NVTZEAE4\",\n    \"@TGS#1CXTZEAET\"\n  ]\n}"
+    },
+    {
+      "title": "拉取指定的信息",
+      "content": "{\n\n    \"GroupIdList\": [ // 群组列表，必填\n\n        \"@TGS#1NVTZEAE4\",\n\n        \"@TGS#1CXTZEAET\"\n\n    ],\n\n    \"ResponseFilter\": { // 返回\n\n        \"GroupBaseInfoFilter\": [ // 如果基础信息字段，请在此数组中添加\n\n            \"Type\",\n\n            \"Name\",\n\n            \"Introduction\",\n\n            \"Notification\"\n\n        ],\n\n        \"MemberInfoFilter\": [ // 如果需要成员信息，请添加此数组\n\n            \"Account\", // 成员ID\n\n            \"Role\"\n\n        ],\n\n        \"AppDefinedDataFilter_Group\": [ // 群组维度的自定义字段过滤，该默认情况是没有的\n\n            \"GroupTestData1\",\n\n            \"GroupTestData2\"\n\n        ],\n\n        \"AppDefinedDataFilter_GroupMember\": [ // 群成员维度自定义字段过滤，该默认情况是没有的\n\n            \"MemberDefined2\",\n\n            \"MemberDefined1\"\n\n        ]\n\n    }\n\n}",
+      "clean_json": "{\n  \"GroupIdList\": [\n    \"@TGS#1NVTZEAE4\",\n    \"@TGS#1CXTZEAET\"\n  ],\n  \"ResponseFilter\": {\n    \"GroupBaseInfoFilter\": [\n      \"Type\",\n      \"Name\",\n      \"Introduction\",\n      \"Notification\"\n    ],\n    \"MemberInfoFilter\": [\n      \"Account\",\n      \"Role\"\n    ],\n    \"AppDefinedDataFilter_Group\": [\n      \"GroupTestData1\",\n      \"GroupTestData2\"\n    ],\n    \"AppDefinedDataFilter_GroupMember\": [\n      \"MemberDefined2\",\n      \"MemberDefined1\"\n    ]\n  }\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK 表示处理成功。FAIL 表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "GroupInfo",
+      "type": "Array",
+      "description": "返回结果为群组信息数组，内容包括群基础资料字段（注意每个群基础资料都包含 ErrorCode 和 ErrorInfo，只有 ErrorCode 为0对应的资料才有意义）、群成员资料字段、群组维度自定义字段和群成员维度自定义字段，字段详情请参阅 群组数据结构介绍（社群不返回此字段中的 MemberList 参数）。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "基础形式",
+      "content": "{\n\n  \"ActionStatus\": \"OK\",\n\n  \"ErrorInfo\": \"\", // 这里的 ErrorInfo 无意义，需要判断每个群组的 ErrorInfo\n\n  \"ErrorCode\": 0, // 这里的 ErrorCode 无意义，需要判断每个群组的 ErrorCode\n\n  \"GroupInfo\": [ // 返回结果为群组信息数组，为简单起见这里仅列出一个群\n\n      {\n\n          \"GroupId\": \"@TGS#2J4SZEAEL\",\n\n          \"ErrorCode\": 0, // 针对该群组的返回结果\n\n          \"ErrorInfo\": \"\" , // 针对该群组的返回结果\n\n          \"Type\": \"Public\", // 群组类型\n\n          \"Name\": \"MyFirstGroup\", // 群组名称\n\n          \"Appid\":1400001001,//即时通信应用的 SDKAppID\n\n          \"Introduction\": \"TestGroup\", // 群组简介\n\n          \"Notification\": \"TestGroup\", // 群组通知\n\n          \"FaceUrl\": \"http://this.is.face.url\", // 群组头像\n\n          \"Owner_Account\": \"leckie\", // 群主 ID\n\n          \"CreateTime\": 1426976500, // 群组创建时间（UTC 时间）\n\n          \"LastInfoTime\": 1426976500, // 最后群资料变更时间（UTC 时间）\n\n          \"LastMsgTime\": 1426976600, // 群内最后一条消息的时间（UTC 时间）\n\n          \"NextMsgSeq\": 1234,\n\n          \"MemberNum\": 2, // 当前群成员数量\n\n          \"MaxMemberNum\": 50, // 最大群成员数量\n\n          \"ApplyJoinOption\": \"FreeAccess\", // 申请加群处理方式\n\n          \"MuteAllMember\": \"On\", // 群全员禁言状态\n\n          \"InviteJoinOption\": \"FreeAccess\",//邀请加群处理方式\n\n          \"AppDefinedData\": [ // 群组维度的自定义字段\n\n              {\n\n                  \"Key\": \"GroupTestData1\", // 自定义字段的key\n\n                  \"Value\": \"xxxx\" // 自定义字段的值\n\n              },\n\n              {\n\n                  \"Key\": \"GroupTestData2\",\n\n                  \"Value\": \"abc\\\\u0000\\\\u0001\" // 自定义字段支持二进制数据\n\n              }\n\n          ],\n\n          \"MemberList\": [ // 群成员列表\n\n              {\n\n                  \"Member_Account\": \"leckie\", // 成员 ID\n\n                  \"Role\": \"Owner\", // 群内角色\n\n                  \"JoinTime\": 1425976500, // 入群时间（UTC 时间）\n\n                  \"MsgSeq\": 1233,\n\n                  \"MsgFlag\": \"AcceptAndNotify\", // 消息屏蔽选项\n\n                  \"LastSendMsgTime\": 1425976500, // 最后发言时间（UTC 时间）\n\n                  \"MuteUntil\": 1431069882, // 禁言截止时间（UTC 时间）\n\n                  \"AppMemberDefinedData\": [ // 群成员自定义字段\n\n                      {\n\n                           \"Key\": \"MemberDefined1\",\n\n                           \"Value\": \"ModifyDefined1\"\n\n                      },\n\n                      {\n\n                           \"Key\": \"MemberDefined2\",\n\n                           \"Value\": \"ModifyDefined2\"\n\n                      }\n\n                  ]\n\n              },\n\n              {\n\n                  \"Member_Account\": \"peter\",\n\n                  \"Role\": \"Member\",\n\n                  \"JoinTime\": 1425976500, // 入群时间\n\n                  \"MsgSeq\": 1233,\n\n                  \"MsgFlag\": \"AcceptAndNotify\",\n\n                  \"LastSendMsgTime\": 1425976500, // 最后一次发消息的时间\n\n                  \"MuteUntil\": 0, // 0表示未被禁言，否则为禁言的截止时间\n\n                  \"AppMemberDefinedData\":[ // 群成员自定义字段\n\n                      {\n\n                          \"Key\": \"MemberDefined1\",\n\n                          \"Value\": \"ModifyDefined1\"\n\n                      },\n\n                      {\n\n                          \"Key\":\"MemberDefined2\",\n\n                          \"Value\":\"ModifyDefined2\"\n\n                      }\n\n                   ]\n\n              }\n\n          ]\n\n      }\n\n  ],\n\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n\n  \"ActionStatus\": \"OK\",\n\n  \"ErrorInfo\": \"\", // 这里的 ErrorInfo 无意义，需要判断每个群组的 ErrorInfo\n\n  \"ErrorCode\": 0, // 这里的 ErrorCode 无意义，需要判断每个群组的 ErrorCode\n\n  \"GroupInfo\": [ // 返回结果为群组信息数组，为简单起见这里仅列出一个群\n\n      {\n\n          \"GroupId\": \"@TGS#2J4SZEAEL\",\n\n          \"ErrorCode\": 0, // 针对该群组的返回结果\n\n          \"ErrorInfo\": \"\" , // 针对该群组的返回结果\n\n          \"Type\": \"Public\", // 群组类型\n\n          \"Name\": \"MyFirstGroup\", // 群组名称\n\n          \"Appid\":1400001001,//即时通信应用的 SDKAppID\n\n          \"Introduction\": \"TestGroup\", // 群组简介\n\n          \"Notification\": \"TestGroup\", // 群组通知\n\n          \"FaceUrl\": \"http://this.is.face.url\", // 群组头像\n\n          \"Owner_Account\": \"leckie\", // 群主 ID\n\n          \"CreateTime\": 1426976500, // 群组创建时间（UTC 时间）\n\n          \"LastInfoTime\": 1426976500, // 最后群资料变更时间（UTC 时间）\n\n          \"LastMsgTime\": 1426976600, // 群内最后一条消息的时间（UTC 时间）\n\n          \"NextMsgSeq\": 1234,\n\n          \"MemberNum\": 2, // 当前群成员数量\n\n          \"MaxMemberNum\": 50, // 最大群成员数量\n\n          \"ApplyJoinOption\": \"FreeAccess\", // 申请加群处理方式\n\n          \"MuteAllMember\": \"On\", // 群全员禁言状态\n\n          \"InviteJoinOption\": \"FreeAccess\",//邀请加群处理方式\n\n          \"AppDefinedData\": [ // 群组维度的自定义字段\n\n              {\n\n                  \"Key\": \"GroupTestData1\", // 自定义字段的key\n\n                  \"Value\": \"xxxx\" // 自定义字段的值\n\n              },\n\n              {\n\n                  \"Key\": \"GroupTestData2\",\n\n                  \"Value\": \"abc\\\\u0000\\\\u0001\" // 自定义字段支持二进制数据\n\n              }\n\n          ],\n\n          \"MemberList\": [ // 群成员列表\n\n              {\n\n                  \"Member_Account\": \"leckie\", // 成员 ID\n\n                  \"Role\": \"Owner\", // 群内角色\n\n                  \"JoinTime\": 1425976500, // 入群时间（UTC 时间）\n\n                  \"MsgSeq\": 1233,\n\n                  \"MsgFlag\": \"AcceptAndNotify\", // 消息屏蔽选项\n\n                  \"LastSendMsgTime\": 1425976500, // 最后发言时间（UTC 时间）\n\n                  \"MuteUntil\": 1431069882, // 禁言截止时间（UTC 时间）\n\n                  \"AppMemberDefinedData\": [ // 群成员自定义字段\n\n                      {\n\n                           \"Key\": \"MemberDefined1\",\n\n                           \"Value\": \"ModifyDefined1\"\n\n                      },\n\n                      {\n\n                           \"Key\": \"MemberDefined2\",\n\n                           \"Value\": \"ModifyDefined2\"\n\n                      }\n\n                  ]\n\n              },\n\n              {\n\n                  \"Member_Account\": \"peter\",\n\n                  \"Role\": \"Member\",\n\n                  \"JoinTime\": 1425976500, // 入群时间\n\n                  \"MsgSeq\": 1233,\n\n                  \"MsgFlag\": \"AcceptAndNotify\",\n\n                  \"LastSendMsgTime\": 1425976500, // 最后一次发消息的时间\n\n                  \"MuteUntil\": 0, // 0表示未被禁言，否则为禁言的截止时间\n\n                  \"AppMemberDefinedData\":[ // 群成员自定义字段\n\n                      {\n\n                          \"Key\": \"MemberDefined1\",\n\n                          \"Value\": \"ModifyDefined1\"\n\n                      },\n\n                      {\n\n                          \"Key\":\"MemberDefined2\",\n\n                          \"Value\":\"ModifyDefined2\"\n\n                      }\n\n                   ]\n\n              }\n\n          ]\n\n      }\n\n  ],\n\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}"
+    },
+    {
+      "title": "拉取指定的信息",
+      "content": "{\n\n  \"ActionStatus\": \"OK\",\n\n  \"ErrorInfo\": \"\", // 这里的 ErrorInfo 无意义，需要判断每个群组的 ErrorInfo\n\n  \"ErrorCode\": 0, // 这里的 ErrorCode 无意义，需要判断每个群组的 ErrorCode\n\n  \"GroupInfo\": [ // 返回结果为群组信息数组，为简单起见这里仅列出一个群\n\n      {\n\n          \"GroupId\": \"@TGS#2J4SZEAEL\",\n\n          \"ErrorCode\": 0, // 针对该群组的返回结果\n\n          \"ErrorInfo\":\"\" , // 针对该群组的返回结果\n\n          \"Type\": \"Public\", // 群组类型\n\n          \"Name\": \"MyFirstGroup\", // 群组名称\n\n          \"Introduction\": \"TestGroup\", // 群组简介\n\n          \"Notification\": \"TestGroup\", // 群组通知\n\n          \"AppDefinedData\": [ // 群组维度的自定义字段\n\n              {\n\n                  \"Key\": \"GroupTestData1\", // 自定义字段的 key\n\n                  \"Value\": \"xxxx\" // 自定义字段的值\n\n              },\n\n              {\n\n                  \"Key\": \"GroupTestData2\",\n\n                  \"Value\": \"abc\\\\u0000\\\\u0001\" // 自定义字段支持二进制数据\n\n              }\n\n          ],\n\n          \"MemberList\": [ // 群成员列表\n\n              {\n\n                  \"Member_Account\": \"leckie\", // 成员 ID\n\n                  \"Role\": \"Owner\",  // 群内角色\n\n                  \"AppMemberDefinedData\":[ // 群成员自定义字段\n\n                      {\n\n                          \"Key\":\"MemberDefined1\",\n\n                          \"Value\":\"ModifyDefined1\"\n\n                      },\n\n                      {\n\n                          \"Key\":\"MemberDefined2\",\n\n                          \"Value\":\"ModifyDefined2\"\n\n                      }\n\n                   ]\n\n              },\n\n              {\n\n                  \"Member_Account\": \"peter\",\n\n                  \"Role\": \"Member\",\n\n                  \"AppMemberDefinedData\":[ // 群成员自定义字段\n\n                      {\n\n                          \"Key\":\"MemberDefined1\",\n\n                          \"Value\":\"ModifyDefined1\"\n\n                      },\n\n                      {\n\n                          \"Key\":\"MemberDefined2\",\n\n                          \"Value\":\"ModifyDefined2\"\n\n                      }\n\n                   ]\n\n              }\n\n          ]\n\n      }\n\n  ],\n\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"GroupInfo\": [\n    {\n      \"GroupId\": \"@TGS#2J4SZEAEL\",\n      \"ErrorCode\": 0,\n      \"ErrorInfo\": \"\",\n      \"Type\": \"Public\",\n      \"Name\": \"MyFirstGroup\",\n      \"Introduction\": \"TestGroup\",\n      \"Notification\": \"TestGroup\",\n      \"AppDefinedData\": [\n        {\n          \"Key\": \"GroupTestData1\",\n          \"Value\": \"xxxx\"\n        },\n        {\n          \"Key\": \"GroupTestData2\",\n          \"Value\": \"abc\\\\u0000\\\\u0001\"\n        }\n      ],\n      \"MemberList\": [\n        {\n          \"Member_Account\": \"leckie\",\n          \"Role\": \"Owner\",\n          \"AppMemberDefinedData\": [\n            {\n              \"Key\": \"MemberDefined1\",\n              \"Value\": \"ModifyDefined1\"\n            },\n            {\n              \"Key\": \"MemberDefined2\",\n              \"Value\": \"ModifyDefined2\"\n            }\n          ]\n        },\n        {\n          \"Member_Account\": \"peter\",\n          \"Role\": \"Member\",\n          \"AppMemberDefinedData\": [\n            {\n              \"Key\": \"MemberDefined1\",\n              \"Value\": \"ModifyDefined1\"\n            },\n            {\n              \"Key\": \"MemberDefined2\",\n              \"Value\": \"ModifyDefined2\"\n            }\n          ]\n        }\n      ]\n    }\n  ],\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10002",
+      "description": "系统错误，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10003",
+      "description": "请求命令非法，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法。请根据应答包中的 ErrorInfo 字段，检查必填字段是否填充，或者字段的填充是否满足协议要求。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "操作权限不足，请确认操作者是否是 App 管理员。",
+      "solution": ""
+    },
+    {
+      "code": "10010",
+      "description": "群组不存在，或者曾经存在过，但是目前已经被解散。",
+      "solution": ""
+    },
+    {
+      "code": "10015",
+      "description": "群组 ID 非法，请检查群组 ID 是否填写正确。",
+      "solution": ""
+    },
+    {
+      "code": "10018",
+      "description": "应答包长度超限。因为请求的内容过多，导致应答包超过了最大包长（1MB），请尝试减少单次请求的数据量。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

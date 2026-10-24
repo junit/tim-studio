@@ -1,0 +1,119 @@
+{
+  "doc_id": 74777,
+  "api_id": "im_cos_msg_get_cos_sig",
+  "title": "聊天文件签名",
+  "doc_url": "https://cloud.tencent.com/document/product/269/74777",
+  "sync_time": "2026-10-24 01:28:55",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "本文介绍了腾讯云接口的使用，主要用于获取聊天消息中的富媒体文件 FULL_CONTROL 权限的 URL 签名及文件状态信息，默认有效期 15 分钟。说明了接口适用范围、版本要求、请求 URL 示例、请求参数及包示例、应答包体及字段说明。接口适用范围: 仅针对富媒体消息中使用 IM SDK 上传的文件有效，终端 SDK 需更新至 4.9.x 版本及以上，Web SDK 更新至 v2.0.0 版本及以上。请求相关: 给出了请求 URL 示例，列出了调用接口时涉及修改的参数说明，提供了请求包示例及字",
+  "rate_limit": "",
+  "request_url_sample": "https://console.tim.qq.com/v4/im_cos_msg/get_cos_sig?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "v4/im_cos_msg/get_cos_sig",
+      "description": "获取 FULL_CONTROL 签名的接口，如果文件被封禁，客户管理员可以通过这个接口下载原始文件"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员﻿"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig﻿"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "RawURLs",
+      "type": "Array",
+      "required": "必填",
+      "description": "批量查询的文件 URL，可从 IM 富媒体消息的 URL 字段获取"
+    },
+    {
+      "name": "ResourceID",
+      "type": "Integer",
+      "required": "必填",
+      "description": "同批次查询的资源 ID"
+    },
+    {
+      "name": "RawURL",
+      "type": "String",
+      "required": "必填",
+      "description": "同批次查询的文件 URL"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"RawURLs\": [\n\n        {\n\n            \"ResourceID\":1,\n\n            \"RawURL\":\"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc6.png\"\n\n        }，\n\n        {\n\n            \"ResourceID\":2,\n\n            \"RawURL\":\"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc7.png\"\n\n        }\n\n    ]\n\n}",
+      "clean_json": "{\n\n    \"RawURLs\": [\n\n        {\n\n            \"ResourceID\":1,\n\n            \"RawURL\":\"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc6.png\"\n\n        }，\n\n        {\n\n            \"ResourceID\":2,\n\n            \"RawURL\":\"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc7.png\"\n\n        }\n\n    ]\n\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功FAIL：表示失败"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功非0：表示失败"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息"
+    },
+    {
+      "name": "PreSigURLs",
+      "type": "Array",
+      "description": "批量查询结果返回"
+    },
+    {
+      "name": "ResourceID",
+      "type": "Integer",
+      "description": "同批查询的资源 ID"
+    },
+    {
+      "name": "Code",
+      "type": "Integer",
+      "description": "指定资源 ID 对应的查询结果"
+    },
+    {
+      "name": "Desc",
+      "type": "String",
+      "description": "指定资源 ID 对应的查询结果的描述"
+    },
+    {
+      "name": "PreSigURL",
+      "type": "String",
+      "description": "指定资源 ID 对应的最高权限的签名 URL，可以下载封禁的文件，有效期15分钟"
+    },
+    {
+      "name": "Status",
+      "type": "Integer",
+      "description": "指定资源 ID 对应的文件状态：0：文件正常，SDK 可访问1：文件被封禁，SDK 访问无权限，可使用 PreSigURL 访问2：文件不存在，可能过期被删除"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"\",\n\n    \"PreSigURLs\": [\n\n        {\n\n            \"Code\": 0,\n\n            \"Desc\": \"\",\n\n            \"ResourceID\": 1,\n\n            \"PreSigURL\": \"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc6.png?sign=xxxyyyzzz&im-time-expired=1653904781\",\n\n            \"Status\": 0\n\n        },\n\n        {\n\n            \"Code\": 0,\n\n            \"Desc\": \"\",\n\n            \"ResourceID\": 2,\n\n            \"PreSigURL\": \"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc7.png?sign=xxxyyyzzz&im-time-expired=1653904781\",\n\n            \"Status\": 2\n\n        }\n\n    ]\n\n}",
+      "clean_json": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"\",\n\n    \"PreSigURLs\": [\n\n        {\n\n            \"Code\": 0,\n\n            \"Desc\": \"\",\n\n            \"ResourceID\": 1,\n\n            \"PreSigURL\": \"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc6.png?sign=xxxyyyzzz&im-time-expired=1653904781\",\n\n            \"Status\": 0\n\n        },\n\n        {\n\n            \"Code\": 0,\n\n            \"Desc\": \"\",\n\n            \"ResourceID\": 2,\n\n            \"PreSigURL\": \"https://cos.ap-shanghai.myqcloud.com/98ec-shanghai-007-privatev2-01-1256635546/0345-1400187352/0612-yyy/9a0f4c42d208ccfb5aa47c29284aefc7.png?sign=xxxyyyzzz&im-time-expired=1653904781\",\n\n            \"Status\": 2\n\n        }\n\n    ]\n\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

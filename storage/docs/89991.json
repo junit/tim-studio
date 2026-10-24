@@ -1,0 +1,134 @@
+{
+  "doc_id": 89991,
+  "api_id": "robot_create",
+  "title": "创建机器人",
+  "doc_url": "https://cloud.tencent.com/document/product/269/89991",
+  "sync_time": "2026-10-24 01:28:54",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "机器人在许多业务场景中都有广泛的应用。在办公场景，用户可以通过机器人辅助完成工作纪要、文案编写等需求；在社交领域可以使用机器人提供新闻和趣事，提升群内的活跃度，增加用户粘性；在客服场景，机器人与 AI 的结合更好地为客户提供咨询和支持等。\n本接口用于创建一个机器人账号。机器人账号是一种特殊的用户账号，它也通过 UserID 来唯一标识（但是其 UserID 必须以       @RBT#       开头），具有昵称、头像、签名等基本属性。作为一种限制性的账号，机器人只有普通账号的部分功能，如收发消息，加入群组等，但同时机器人账号也可以实现一些普通账号不具有的特性与功能，例如         支持流式消息        、        发消息不检验好友关系        、        加群无上限、        ﻿        单聊机器人消息回调        、        群内@机器人之后回调         等。\n注意：同一个机器人账号 UserID 重复创建仅会创建1个机器人。\n每个 IM 账号只能创建最多20个机器人账号。\n如果要类似实现 FAQ 智能问答、闲聊、数据运营看板等功能，可以使用         智能客服        。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/openim_robot_http_svc/create_robot?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/openim_robot_http_svc/create_robot",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "UserID",
+      "type": "String",
+      "required": "必填",
+      "description": "机器人用户名，长度不超过32字节，必须以@RBT#开头。"
+    },
+    {
+      "name": "Nick",
+      "type": "String",
+      "required": "选填",
+      "description": "机器人昵称，不超过500字节。"
+    },
+    {
+      "name": "FaceUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "机器人头像 URL，不超过500字节。"
+    },
+    {
+      "name": "SelfSignature",
+      "type": "String",
+      "required": "选填",
+      "description": "机器人签名，不超过500字节。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"UserID\": \"@RBT#001\",\n\n    \"Nick\": \"Jarvis\",\n\n    \"FaceUrl\": \"www.example.com/head.jpg\",\n\n    \"SelfSignature\": \"hello, world\"\n\n}",
+      "clean_json": "{\n  \"UserID\": \"@RBT#001\",\n  \"Nick\": \"Jarvis\",\n  \"FaceUrl\": \"www.example.com/head.jpg\",\n  \"SelfSignature\": \"hello, world\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n   \"ActionStatus\":\"OK\",\n\n   \"ErrorInfo\":\"\",\n\n   \"ErrorCode\":0\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10002",
+      "description": "内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法，请检查必填字段是否填充，或者字段的填充是否满足协议要求。",
+      "solution": ""
+    },
+    {
+      "code": "10008",
+      "description": "非法请求，需要 App 管理员权限、创建的机器人已达上限等。",
+      "solution": ""
+    },
+    {
+      "code": "40006",
+      "description": "设置资料时服务器内部错误，请稍后重试。",
+      "solution": ""
+    },
+    {
+      "code": "40601",
+      "description": "资料字段的 Value 长度超过500字节。",
+      "solution": ""
+    },
+    {
+      "code": "70398",
+      "description": "账号数超限。如需创建多于100个账号，请将应用升级为专业版，具体操作指引请参见 购买指引。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

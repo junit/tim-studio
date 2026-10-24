@@ -1,0 +1,158 @@
+{
+  "doc_id": 1614,
+  "api_id": "",
+  "title": "获取 App 中的所有群组",
+  "doc_url": "https://cloud.tencent.com/document/product/269/1614",
+  "sync_time": "2026-10-24 01:43:23",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "App 管理员可以通过该接口获取 App 中所有群组的 ID。",
+  "rate_limit": "1次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/group_open_http_svc/get_appid_group_list?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/group_open_http_svc/get_appid_group_list",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "Limit",
+      "type": "Integer",
+      "required": "选填",
+      "description": "本次获取的群组 ID 数量的上限，不得超过 10000。如果不填，默认为最大值 10000。"
+    },
+    {
+      "name": "Next",
+      "type": "Integer (64位)",
+      "required": "选填",
+      "description": "群太多时需要分页拉取的标志，第一次填0，后续填上一次返回的值，返回的 Next 为0时代表拉取完毕。注意：该数字需为64位无符号整数，如果使用32位整数解析，可能会有溢出问题导致无法完整拉取列表。"
+    },
+    {
+      "name": "GroupType",
+      "type": "String",
+      "required": "选填",
+      "description": "如果仅需要返回特定群组形态的群组，可以通过 GroupType 进行过滤，但此时返回的 TotalCount 的含义就变成了 App 中属于该群组形态的群组总数。不填为获取所有类型的群组。群组形态包括 Public（公开群），Private（即 Work，好友工作群），ChatRoom（即 Meeting，会议群），IM 直播群（AVChatroom），BChatRoom（在线成员广播大群）和社群（Community）。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "基础形式",
+      "content": "{}",
+      "clean_json": "{}"
+    },
+    {
+      "title": "分页拉取",
+      "content": "{\n\n   \"Limit\": 1000,\n\n   \"Next\": 0\n\n}",
+      "clean_json": "{\n  \"Limit\": 1000,\n  \"Next\": 0\n}"
+    },
+    {
+      "title": "指定群组形态",
+      "content": "{\n\n  \"GroupType\" : \"Public\" // 拉取哪种群组形态，不填为拉取所有\n\n}",
+      "clean_json": "{\n  \"GroupType\": \"Public\"\n}"
+    },
+    {
+      "title": "ALL IN ONE",
+      "content": "{\n\n  \"Limit\": 1000,\n\n  \"Next\": 0,\n\n  \"GroupType\" : \"Public\" // 拉取哪种群组形态，不填为拉取所有\n\n}",
+      "clean_json": "{\n  \"Limit\": 1000,\n  \"Next\": 0,\n  \"GroupType\": \"Public\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK 表示处理成功。FAIL 表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0表示成功。非0表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "TotalCount",
+      "type": "Integer",
+      "description": "App 当前的群组总数。如果仅需要返回特定群组形态的群组，可以通过 GroupType 进行过滤，但此时返回的 TotalCount 的含义就变成了 App 中该群组形态的群组总数。例如：假设 App 旗下总共 50000 个群组，其中有 20000 个为公开群组，如果将请求包体中的 GroupType 设置为 Public，那么不论 Limit 和 Offset 怎样设置，应答包体中的 TotalCount 都为 20000，且 GroupIdList 中的群组全部为公开群组。"
+    },
+    {
+      "name": "GroupIdList",
+      "type": "Array",
+      "description": "获取到的群组 ID 的集合。"
+    },
+    {
+      "name": "GroupId",
+      "type": "String",
+      "description": "获取到的群组 ID。"
+    },
+    {
+      "name": "Next",
+      "type": "Integer (64位)",
+      "description": "分页拉取的标志。注意：注意该数字为64位无符号整数，如果使用32位整数解析，可能会有溢出问题导致无法完整拉取列表。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "应答包体示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"TotalCount\": 2,\n\n    \"GroupIdList\": [\n\n        {\n\n            \"GroupId\": \"@TGS#2J4SZEAEL\"\n\n        },\n\n        {\n\n            \"GroupId\": \"@TGS#2C5SZEAEF\"\n\n        }\n\n    ],\n\n    \"Next\": 4454685361,\n\n    \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"TotalCount\": 2,\n  \"GroupIdList\": [\n    {\n      \"GroupId\": \"@TGS#2J4SZEAEL\"\n    },\n    {\n      \"GroupId\": \"@TGS#2C5SZEAEF\"\n    }\n  ],\n  \"Next\": 4454685361,\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10002",
+      "description": "服务器内部错误，请重试。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数错误，请根据错误信息检查请求参数是否正确，例如 GroupType。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "操作权限不足，此 API 只有 App 管理员才可以调用。",
+      "solution": ""
+    },
+    {
+      "code": "10018",
+      "description": "应答包长度超过最大包长（1MB），请求的内容过多，请尝试减少单次请求的数据量。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

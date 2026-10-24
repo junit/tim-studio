@@ -1,0 +1,82 @@
+{
+  "doc_id": 45438,
+  "api_id": "op_get_ip_list",
+  "title": "获取服务器 IP 地址",
+  "doc_url": "https://cloud.tencent.com/document/product/269/45438",
+  "sync_time": "2026-10-24 01:28:54",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "基于安全等考虑，您可能需要获知服务器的 IP 地址列表，以便进行相关限制。App 管理员可以通过该接口获得 SDK、第三方回调所使用到的服务器 IP 地址列表或 IP 网段信息。  IP 列表因业务扩容或者机房调整等原因可能发生变化，请定期检查更新。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/ConfigSvc/GetIPList?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json&nettype=0",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/ConfigSvc/GetIPList",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    },
+    {
+      "name": "nettype",
+      "description": "请求指定类型的服务器 IP 地址列表：nettype=0:所有的服务器 IP 地址列表。nettype=1:native SDK 访问的中国地区(包括中国香港)服务器 IP 地址列表。nettype=2:native SDK 访问的海外地区服务器地址列表。nettype=3:web SDK 访问的中国地区(包括中国香港)服务器 IP 地址列表。nettype=4:web SDK 访问的海外地区服务器地址列表。nettype=5: IM 回调中国地区(包括中国香港)的出口地址列表。nettype=6:IM 回调海外地区的出口地址列表。"
+    }
+  ],
+  "request_body_fields": [],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{}",
+      "clean_json": "{}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "IPList",
+      "type": "Array",
+      "description": "服务器 IP 列表。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"IPList\": [ \"127.0.0.2\",   \"183.192.202.0/25\" ]\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"IPList\": [\n    \"127.0.0.2\",\n    \"183.192.202.0/25\"\n  ]\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

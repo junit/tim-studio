@@ -1,0 +1,141 @@
+{
+  "doc_id": 102857,
+  "api_id": "group_modify_admin",
+  "title": "设置/取消直播群管理员",
+  "doc_url": "https://cloud.tencent.com/document/product/269/102857",
+  "sync_time": "2026-10-23 23:20:56",
+  "status": "synced",
+  "overview": "App 管理员可以为直播群设置和取消管理员，当设置管理员时，被设置的账号可以不需要在直播群里，被设置为管理员之后，该账号即使离开直播群再重新进群也仍然是管理员。\n需要取消管理员身份时，需要调用本接口取消该用户的管理员身份。\n该功能需旗舰版或企业版，并且在 IM 控制台“群功能配置”中开通“直播群在线成员列表”功能。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/group_open_avchatroom_http_svc/modify_admin?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔：adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/group_open_avchatroom_http_svc/modify_admin",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "GroupId",
+      "type": "String",
+      "required": "必填",
+      "description": "操作的群 ID。"
+    },
+    {
+      "name": "CommandType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "1：设置管理员。2：取消设置为管理员。"
+    },
+    {
+      "name": "Admin_Account",
+      "type": "Array",
+      "required": "必填",
+      "description": "要修改的管理员 UserID 列表，一个直播群最多可以设置5个管理员。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n    \"GroupId\":\"@TGS#a6I4ZUUGO\",\n\n    \"CommandType\": 1,\n\n    \"Admin_Account\": [\"user1\"]\n\n}",
+      "clean_json": "{\n  \"GroupId\": \"@TGS#a6I4ZUUGO\",\n  \"CommandType\": 1,\n  \"Admin_Account\": [\n    \"user1\"\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "本次请求的唯一标识 ID，可用于问题排查。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"\",\n\n    \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\",\n  \"RequestId\": \"a1b2c3d4-e5f6-7890-abcd-ef1234567890\"\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "10001",
+      "description": "用户未登录错误，请检查 admin 账号和 usersig 是否正确。",
+      "solution": ""
+    },
+    {
+      "code": "10002",
+      "description": "系统错误，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10003",
+      "description": "请求命令非法，请再次尝试或联系技术客服。",
+      "solution": ""
+    },
+    {
+      "code": "10004",
+      "description": "参数非法。请根据应答包中的 ErrorInfo 字段，检查必填字段是否填充，或者字段的填充是否满足协议要求。",
+      "solution": ""
+    },
+    {
+      "code": "10007",
+      "description": "权限不足，操作者非 App 管理员。",
+      "solution": ""
+    },
+    {
+      "code": "10010",
+      "description": "群组不存在，或者曾经存在过，但是目前已经被解散。",
+      "solution": ""
+    },
+    {
+      "code": "10008",
+      "description": "直播群管理员数量超限制，或者未开通旗舰版并且未在控制台的“群功能配置”中开通“直播群在线成员列表”功能。",
+      "solution": ""
+    },
+    {
+      "code": "10015",
+      "description": "群组 ID 非法，请检查群组 ID 是否填写正确。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

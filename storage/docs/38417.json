@@ -1,0 +1,142 @@
+{
+  "doc_id": 38417,
+  "api_id": "account_check",
+  "title": "查询账号",
+  "doc_url": "https://cloud.tencent.com/document/product/269/38417",
+  "sync_time": "2026-10-24 01:28:53",
+  "status": "synced",
+  "source_mode": "html",
+  "requested_mode": "auto",
+  "overview": "用于查询自有账号是否已导入即时通信 IM，支持批量查询。",
+  "rate_limit": "100次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/im_open_login_svc/account_check?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/im_open_login_svc/account_check",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "CheckItem",
+      "type": "Array",
+      "required": "必填",
+      "description": "请求检查的账号对象数组，单次请求最多支持100个账号。"
+    },
+    {
+      "name": "UserID",
+      "type": "String",
+      "required": "必填",
+      "description": "请求检查的账号的 UserID。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求包示例",
+      "content": "{\n\n  \"CheckItem\":\n\n  [\n\n      {\n\n          \"UserID\":\"UserID_1\"\n\n      },\n\n      {\n\n          \"UserID\":\"UserID_2\"\n\n      }\n\n  ]\n\n}",
+      "clean_json": "{\n  \"CheckItem\": [\n    {\n      \"UserID\": \"UserID_1\"\n    },\n    {\n      \"UserID\": \"UserID_2\"\n    }\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求的处理结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "请求处理失败时的错误信息。"
+    },
+    {
+      "name": "ResultItem",
+      "type": "Array",
+      "description": "单个账号的检查结果对象数组。"
+    },
+    {
+      "name": "UserID",
+      "type": "String",
+      "description": "请求检查的账号的 UserID。"
+    },
+    {
+      "name": "ResultCode",
+      "type": "Integer",
+      "description": "单个账号的检查结果：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ResultInfo",
+      "type": "String",
+      "description": "单个账号检查失败时的错误描述信息。"
+    },
+    {
+      "name": "AccountStatus",
+      "type": "String",
+      "description": "单个账号的导入状态：Imported 表示已导入，NotImported 表示未导入。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorCode\": 0,\n\n    \"ErrorInfo\": \"\",\n\n    \"ResultItem\": [\n\n        {\n\n            \"UserID\": \"UserID_1\",\n\n            \"ResultCode\": 0,\n\n            \"ResultInfo\": \"\",\n\n            \"AccountStatus\": \"Imported\"\n\n        },\n\n        {\n\n            \"UserID\": \"UserID_2\",\n\n            \"ResultCode\": 0,\n\n            \"ResultInfo\": \"\",\n\n            \"AccountStatus\": \"NotImported\"\n\n        }\n\n    ]\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorCode\": 0,\n  \"ErrorInfo\": \"\",\n  \"ResultItem\": [\n    {\n      \"UserID\": \"UserID_1\",\n      \"ResultCode\": 0,\n      \"ResultInfo\": \"\",\n      \"AccountStatus\": \"Imported\"\n    },\n    {\n      \"UserID\": \"UserID_2\",\n      \"ResultCode\": 0,\n      \"ResultInfo\": \"\",\n      \"AccountStatus\": \"NotImported\"\n    }\n  ]\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "70169",
+      "description": "服务端内部超时，请稍后重试。",
+      "solution": ""
+    },
+    {
+      "code": "70202",
+      "description": "服务端内部超时，请稍后重试。",
+      "solution": ""
+    },
+    {
+      "code": "70402",
+      "description": "参数非法，请检查必填字段是否填充，或者字段的填充是否符合协议要求。",
+      "solution": ""
+    },
+    {
+      "code": "70403",
+      "description": "请求失败，需要 App 管理员权限。",
+      "solution": ""
+    },
+    {
+      "code": "70500",
+      "description": "服务器内部错误，请稍后重试。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

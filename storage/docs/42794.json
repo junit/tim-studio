@@ -1,0 +1,216 @@
+{
+  "doc_id": 42794,
+  "api_id": "c2c_get_roam_msg",
+  "title": "拉取单聊历史消息",
+  "doc_url": "https://cloud.tencent.com/document/product/269/42794",
+  "sync_time": "2026-10-24 01:28:49",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "管理员按照时间范围，以会话其中一方的角度查询单聊会话的消息记录。\n查询的单聊会话由请求中的 Operator_Account 和 Peer_Account 指定，以 Operator_Account 的角度查询。查询结果包含会话双方互相发送的消息，具体每条消息的发送方和接收方由每条消息里的 From_Account 和 To_Account 指定。\n正常情况下，分别以会话双方的角度查询消息，结果是一样的。但以下四种情况会导致结果不一样（即会话里的某些消息，其中一方能查询到，另一方查询不到）：\n会话的其中一方清空了会话的消息记录，即调用了终端的         clearC2CHistoryMessage()         接口。\n会话的其中一方删除了会话，即调用了终端的         deleteConversation()         接口，或者 Web /小程序/ uni-app 的         deleteConversation         接口，或者服务端的         删除单个会话         的接口且指定了 ClearRamble 的值为1。\n会话的其中一方删除了部分消息，即调用了终端的         deleteMessages()         接口，或者 Web /小程序/ uni-app 的         deleteMessage         接口。\n通过         单发单聊消息         或         批量发单聊消息         接口发送的消息，指定了 SyncOtherMachine 值为2，即指定消息不同步到发送方的消息记录。\n查询结果包含被撤回的消息，由消息里的 MsgFlagBits 字段标识。\n查询结果中的 IsPeerRead 字段表示接收方是否发送该条消息的已读回执。只有接收方调用         sendMessageReadReceipts (Android / iOS & Mac / Windows)         或         sendMessageReadReceipt (Web&小程序&uni-app)         接口后，该字段才会为1。\n若想通过         REST API 撤回单聊消息         接口撤回某条消息，可先用本接口查询出该消息的 MsgKey，然后再调用撤回接口进行撤回。\n可查询的消息记录的时间范围取决于漫游消息存储时长，默认是7天。支持在控制台修改消息漫游时长，延长消息漫游时长是增值服务。具体请参考         漫游消息存储        。\n若请求时间段内的消息总大小超过应答包体大小限制（目前为13K）时，则需要续拉。您可以通过应答中的 Complete 字段查看是否已拉取请求的全部消息。",
+  "rate_limit": "200次/秒。",
+  "request_url_sample": "https://xxxxxx/v4/openim/admin_getroammsg?sdkappid=88888888&identifier=admin&usersig=xxx&random=99999999&contenttype=json",
+  "url_params": [
+    {
+      "name": "xxxxxx",
+      "description": "SDKAppID 所在国家/地区对应的专属域名：中国：console.tim.qq.com新加坡：adminapisgp.im.qcloud.com首尔： adminapikr.im.qcloud.com东京：adminapijpn.im.qcloud.com法兰克福：adminapiger.im.qcloud.com硅谷：adminapiusa.im.qcloud.com雅加达：adminapiidn.im.qcloud.com利雅得：adminapiksa.im.qcloud.com"
+    },
+    {
+      "name": "v4/openim/admin_getroammsg",
+      "description": "请求接口。"
+    },
+    {
+      "name": "sdkappid",
+      "description": "创建应用时即时通信 IM 控制台分配的 SDKAppID。"
+    },
+    {
+      "name": "identifier",
+      "description": "必须为 App 管理员账号，更多详情请参见 App 管理员。"
+    },
+    {
+      "name": "usersig",
+      "description": "App 管理员账号生成的签名，具体操作请参见 生成 UserSig。"
+    },
+    {
+      "name": "random",
+      "description": "请输入随机的32位无符号整数，取值范围0 - 4294967295。"
+    },
+    {
+      "name": "contenttype",
+      "description": "请求格式固定值为 json。"
+    }
+  ],
+  "request_body_fields": [
+    {
+      "name": "Operator_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "会话其中一方的 UserID，以该 UserID 的角度去查询消息。同一个会话，分别以会话双方的角度去查询消息，结果可能会不一样，请参考本接口的接口说明。"
+    },
+    {
+      "name": "Peer_Account",
+      "type": "String",
+      "required": "必填",
+      "description": "会话的另一方 UserID。"
+    },
+    {
+      "name": "MaxCnt",
+      "type": "Integer",
+      "required": "必填",
+      "description": "请求的消息条数。"
+    },
+    {
+      "name": "MinTime",
+      "type": "Integer",
+      "required": "必填",
+      "description": "请求的消息时间范围的最小值（单位：秒）。"
+    },
+    {
+      "name": "MaxTime",
+      "type": "Integer",
+      "required": "必填",
+      "description": "请求的消息时间范围的最大值（单位：秒）。"
+    },
+    {
+      "name": "LastMsgKey",
+      "type": "String",
+      "required": "选填",
+      "description": "上一次拉取到的最后一条消息的 MsgKey，续拉时需要填该字段，填写方法见上方 示例。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "请求示例",
+      "content": "{\n\n    \"Operator_Account\":\"user2\",\n\n    \"Peer_Account\":\"user1\",\n\n    \"MaxCnt\":100,\n\n    \"MinTime\":1584669600,\n\n    \"MaxTime\":1584673200\n\n}",
+      "clean_json": "{\n  \"Operator_Account\": \"user2\",\n  \"Peer_Account\": \"user1\",\n  \"MaxCnt\": 100,\n  \"MinTime\": 1584669600,\n  \"MaxTime\": 1584673200\n}"
+    },
+    {
+      "title": "续拉请求示例",
+      "content": "{\n\n    \"Operator_Account\":\"user2\",\n\n    \"Peer_Account\":\"user1\",\n\n    \"MaxCnt\":100,\n\n    \"MinTime\":1584669600,\n\n    \"MaxTime\":1584669680,\n\n    \"LastMsgKey\": \"549396494_2578554_1584669680\"\n\n}",
+      "clean_json": "{\n  \"Operator_Account\": \"user2\",\n  \"Peer_Account\": \"user1\",\n  \"MaxCnt\": 100,\n  \"MinTime\": 1584669600,\n  \"MaxTime\": 1584669680,\n  \"LastMsgKey\": \"549396494_2578554_1584669680\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ActionStatus",
+      "type": "String",
+      "description": "请求处理的结果：OK：表示处理成功。FAIL：表示失败。"
+    },
+    {
+      "name": "ErrorCode",
+      "type": "Integer",
+      "description": "错误码：0：表示成功。非0：表示失败。"
+    },
+    {
+      "name": "ErrorInfo",
+      "type": "String",
+      "description": "错误信息。"
+    },
+    {
+      "name": "Complete",
+      "type": "Integer",
+      "description": "是否全部拉取：0：表示未全部拉取，需要继续拉取。1：表示已全部拉取。"
+    },
+    {
+      "name": "MsgCnt",
+      "type": "Integer",
+      "description": "本次拉取到的消息条数。"
+    },
+    {
+      "name": "LastMsgTime",
+      "type": "Integer",
+      "description": "本次拉取到的消息里的最后一条消息的时间。"
+    },
+    {
+      "name": "LastMsgKey",
+      "type": "String",
+      "description": "本次拉取到的消息里的最后一条消息的标识。"
+    },
+    {
+      "name": "MsgList",
+      "type": "Array",
+      "description": "返回的消息列表。"
+    },
+    {
+      "name": "MsgFlagBits",
+      "type": "Integer",
+      "description": "该条消息的属性：0：表示正常消息。8：表示被撤回的消息。"
+    },
+    {
+      "name": "IsPeerRead",
+      "type": "Integer",
+      "description": "消息接收方是否发送该条消息的已读回执。0：表示未发送。1：表示已发送。详情可参考本接口的功能说明。"
+    },
+    {
+      "name": "MsgVersion",
+      "type": "Integer",
+      "description": "消息版本号，初始值为0，每次消息修改自增1。"
+    },
+    {
+      "name": "MsgBody",
+      "type": "Array",
+      "description": "消息内容，具体格式请参考 消息格式描述（一条消息可包括多种消息元素，MsgBody 为 Array 类型）。"
+    },
+    {
+      "name": "CloudCustomData",
+      "type": "String",
+      "description": "消息自定义数据（云端保存，会发送到对端，程序卸载重装后还能拉取到）。"
+    },
+    {
+      "name": "MsgKey",
+      "type": "String",
+      "description": "标识该条消息，可用于 REST API 撤回单聊消息。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"Complete\": 0,\n\n    \"MsgCnt\": 12, //本次拉取返回了12条消息\n\n    \"LastMsgTime\": 1584669680,\n\n    \"LastMsgKey\": \"549396494_2578554_1584669680\",\n\n    \"MsgList\": [\n\n        {\n\n            \"From_Account\": \"user1\",\n\n            \"To_Account\": \"user2\",\n\n            \"MsgSeq\": 549396494,\n\n            \"MsgRandom\": 2578554,\n\n            \"MsgTimeStamp\": 1584669680,\n\n            \"MsgFlagBits\": 0,\n\n            \"IsPeerRead\": 0,\n\n            \"MsgKey\": \"549396494_2578554_1584669680\",\n\n            \"MsgVersion\": 0,\n\n            \"MsgBody\": [\n\n                {\n\n                    \"MsgType\": \"TIMTextElem\",\n\n                    \"MsgContent\": {\n\n                        \"Text\": \"msg 1\"\n\n                    }\n\n                }\n\n            ],\n\n            \"CloudCustomData\": \"your cloud custom data\"\n\n        },\n\n        {\n\n            \"From_Account\": \"user2\",\n\n            \"To_Account\": \"user1\",\n\n            \"MsgSeq\": 1054803289,\n\n            \"MsgRandom\": 7201,\n\n            \"MsgTimeStamp\": 1584669689,\n\n            \"MsgFlagBits\": 0,\n\n            \"IsPeerRead\": 0,\n\n            \"MsgKey\": \"1054803289_7201_1584669689\",\n\n            \"MsgVersion\": 0,\n\n            \"MsgBody\": [\n\n                {\n\n                    \"MsgType\": \"TIMTextElem\",\n\n                    \"MsgContent\": {\n\n                        \"Text\": \"msg 2\"\n\n                    }\n\n                }\n\n            ],\n\n            \"CloudCustomData\": \"your cloud custom data\"\n\n        },\n\n        { ... } //为节省篇幅，余下的10条消息未列出\n\n    ]\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"Complete\": 0,\n  \"MsgCnt\": 12,\n  \"LastMsgTime\": 1584669680,\n  \"LastMsgKey\": \"549396494_2578554_1584669680\",\n  \"MsgList\": [\n    {\n      \"From_Account\": \"user1\",\n      \"To_Account\": \"user2\",\n      \"MsgSeq\": 549396494,\n      \"MsgRandom\": 2578554,\n      \"MsgTimeStamp\": 1584669680,\n      \"MsgFlagBits\": 0,\n      \"IsPeerRead\": 0,\n      \"MsgKey\": \"549396494_2578554_1584669680\",\n      \"MsgVersion\": 0,\n      \"MsgBody\": [\n        {\n          \"MsgType\": \"TIMTextElem\",\n          \"MsgContent\": {\n            \"Text\": \"msg 1\"\n          }\n        }\n      ],\n      \"CloudCustomData\": \"your cloud custom data\"\n    },\n    {\n      \"From_Account\": \"user2\",\n      \"To_Account\": \"user1\",\n      \"MsgSeq\": 1054803289,\n      \"MsgRandom\": 7201,\n      \"MsgTimeStamp\": 1584669689,\n      \"MsgFlagBits\": 0,\n      \"IsPeerRead\": 0,\n      \"MsgKey\": \"1054803289_7201_1584669689\",\n      \"MsgVersion\": 0,\n      \"MsgBody\": [\n        {\n          \"MsgType\": \"TIMTextElem\",\n          \"MsgContent\": {\n            \"Text\": \"msg 2\"\n          }\n        }\n      ],\n      \"CloudCustomData\": \"your cloud custom data\"\n    },\n    {}\n  ]\n}"
+    },
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n    \"ActionStatus\": \"OK\",\n\n    \"ErrorInfo\": \"\",\n\n    \"ErrorCode\": 0,\n\n    \"Complete\": 1,\n\n    \"MsgCnt\": 5, //本次拉取返回了5条消息\n\n    \"LastMsgTime\": 1584669601,\n\n    \"LastMsgKey\": \"1456_23287_1584669601\",\n\n    \"MsgList\": [\n\n        {\n\n            \"From_Account\": \"user1\",\n\n            \"To_Account\": \"user2\",\n\n            \"MsgSeq\": 1456,\n\n            \"MsgRandom\": 23287,\n\n            \"MsgTimeStamp\": 1584669601,\n\n            \"MsgFlagBits\": 0,\n\n            \"IsPeerRead\": 1,\n\n            \"MsgKey\": \"1456_23287_1584669601\",\n\n            \"MsgVersion\": 0,\n\n            \"MsgBody\": [\n\n                {\n\n                    \"MsgType\": \"TIMTextElem\",\n\n                    \"MsgContent\": {\n\n                        \"Text\": \"msg 13\"\n\n                    }\n\n                }\n\n            ],\n\n            \"CloudCustomData\": \"your cloud custom data\"\n\n        },\n\n        {\n\n            \"From_Account\": \"user2\",\n\n            \"To_Account\": \"user1\",\n\n            \"MsgSeq\": 9806,\n\n            \"MsgRandom\": 14,\n\n            \"MsgTimeStamp\": 1584669602,\n\n            \"MsgFlagBits\": 0,\n\n            \"IsPeerRead\": 1,\n\n            \"MsgKey\": \"9806_14_1584669602\",\n\n            \"MsgVersion\": 0,\n\n            \"MsgBody\": [\n\n                {\n\n                    \"MsgType\": \"TIMTextElem\",\n\n                    \"MsgContent\": {\n\n                        \"Text\": \"msg 14\"\n\n                    }\n\n                }\n\n            ],\n\n            \"CloudCustomData\": \"your cloud custom data\"\n\n        },\n\n        { ... } //为节省篇幅，余下的3条消息未列出\n\n    ]\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"Complete\": 1,\n  \"MsgCnt\": 5,\n  \"LastMsgTime\": 1584669601,\n  \"LastMsgKey\": \"1456_23287_1584669601\",\n  \"MsgList\": [\n    {\n      \"From_Account\": \"user1\",\n      \"To_Account\": \"user2\",\n      \"MsgSeq\": 1456,\n      \"MsgRandom\": 23287,\n      \"MsgTimeStamp\": 1584669601,\n      \"MsgFlagBits\": 0,\n      \"IsPeerRead\": 1,\n      \"MsgKey\": \"1456_23287_1584669601\",\n      \"MsgVersion\": 0,\n      \"MsgBody\": [\n        {\n          \"MsgType\": \"TIMTextElem\",\n          \"MsgContent\": {\n            \"Text\": \"msg 13\"\n          }\n        }\n      ],\n      \"CloudCustomData\": \"your cloud custom data\"\n    },\n    {\n      \"From_Account\": \"user2\",\n      \"To_Account\": \"user1\",\n      \"MsgSeq\": 9806,\n      \"MsgRandom\": 14,\n      \"MsgTimeStamp\": 1584669602,\n      \"MsgFlagBits\": 0,\n      \"IsPeerRead\": 1,\n      \"MsgKey\": \"9806_14_1584669602\",\n      \"MsgVersion\": 0,\n      \"MsgBody\": [\n        {\n          \"MsgType\": \"TIMTextElem\",\n          \"MsgContent\": {\n            \"Text\": \"msg 14\"\n          }\n        }\n      ],\n      \"CloudCustomData\": \"your cloud custom data\"\n    },\n    {}\n  ]\n}"
+    },
+    {
+      "title": "成功应答示例",
+      "content": "{\n\n  \"ActionStatus\": \"OK\",\n\n  \"ErrorInfo\": \"\",\n\n  \"ErrorCode\": 0,\n\n  \"Complete\": 1,\n\n  \"MsgCnt\": 1,\n\n  \"LastMsgTime\": 1584669680,\n\n  \"LastMsgKey\": \"549396494_2578554_1584669680\",\n\n  \"MsgList\": [\n\n      {\n\n          \"From_Account\": \"user1\",\n\n          \"To_Account\": \"user2\",\n\n          \"MsgSeq\": 549396494,\n\n          \"MsgRandom\": 2578554,\n\n          \"MsgTimeStamp\": 1584669680,\n\n          \"MsgFlagBits\": 0,\n\n          \"IsPeerRead\": 0,\n\n          \"MsgKey\": \"549396494_2578554_1584669680\",\n\n          \"MsgVersion\": 0,\n\n          \"MsgBody\": [\n\n              {\n\n                  \"MsgType\": \"TIMTextElem\",\n\n                  \"MsgContent\": {\n\n                      \"Text\": \"1\"\n\n                  }\n\n              }\n\n          ],\n\n          \"CloudCustomData\": \"your cloud custom data\"\n\n      }\n\n  ]\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"OK\",\n  \"ErrorInfo\": \"\",\n  \"ErrorCode\": 0,\n  \"Complete\": 1,\n  \"MsgCnt\": 1,\n  \"LastMsgTime\": 1584669680,\n  \"LastMsgKey\": \"549396494_2578554_1584669680\",\n  \"MsgList\": [\n    {\n      \"From_Account\": \"user1\",\n      \"To_Account\": \"user2\",\n      \"MsgSeq\": 549396494,\n      \"MsgRandom\": 2578554,\n      \"MsgTimeStamp\": 1584669680,\n      \"MsgFlagBits\": 0,\n      \"IsPeerRead\": 0,\n      \"MsgKey\": \"549396494_2578554_1584669680\",\n      \"MsgVersion\": 0,\n      \"MsgBody\": [\n        {\n          \"MsgType\": \"TIMTextElem\",\n          \"MsgContent\": {\n            \"Text\": \"1\"\n          }\n        }\n      ],\n      \"CloudCustomData\": \"your cloud custom data\"\n    }\n  ]\n}"
+    },
+    {
+      "title": "失败应答示例",
+      "content": "{\n\n  \"ActionStatus\": \"FAIL\", \n\n  \"ErrorInfo\": \"Fail to Parse json data of body, Please check it\", \n\n  \"ErrorCode\": 90001\n\n}",
+      "clean_json": "{\n  \"ActionStatus\": \"FAIL\",\n  \"ErrorInfo\": \"Fail to Parse json data of body, Please check it\",\n  \"ErrorCode\": 90001\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "90001",
+      "description": "JSON 格式解析失败，请检查请求包是否符合 JSON 规范。",
+      "solution": ""
+    },
+    {
+      "code": "90003",
+      "description": "JSON 格式请求包体中缺少 To_Account 字段或者 To_Account 字段不是 String 类型。",
+      "solution": ""
+    },
+    {
+      "code": "90008",
+      "description": "JSON 格式请求包体中缺少 From_Account 字段或者 From_Account 账号不存在。",
+      "solution": ""
+    },
+    {
+      "code": "90009",
+      "description": "请求需要 App 管理员权限。",
+      "solution": ""
+    },
+    {
+      "code": "91000",
+      "description": "服务内部错误，请重试。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}
