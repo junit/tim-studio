@@ -1,0 +1,1238 @@
+# -*- coding: utf-8 -*-
+"""
+智能体 REST & SSE 路由：多 BOT 管理、流式对话、记忆库、自编技能与自增强准则
+"""
+
+import asyncio
+import base64
+import json
+import mimetypes
+import os
+import re
+import time
+from typing import Any, Dict, List, Optional
+import requests
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
+from fastapi.responses import StreamingResponse, FileResponse
+from pydantic import BaseModel, Field
+
+from core.agent.bot_manager import bot_manager
+from core.agent.constants import SUPPORTED_PROVIDERS, BOT_PRESET_TEMPLATES, HIGH_RISK_API_KEYWORDS
+from core.agent.engine import agent_engine
+from core.agent.file_parser import parse_file_summary, format_file_size
+from core.agent.models import BotConfig, LLMConfig
+from core.agent.rag_manager import rag_manager
+from core.agent.run_manager import agent_run_manager, AgentRun
+from core.tim_client import TimClient
+
+router = APIRouter(prefix="/api/agent", tags=["AI 智能体"])
+
+
+# -------------------------------------------------------------
+# DTO 请求体定义
+# -------------------------------------------------------------
+class LLMConfigPayload(BaseModel):
+    provider: str = Field(..., description="模型提供商：deepseek, qwen, ollama, openai, custom")
+    model_name: str = Field(..., description="模型名称")
+    base_url: str = Field(default="", description="Base URL")
+    api_key: Optional[str] = Field(default="", description="API Key")
+    temperature: float = Field(default=0.2, description="温度")
+
+
+class FetchModelsPayload(BaseModel):
+    provider: Optional[str] = Field(default=None, description="模型提供商")
+    base_url: Optional[str] = Field(default=None, description="Base URL")
+    api_key: Optional[str] = Field(default=None, description="API Key")
+
+
+class CreateBotPayload(BaseModel):
+    name: str = Field(..., description="智能体名称")
+    goal: Optional[str] = Field(default="", description="职责与业务目标（希望智能体做什么）")
+    id: Optional[str] = Field(default=None, description="唯一标识 (可选，留空由 AI 自动生成)")
+    avatar: Optional[str] = Field(default=None, description="头像 Emoji (可选，留空由 AI 自动匹配)")
+    description: Optional[str] = Field(default=None, description="功能描述 (可选，留空由 AI 自动生成)")
+    base_prompt: Optional[str] = Field(default=None, description="基础人设提示词 (可选，留空由 AI 自动生成)")
+    suggested_prompts: Optional[List[str]] = Field(default=None, description="个性化推荐快捷指令")
+    model_override: Optional[Dict[str, Any]] = Field(default=None, description="专属模型配置")
+
+
+class GeneratePreviewPayload(BaseModel):
+    name: str = Field(..., description="智能体名称")
+    goal: Optional[str] = Field(default="", description="职责与业务目标")
+
+
+class UpdateBotPayload(BaseModel):
+    name: Optional[str] = None
+    avatar: Optional[str] = None
+    description: Optional[str] = None
+    base_prompt: Optional[str] = None
+    model_override: Optional[Dict[str, Any]] = None
+
+
+class AttachmentItem(BaseModel):
+    id: str = Field(..., description="附件唯一标识")
+    name: str = Field(..., description="原始文件名")
+    size: int = Field(default=0, description="文件大小（字节）")
+    type: str = Field(default="file", description="文件格式类型，如 docx, xlsx, csv, txt, pdf, png 等")
+    category: Optional[str] = Field(default="file", description="分类：document, table, text, image, code 等")
+    path: str = Field(..., description="服务器本地文件绝对路径")
+    url: Optional[str] = Field(default=None, description="在线访问/下载地址")
+    data_url: Optional[str] = Field(default=None, description="用于图片快速缩略图的 Base64 Data URL")
+    size_formatted: Optional[str] = Field(default=None, description="人性化大小表示")
+    summary: Optional[str] = Field(default=None, description="结构化摘要")
+    preview: Optional[str] = Field(default=None, description="预览文本")
+    meta: Optional[Dict[str, Any]] = Field(default=None, description="结构元数据")
+
+
+class ChatPayload(BaseModel):
+    message: str = Field(default="", description="用户输入的指令或问题")
+    client_msg_id: Optional[str] = Field(default=None, description="前端指定的消息ID")
+    attachments: Optional[List[AttachmentItem]] = Field(default=None, description="随消息发送的附件列表")
+
+
+class TruncateHistoryPayload(BaseModel):
+    message_id: str = Field(..., description="截断至此消息 ID（保留该消息及之前内容，丢弃后续内容）")
+
+
+class MemoryPayload(BaseModel):
+    key: str = Field(..., description="记忆标识")
+    content: str = Field(..., description="记忆事实详情")
+
+
+class GuidelinePayload(BaseModel):
+    instruction: str = Field(..., description="指令规则内容")
+    reason: Optional[str] = Field(default="", description="强化原因")
+
+
+class SaveSkillPayload(BaseModel):
+    name: str = Field(..., description="技能名称")
+    description: str = Field(..., description="功能描述")
+    python_code: str = Field(..., description="Python 代码")
+    input_schema: Optional[Dict[str, Any]] = Field(default_factory=dict, description="入参模式说明")
+
+
+class RunSkillPayload(BaseModel):
+    kwargs: Optional[Dict[str, Any]] = Field(default_factory=dict, description="执行入参")
+
+
+class ToggleKnowledgePayload(BaseModel):
+    enabled: Optional[bool] = None
+
+
+class SearchKnowledgePayload(BaseModel):
+    query: str = Field(..., description="检索问题或关键词")
+    top_k: Optional[int] = Field(default=4, description="返回最多匹配条数")
+    min_score: Optional[float] = Field(default=0.05, description="最低相关度分数阈值")
+
+
+class ApprovalDecisionPayload(BaseModel):
+    decision: str = Field(..., description="决策：'approve' 或 'reject'")
+
+
+
+# -------------------------------------------------------------
+# LLM 全局模型配置与预设
+# -------------------------------------------------------------
+@router.get("/config")
+def get_llm_config():
+    """获取大模型配置（API Key 脱敏）与支持的供应商列表 (SSoT)"""
+    return {
+        "config": bot_manager.get_masked_llm_config(),
+        "providers": SUPPORTED_PROVIDERS
+    }
+
+
+@router.get("/templates")
+def list_bot_templates():
+    """获取预设智能体角色模板（社群风控官、消息巡检员、运维保障官等）"""
+    return {
+        "success": True,
+        "templates": BOT_PRESET_TEMPLATES
+    }
+
+
+@router.get("/security/high-risk-keywords")
+def get_high_risk_keywords():
+    """获取高危破坏性接口安全拦截规则与关键词"""
+    return {
+        "success": True,
+        "keywords": bot_manager.get_high_risk_keywords(),
+        "default_keywords": HIGH_RISK_API_KEYWORDS
+    }
+
+
+class HighRiskKeywordsPayload(BaseModel):
+    keywords: List[str] = Field(..., description="高危接口拦截关键词列表")
+
+
+@router.post("/security/high-risk-keywords")
+def update_high_risk_keywords(payload: HighRiskKeywordsPayload):
+    """更新高危破坏性接口拦截关键词"""
+    updated = bot_manager.set_high_risk_keywords(payload.keywords)
+    return {
+        "success": True,
+        "keywords": updated
+    }
+
+
+@router.post("/config")
+def save_llm_config(payload: LLMConfigPayload):
+    """保存大模型连接配置"""
+    existing = bot_manager.get_llm_config()
+    # 若前端传空 key 且原本已有 key，保留原 key 避免被误清空
+    api_key = payload.api_key.strip() if payload.api_key is not None else ""
+    if not api_key and existing.api_key and payload.provider == existing.provider:
+        api_key = existing.api_key
+
+    new_cfg = LLMConfig(
+        provider=payload.provider,
+        model_name=payload.model_name.strip(),
+        base_url=payload.base_url.strip(),
+        api_key=api_key,
+        temperature=payload.temperature
+    )
+    bot_manager.save_llm_config(new_cfg)
+    return {"success": True, "config": bot_manager.get_masked_llm_config()}
+
+
+@router.post("/config/test")
+def test_llm_connection():
+    """测试当前大模型连通性"""
+    cfg = bot_manager.get_llm_config()
+    try:
+        model = agent_engine.create_model(cfg)
+        resp = model([{"role": "user", "content": "Ping"}])
+        text = str(resp) if hasattr(resp, "__str__") else "OK"
+        return {"success": True, "message": "大模型连接成功！", "response": text[:100]}
+    except Exception as e:
+        return {"success": False, "error": f"连接失败: {str(e)}"}
+
+
+@router.post("/models")
+@router.get("/models")
+def fetch_available_models(payload: Optional[FetchModelsPayload] = None):
+    """
+    通过目标提供商的 OpenAI 兼容 /models 接口或 Ollama /api/tags 动态获取可用模型标识列表。
+    若远程探测失败或未配置 Key，则智能返回常见高频预设模型作为候选，保留完全自定义能力。
+    """
+    cfg = bot_manager.get_llm_config()
+    provider = (payload.provider if payload and payload.provider else cfg.provider) or "deepseek"
+
+    if payload and payload.base_url is not None:
+        base_url = payload.base_url.strip()
+    else:
+        base_url = (cfg.base_url or "").strip()
+
+    # 获取有效 API Key (避免使用带 ... 的脱敏 Key)
+    req_key = payload.api_key.strip() if payload and payload.api_key is not None else ""
+    if req_key and "..." not in req_key:
+        api_key = req_key
+    elif payload and payload.provider and payload.provider != cfg.provider and not req_key:
+        api_key = ""
+    else:
+        api_key = cfg.api_key
+
+    # 常见提供商官方推荐预设候选池
+    PROVIDER_PRESETS = {
+        "deepseek": ["deepseek-chat", "deepseek-reasoner", "deepseek-flash", "deepseek-v4-pro"],
+        "qwen": ["qwen-plus", "qwen-max", "qwen-turbo", "qwen-long", "qwen2.5-coder-32b-instruct", "qwen2.5-72b-instruct"],
+        "ollama": ["qwen2.5-coder:7b", "qwen2.5:7b", "llama3.1:8b", "deepseek-r1:8b"],
+        "openai": ["gpt-4o", "gpt-4o-mini", "o1", "o3-mini", "gpt-4-turbo"],
+        "custom": []
+    }
+
+    if not base_url:
+        presets = PROVIDER_PRESETS.get(provider, [])
+        return {
+            "success": True,
+            "models": presets,
+            "source": "preset",
+            "message": "Base URL 为空，返回该提供商默认推荐模型列表"
+        }
+
+    norm_base = base_url.rstrip("/")
+    candidates = []
+    if provider == "ollama" or "11434" in norm_base:
+        candidates.append(f"{norm_base}/api/tags")
+        candidates.append(f"{norm_base}/v1/models")
+        candidates.append(f"{norm_base}/models")
+    else:
+        candidates.append(f"{norm_base}/models")
+        if not norm_base.endswith("/v1"):
+            candidates.append(f"{norm_base}/v1/models")
+        else:
+            candidates.append(f"{norm_base[:-3]}/models")
+
+    headers = {}
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+
+    found_models = []
+    last_error = None
+
+    for url in candidates:
+        try:
+            resp = requests.get(url, headers=headers, timeout=6)
+            if resp.status_code == 200:
+                data = resp.json()
+                items = []
+                if isinstance(data, dict):
+                    if "data" in data and isinstance(data["data"], list):
+                        items = data["data"]
+                    elif "models" in data and isinstance(data["models"], list):
+                        items = data["models"]
+                elif isinstance(data, list):
+                    items = data
+
+                for item in items:
+                    if isinstance(item, dict):
+                        m_id = item.get("id") or item.get("name") or item.get("model")
+                        if m_id and isinstance(m_id, str):
+                            found_models.append(m_id)
+                    elif isinstance(item, str):
+                        found_models.append(item)
+
+                if found_models:
+                    break
+            else:
+                last_error = f"HTTP {resp.status_code}: {resp.text[:100]}"
+        except Exception as e:
+            last_error = str(e)
+
+    if found_models:
+        seen = set()
+        deduped = []
+        for m in found_models:
+            if m not in seen:
+                seen.add(m)
+                deduped.append(m)
+        return {
+            "success": True,
+            "models": deduped,
+            "source": "remote",
+            "message": f"成功从远程探测到 {len(deduped)} 个可用模型"
+        }
+
+    presets = PROVIDER_PRESETS.get(provider, [])
+    return {
+        "success": False,
+        "models": presets,
+        "source": "fallback",
+        "error": last_error or "未探测到模型列表",
+        "message": f"远程探测未响应（{last_error or '接口无返回'}），已呈现官方推荐常用模型"
+    }
+
+
+# -------------------------------------------------------------
+# 智能体实例管理
+# -------------------------------------------------------------
+@router.get("/bots")
+def list_bots():
+    """获取所有智能体实例列表"""
+    return {"bots": bot_manager.list_bots()}
+
+
+@router.post("/bots/generate-preview")
+def generate_bot_preview(payload: GeneratePreviewPayload):
+    """根据智能体名称与目标，智能预生成人设、图标与 ID"""
+    profile = bot_manager.generate_bot_profile(payload.name, payload.goal or "")
+    return {"success": True, "profile": profile}
+
+
+@router.post("/bots")
+def create_bot(payload: CreateBotPayload):
+    """新建智能体（支持仅填名称与目标，AI 自动生成人设、ID 与个性化推荐指令）"""
+    target_id = payload.id
+    target_avatar = payload.avatar
+    target_desc = payload.description
+    target_prompt = payload.base_prompt
+    target_suggested_prompts = payload.suggested_prompts
+
+    # 若未提供 ID、提示词或推荐指令，自动触发 AI 规划与生成
+    if not target_id or not target_prompt or not target_avatar or not target_suggested_prompts:
+        profile = bot_manager.generate_bot_profile(payload.name, payload.goal or "")
+        if not target_id:
+            target_id = profile["id"]
+        if not target_avatar:
+            target_avatar = profile["avatar"]
+        if not target_desc:
+            target_desc = profile["description"]
+        if not target_prompt:
+            target_prompt = profile["base_prompt"]
+        if not target_suggested_prompts:
+            target_suggested_prompts = profile.get("suggested_prompts", [])
+
+    # 避免 ID 重名冲突
+    if bot_manager.get_bot(target_id):
+        target_id = f"{target_id}_{int(time.time()) % 1000}"
+
+    bot = bot_manager.create_bot(
+        bot_id=target_id,
+        name=payload.name,
+        avatar=target_avatar or "🤖",
+        description=target_desc or "",
+        base_prompt=target_prompt,
+        suggested_prompts=target_suggested_prompts,
+        model_override=payload.model_override
+    )
+    return {"success": True, "bot": _format_bot_response(bot)}
+
+
+def _format_bot_response(bot):
+    """格式化智能体返回体，包含记忆、技能与实时合成的系统提示词"""
+    data = bot.model_dump()
+    data["skills"] = [s.model_dump() for s in bot_manager.list_skills(bot.id)]
+    data["memories"] = [m.model_dump() for m in bot_manager.list_memories(bot.id)]
+    data["history_count"] = len(bot_manager.get_history(bot.id))
+    data["assembled_prompt"] = agent_engine.assemble_system_prompt(bot)
+    if not data.get("suggested_prompts"):
+        data["suggested_prompts"] = bot_manager.infer_suggested_prompts(bot.name, bot.description, bot.base_prompt)
+    return data
+
+
+@router.get("/bots/{bot_id}")
+def get_bot(bot_id: str):
+    """获取智能体详情与全量资产统计"""
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="智能体不存在")
+    return {"bot": _format_bot_response(bot)}
+
+
+@router.post("/bots/{bot_id}/suggested-prompts")
+def refresh_bot_suggested_prompts(bot_id: str):
+    """根据智能体人设，通过大模型动态重新生成推荐指令（换一换）"""
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="智能体不存在")
+    prompts = bot_manager.generate_bot_suggested_prompts(bot_id, force_refresh=True)
+    return {"success": True, "suggested_prompts": prompts}
+
+
+@router.put("/bots/{bot_id}")
+def update_bot(bot_id: str, payload: UpdateBotPayload):
+    """更新智能体设定"""
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="智能体不存在")
+
+    # 内置智能体保护：禁止修改基础人设、名称、头像与描述
+    if bot_id == "default_assistant":
+        if payload.base_prompt is not None and payload.base_prompt != bot.base_prompt:
+            raise HTTPException(status_code=400, detail="内置智能体基础设定受系统保护，不可修改")
+        if payload.name is not None and payload.name != bot.name:
+            raise HTTPException(status_code=400, detail="内置智能体名称受系统保护，不可修改")
+        if payload.avatar is not None and payload.avatar != bot.avatar:
+            raise HTTPException(status_code=400, detail="内置智能体头像受系统保护，不可修改")
+        if payload.description is not None and payload.description != bot.description:
+            raise HTTPException(status_code=400, detail="内置智能体描述受系统保护，不可修改")
+
+    if payload.name is not None:
+        bot.name = payload.name
+    if payload.avatar is not None:
+        bot.avatar = payload.avatar
+    if payload.description is not None:
+        bot.description = payload.description
+    if payload.base_prompt is not None:
+        bot.base_prompt = payload.base_prompt
+    if payload.model_override is not None:
+        bot.model_override = payload.model_override
+    bot_manager.save_bot(bot)
+    return {"success": True, "bot": _format_bot_response(bot)}
+
+
+@router.delete("/bots/{bot_id}")
+def delete_bot(bot_id: str):
+    """删除智能体并彻底清理相关数据与运行任务"""
+    if bot_id == "default_assistant":
+        raise HTTPException(status_code=400, detail="默认智能体受系统内置保护，无法删除")
+    agent_run_manager.stop_run(bot_id)
+    ok = bot_manager.delete_bot(bot_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="智能体不存在")
+    return {"success": True}
+
+
+# -------------------------------------------------------------
+# 会话与 SSE 流式对话
+# -------------------------------------------------------------
+@router.get("/bots/{bot_id}/history")
+def get_bot_history(
+    bot_id: str,
+    limit: int = Query(default=50, ge=1, le=500),
+    before_id: Optional[str] = Query(default=None)
+):
+    """获取会话历史（支持根据 before_id 向上分页加载更早历史会话）"""
+    return bot_manager.get_history_paged(bot_id, limit=limit, before_id=before_id)
+
+
+@router.delete("/bots/{bot_id}/history")
+def clear_bot_history(bot_id: str, delete_files: bool = Query(default=True)):
+    """清空会话历史并同步清理物理磁盘上的上传附件"""
+    bot_manager.clear_history(bot_id, delete_files=delete_files)
+    return {"success": True}
+
+
+@router.post("/bots/{bot_id}/files/cleanup")
+def cleanup_bot_files(bot_id: str):
+    """主动扫描并清理未在历史消息中引用的孤儿文件"""
+    deleted = bot_manager.cleanup_unreferenced_files(bot_id)
+    return {"success": True, "cleaned_count": deleted}
+
+
+def _stream_run_sse(run: AgentRun):
+    """为指定 AgentRun 构造线程安全的 SSE 流式响应，支持断线重连与全量快照同步"""
+    async def sse_event_generator():
+        loop = asyncio.get_running_loop()
+        queue: asyncio.Queue = asyncio.Queue()
+        sub, snapshot = run.register_subscriber(queue, loop)
+        try:
+            # 1. 立即下发当前全量快照，供前端初始化或断线同步
+            sync_payload = json.dumps({"run": snapshot}, ensure_ascii=False)
+            yield f"event: sync\ndata: {sync_payload}\n\n"
+
+            # 如果任务在连接建立前已完成，则直接下发终止信号后退出
+            if snapshot.get("status") in ("done", "error", "stopped"):
+                evt_name = "error" if snapshot.get("status") == "error" else "done"
+                yield f"event: {evt_name}\ndata: {sync_payload}\n\n"
+                return
+
+            # 2. 持续等待新事件产生并流式传输
+            while True:
+                try:
+                    event_obj = await asyncio.wait_for(queue.get(), timeout=1.0)
+                    evt_name = event_obj.get("event", "message")
+                    data_str = json.dumps(event_obj.get("data", {}), ensure_ascii=False)
+                    yield f"event: {evt_name}\ndata: {data_str}\n\n"
+                    if evt_name in ("done", "error") or run.status in ("done", "error", "stopped"):
+                        break
+                except asyncio.TimeoutError:
+                    if run.status in ("done", "error", "stopped"):
+                        break
+                    # 心跳保活
+                    yield f": ping\n\n"
+        finally:
+            run.unregister_subscriber(sub)
+
+    return StreamingResponse(
+        sse_event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
+
+
+@router.get("/active-runs")
+def list_all_active_runs():
+    """批量查询所有智能体当前活跃运行状态（供前端多智能体列表状态指示使用）"""
+    return {"active_runs": agent_run_manager.list_active_runs()}
+
+
+@router.post("/bots/{bot_id}/upload")
+async def upload_bot_file(
+    bot_id: str,
+    file: UploadFile = File(...)
+):
+    """
+    上传文件/文档/图片附件给智能体处理
+    支持 DOCX, XLSX/XLS, CSV, TXT, JSON, MD, LOG, PDF, 以及各类图片
+    自动提取结构化数据摘要供大模型理解
+    """
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+
+    bot_dir = bot_manager._bot_dir(bot_id)
+    uploads_dir = os.path.join(bot_dir, "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    original_filename = file.filename or "uploaded_file"
+    safe_name = os.path.basename(original_filename)
+    safe_name = re.sub(r"[^\w\.\-\u4e00-\u9fa5]", "_", safe_name)
+    file_id = f"f_{int(time.time() * 1000)}"
+    saved_name = f"{file_id}_{safe_name}"
+    saved_path = os.path.abspath(os.path.join(uploads_dir, saved_name))
+
+    content = await file.read()
+    with open(saved_path, "wb") as f:
+        f.write(content)
+
+    parsed = parse_file_summary(saved_path, safe_name)
+    file_url = f"/api/agent/bots/{bot_id}/files/{saved_name}"
+
+    data_url = None
+    if parsed["category"] == "image" and len(content) <= 3 * 1024 * 1024:
+        mime = file.content_type or f"image/{parsed['type']}"
+        b64 = base64.b64encode(content).decode("utf-8")
+        data_url = f"data:{mime};base64,{b64}"
+
+    return {
+        "success": True,
+        "file": {
+            "id": file_id,
+            "name": safe_name,
+            "saved_name": saved_name,
+            "size": len(content),
+            "size_formatted": parsed["size_formatted"],
+            "type": parsed["type"],
+            "category": parsed["category"],
+            "path": saved_path,
+            "url": file_url,
+            "data_url": data_url,
+            "summary": parsed["summary"],
+            "preview": parsed["preview"],
+            "meta": parsed.get("meta", {})
+        }
+    }
+
+
+@router.api_route("/files/{bot_id}/{filename}", methods=["GET", "HEAD"])
+@router.api_route("/bots/{bot_id}/files/{filename}", methods=["GET", "HEAD"])
+def get_bot_file(bot_id: str, filename: str, download: bool = Query(default=False)):
+    """在线预览或下载智能体已上传的文件或生成的文件（支持原文件名或前缀哈希名双向匹配）"""
+    bot_dir = bot_manager._bot_dir(bot_id)
+    uploads_dir = os.path.join(bot_dir, "uploads")
+    safe_filename = os.path.basename(filename)
+    file_path = os.path.abspath(os.path.join(uploads_dir, safe_filename))
+
+    # 1. 尝试直接路径匹配
+    if not (file_path.startswith(os.path.abspath(bot_dir)) and os.path.exists(file_path) and os.path.isfile(file_path)):
+        candidate = None
+        # 2. 优先从 history.json 中检索关联关系（避免同名不同批次文件混淆）
+        hist_path = os.path.join(bot_dir, "history.json")
+        if os.path.exists(hist_path):
+            try:
+                with open(hist_path, "r", encoding="utf-8") as f:
+                    history = json.load(f)
+                    for msg in history:
+                        for att in msg.get("metadata", {}).get("attachments", []):
+                            u = att.get("url", "")
+                            sn = att.get("saved_name", "")
+                            # 匹配 url 后缀或者原始文件名
+                            if (u.endswith(f"/{safe_filename}") or att.get("name") == safe_filename) and sn:
+                                sp = os.path.join(uploads_dir, sn)
+                                if os.path.isfile(sp):
+                                    candidate = sp
+                                    break
+                        if candidate:
+                            break
+            except Exception:
+                pass
+
+        # 3. 尝试模糊/后缀回退匹配 (如传入 screenshot.png 匹配到 f_xxx_screenshot.png)
+        if not candidate and os.path.exists(uploads_dir):
+            matches = []
+            for fn in os.listdir(uploads_dir):
+                if fn == safe_filename or fn.endswith(f"_{safe_filename}"):
+                    p = os.path.join(uploads_dir, fn)
+                    if os.path.isfile(p):
+                        matches.append((p, os.path.getmtime(p)))
+            if matches:
+                matches.sort(key=lambda x: x[1], reverse=True)
+                candidate = matches[0][0]
+
+        if candidate and os.path.exists(candidate):
+            file_path = candidate
+        else:
+            raise HTTPException(status_code=404, detail="文件不存在或已被移除")
+
+    mime_type, _ = mimetypes.guess_type(file_path)
+    # 图片、PDF、纯文本等格式支持浏览器直接预览
+    is_previewable = bool(
+        mime_type and (
+            mime_type.startswith("image/")
+            or mime_type in ("application/pdf", "text/plain", "text/markdown", "text/html", "application/json")
+        )
+    )
+    disposition = "attachment" if download else ("inline" if is_previewable else "attachment")
+
+    return FileResponse(
+        file_path,
+        media_type=mime_type or "application/octet-stream",
+        content_disposition_type=disposition,
+        filename=safe_filename
+    )
+
+
+@router.get("/bots/{bot_id}/files")
+def list_bot_files(bot_id: str):
+    """产出物与文件管理中心：获取智能体所有上传与生成的文件清单"""
+    return {"files": bot_manager.list_bot_files(bot_id)}
+
+
+@router.delete("/bots/{bot_id}/files/{filename}")
+def delete_bot_file(bot_id: str, filename: str):
+    """删除智能体文件中心里的单个文件"""
+    ok = bot_manager.delete_bot_file(bot_id, filename)
+    if not ok:
+        raise HTTPException(status_code=404, detail="文件不存在或删除失败")
+    return {"success": True}
+
+
+@router.get("/bots/{bot_id}/files-export")
+def export_all_bot_files(bot_id: str):
+    """一键打包下载智能体所有产出物与文件（ZIP 压缩流）"""
+    import io
+    import zipfile
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+
+    bot_dir = bot_manager._bot_dir(bot_id)
+    uploads_dir = os.path.join(bot_dir, "uploads")
+    if not os.path.exists(uploads_dir) or not os.listdir(uploads_dir):
+        raise HTTPException(status_code=404, detail="该智能体当前暂无任何产出物或文件")
+
+    buf = io.BytesIO()
+    with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
+        for fn in os.listdir(uploads_dir):
+            fp = os.path.join(uploads_dir, fn)
+            if os.path.isfile(fp):
+                clean_name = re.sub(r"^f_\d+_", "", fn)
+                zf.write(fp, arcname=clean_name)
+    buf.seek(0)
+
+    import urllib.parse
+    ascii_filename = f"{bot_id}_files_{int(time.time())}.zip"
+    encoded_filename = urllib.parse.quote(f"{bot.name}_files_{int(time.time())}.zip")
+    return StreamingResponse(
+        buf,
+        media_type="application/zip",
+        headers={
+            "Content-Disposition": f'attachment; filename="{ascii_filename}"; filename*=utf-8\'\'{encoded_filename}'
+        }
+    )
+
+
+@router.get("/bots/{bot_id}/active-run")
+def get_bot_active_run(bot_id: str):
+    """查询指定智能体当前是否有正在进行的会话任务（用于页面刷新状态恢复）"""
+    run = agent_run_manager.get_active_run(bot_id)
+    if not run:
+        return {"has_active_run": False, "run": None}
+    return {"has_active_run": True, "run": run.to_dict()}
+
+
+@router.post("/bots/{bot_id}/chat")
+async def chat_with_bot_stream(bot_id: str, payload: ChatPayload):
+    """
+    与指定 BOT 进行流式对话 (后台解耦执行，支持断线恢复与刷新重连)
+    """
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+
+    # 启动/复用后台执行任务
+    raw_attachments = [a.model_dump() for a in payload.attachments] if payload.attachments else None
+    run = agent_run_manager.start_run(
+        bot_id=bot_id,
+        user_message=payload.message,
+        engine=agent_engine,
+        bot_manager=bot_manager,
+        client_msg_id=payload.client_msg_id,
+        attachments=raw_attachments
+    )
+    return _stream_run_sse(run)
+
+
+@router.post("/bots/{bot_id}/regenerate")
+async def regenerate_bot_stream(bot_id: str):
+    """
+    重新生成最后一条助手回复：
+    弹出上一次助手回答，复用上一条用户 Prompt 及附件重新发起推理执行流
+    """
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+
+    last_user = bot_manager.get_last_user_message(bot_id)
+    if not last_user:
+        raise HTTPException(status_code=400, detail="当前暂无用户历史消息，无法重新生成")
+
+    # 弹出上一次的助手回答
+    bot_manager.pop_last_assistant_message(bot_id)
+
+    attachments = last_user.get("metadata", {}).get("attachments")
+    run = agent_run_manager.start_run(
+        bot_id=bot_id,
+        user_message=last_user.get("content", ""),
+        engine=agent_engine,
+        bot_manager=bot_manager,
+        attachments=attachments,
+        skip_user_append=True
+    )
+    return _stream_run_sse(run)
+
+
+@router.post("/bots/{bot_id}/truncate-history")
+def truncate_bot_history(bot_id: str, payload: TruncateHistoryPayload):
+    """截断会话历史至指定消息 ID（保留该消息及之前内容，用于编辑重发前的回滚）"""
+    ok = bot_manager.truncate_history(bot_id, payload.message_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="未找到指定的消息 ID")
+    return {"success": True}
+
+
+@router.get("/bots/{bot_id}/chat/stream")
+async def resume_chat_stream(bot_id: str):
+    """断线恢复流：重连当前正在进行中的会话流"""
+    run = agent_run_manager.get_active_run(bot_id)
+    if not run:
+        raise HTTPException(status_code=404, detail="当前无进行中的会话任务")
+    return _stream_run_sse(run)
+
+
+@router.post("/bots/{bot_id}/stop")
+def stop_bot_chat(bot_id: str):
+    """中断当前正在执行的会话任务"""
+    stopped = agent_run_manager.stop_run(bot_id)
+    return {"success": stopped}
+
+
+@router.post("/bots/{bot_id}/approvals/{approval_id}")
+def resolve_bot_approval(bot_id: str, approval_id: str, payload: ApprovalDecisionPayload):
+    """为指定智能体高危破坏性操作提交人机协同授权决策 (approve 或 reject)"""
+    ok = agent_run_manager.resolve_approval(bot_id, approval_id, payload.decision)
+    if not ok:
+        raise HTTPException(status_code=404, detail="未找到对应的待审批高危操作或已超时关闭")
+    return {"success": True, "approval_id": approval_id, "decision": payload.decision}
+
+
+@router.get("/bots/{bot_id}/export")
+def export_bot_chat(
+    bot_id: str,
+    format: str = Query(default="markdown")
+):
+    """一键导出当前智能体会话排障记录（支持 Markdown 与自包含单页交互式 HTML）"""
+    import io
+    import html as html_lib
+    import urllib.parse
+
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="智能体不存在")
+
+    history = bot_manager.get_history(bot_id, limit=2000)
+    if not history:
+        raise HTTPException(status_code=400, detail="当前暂无会话排障记录可供导出")
+
+    export_time = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    if format.lower() == "html":
+        # 生成高保真、独立可离线查看的 HTML 排障报告
+        turns_html = []
+        for idx, msg in enumerate(history, 1):
+            role = msg.get("role", "user")
+            content = msg.get("content", "").strip()
+            meta = msg.get("metadata", {})
+            ts = msg.get("timestamp", "")
+
+            if role == "user":
+                atts_html = ""
+                atts = meta.get("attachments", [])
+                if atts:
+                    items = "".join([
+                        f"<li style='margin: 4px 0;'><span style='color: #0284c7;'>📎</span> <code>{html_lib.escape(a.get('name', ''))}</code> ({html_lib.escape(str(a.get('type', '')))}, {html_lib.escape(str(a.get('size_formatted', '')))})</li>"
+                        for a in atts
+                    ])
+                    atts_html = f"<div style='margin-top: 10px; font-size: 12px; color: #64748b;'><strong>附件:</strong><ul style='padding-left: 20px; margin: 4px 0;'>{items}</ul></div>"
+
+                turns_html.append(f"""
+                <div style="margin-bottom: 24px; padding: 16px 20px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 700; color: #0f172a; font-size: 14px;">👤 用户需求 [#{idx}]</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">{html_lib.escape(ts)}</span>
+                    </div>
+                    <div style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap;">{html_lib.escape(content)}</div>
+                    {atts_html}
+                </div>
+                """)
+            else:
+                thought = meta.get("thought", "")
+                thought_section = ""
+                if thought:
+                    thought_section = f"""
+                    <details style="margin-bottom: 12px; background: #f1f5f9; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #475569; border-left: 3px solid #0284c7;">
+                        <summary style="cursor: pointer; font-weight: 600; color: #0369a1;">💭 推理思考过程 (Thinking)</summary>
+                        <div style="margin-top: 8px; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">{html_lib.escape(thought)}</div>
+                    </details>
+                    """
+
+                code_blocks = meta.get("code_blocks", [])
+                logs = meta.get("execution_logs", [])
+                code_section = ""
+                if code_blocks:
+                    c_parts = []
+                    for cb in code_blocks:
+                        step_num = cb.get("step", 1)
+                        c_code = cb.get("code", "")
+                        matching_log = next((l for l in logs if l.get("step") == step_num), None)
+                        log_out = matching_log.get("output", "") if matching_log else ""
+                        c_parts.append(f"""
+                        <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
+                            <div style="background: #0f172a; color: #94a3b8; font-size: 11px; font-family: monospace; padding: 6px 12px; display: flex; justify-content: space-between;">
+                                <span>⚡ 沙箱 Python 执行 · 步骤 {step_num}</span>
+                            </div>
+                            <pre style="margin: 0; padding: 12px; background: #1e293b; color: #f8fafc; font-size: 12px; overflow-x: auto; font-family: monospace;">{html_lib.escape(c_code)}</pre>
+                            {f'<div style="background: #f8fafc; padding: 10px 12px; font-size: 11px; border-top: 1px solid #e2e8f0; font-family: monospace; color: #334155;"><strong style="color: #0284c7;">执行结果:</strong><div style="white-space: pre-wrap; margin-top: 4px;">{html_lib.escape(log_out)}</div></div>' if log_out else ''}
+                        </div>
+                        """)
+                    code_section = "".join(c_parts)
+
+                turns_html.append(f"""
+                <div style="margin-bottom: 28px; padding: 18px 22px; border-radius: 12px; background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
+                        <span style="font-weight: 700; color: #0284c7; font-size: 14px;">🤖 {html_lib.escape(bot.name)} 反馈 [#{idx}]</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">{html_lib.escape(ts)}</span>
+                    </div>
+                    {thought_section}
+                    {code_section}
+                    <div style="margin-top: 14px; font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap;">{html_lib.escape(content)}</div>
+                </div>
+                """)
+
+        body_content = "".join(turns_html)
+        html_doc = f"""<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>TIM 智能体排障分析报告 - {html_lib.escape(bot.name)}</title>
+    <style>
+        body {{
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: #f1f5f9;
+            color: #0f172a;
+            margin: 0;
+            padding: 30px 20px;
+        }}
+        .container {{
+            max-width: 900px;
+            margin: 0 auto;
+            background: #ffffff;
+            border-radius: 16px;
+            padding: 32px 36px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+            border: 1px solid #e2e8f0;
+        }}
+        @media print {{
+            body {{ background: #fff; padding: 0; }}
+            .container {{ box-shadow: none; border: none; padding: 0; max-width: 100%; }}
+        }}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header style="margin-bottom: 28px; padding-bottom: 20px; border-bottom: 2px solid #0284c7;">
+            <div style="display: flex; align-items: center; justify-content: space-between;">
+                <div style="display: flex; align-items: center; gap: 12px;">
+                    <span style="font-size: 32px;">{html_lib.escape(bot.avatar or '🤖')}</span>
+                    <div>
+                        <h1 style="margin: 0; font-size: 20px; font-weight: 800; color: #0f172a;">TIM 智能体排障分析报告</h1>
+                        <p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">
+                            智能体: <strong>{html_lib.escape(bot.name)}</strong> ({html_lib.escape(bot.id)})
+                        </p>
+                    </div>
+                </div>
+                <div style="text-align: right; font-size: 11px; color: #94a3b8; font-family: monospace;">
+                    <div>生成时间: {html_lib.escape(export_time)}</div>
+                    <div>会话记录: {len(history)} 条</div>
+                </div>
+            </div>
+            <div style="margin-top: 14px; font-size: 12px; color: #475569; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
+                <strong>人设与定位:</strong> {html_lib.escape(bot.description or bot.base_prompt[:140])}
+            </div>
+        </header>
+
+        <main>
+            {body_content}
+        </main>
+
+        <footer style="margin-top: 36px; padding-top: 16px; border-top: 1px solid #e2e8f0; text-align: center; font-size: 11px; color: #94a3b8;">
+            本报告由 Tencent Cloud TIM Studio 智能体全流程自动化生成 · 包含全链路代码执行与沙箱结果记录
+        </footer>
+    </div>
+</body>
+</html>"""
+
+        ascii_name = f"tim_report_{bot_id}_{int(time.time())}.html"
+        encoded_name = urllib.parse.quote(f"{bot.name}_排障报告_{time.strftime('%Y%m%d_%H%M%S')}.html")
+        return StreamingResponse(
+            io.BytesIO(html_doc.encode("utf-8")),
+            media_type="text/html; charset=utf-8",
+            headers={
+                "Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=utf-8\'\'{encoded_name}'
+            }
+        )
+
+    # 默认 Markdown 格式导出
+    lines = [
+        f"# 📋 TIM 智能体排障分析报告 - {bot.name}",
+        "",
+        f"> **生成时间**: {export_time}  ",
+        f"> **智能体**: {bot.avatar} **{bot.name}** (`{bot.id}`)  ",
+        f"> **职责定位**: {bot.description or '腾讯云 IM 全能业务技术支持'}  ",
+        f"> **累计会话**: 共计 {len(history)} 条排障与操作记录  ",
+        "",
+        "---",
+        ""
+    ]
+
+    for idx, msg in enumerate(history, 1):
+        role = msg.get("role", "user")
+        content = msg.get("content", "").strip()
+        meta = msg.get("metadata", {})
+        ts = msg.get("timestamp", "")
+
+        if role == "user":
+            lines.append(f"### 👤 用户需求 [#{idx}] ({ts})\n")
+            lines.append(f"{content}\n")
+            atts = meta.get("attachments", [])
+            if atts:
+                lines.append("**📎 上传附件列表:**")
+                for a in atts:
+                    lines.append(f"- `{a.get('name')}` ({a.get('type')}, 大小: {a.get('size_formatted', '')})")
+                lines.append("")
+        else:
+            lines.append(f"### 🤖 智能体回复 [#{idx}] ({ts})\n")
+            thought = meta.get("thought", "")
+            if thought:
+                lines.append("<details>\n<summary>💭 展开查看思考链推理过程</summary>\n")
+                lines.append(thought)
+                lines.append("\n</details>\n")
+
+            code_blocks = meta.get("code_blocks", [])
+            logs = meta.get("execution_logs", [])
+            if code_blocks:
+                lines.append("#### ⚙️ 沙箱 Python 代码执行与日志\n")
+                for cb in code_blocks:
+                    step_num = cb.get("step", 1)
+                    c_code = cb.get("code", "")
+                    lines.append(f"```python\n# 步骤 {step_num}\n{c_code}\n```\n")
+                    matching_log = next((l for l in logs if l.get("step") == step_num), None)
+                    if matching_log:
+                        lines.append(f"**执行结果 (步骤 {step_num}):**\n\n{matching_log.get('output', '')}\n")
+
+            lines.append(f"#### 🎯 智能体结论\n\n{content}\n")
+            lines.append("\n---\n")
+
+    md_content = "\n".join(lines)
+    ascii_name = f"tim_report_{bot_id}_{int(time.time())}.md"
+    encoded_name = urllib.parse.quote(f"{bot.name}_排障报告_{time.strftime('%Y%m%d_%H%M%S')}.md")
+    return StreamingResponse(
+        io.BytesIO(md_content.encode("utf-8")),
+        media_type="text/markdown; charset=utf-8",
+        headers={
+            "Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=utf-8\'\'{encoded_name}'
+        }
+    )
+
+
+# -------------------------------------------------------------
+# 长期记忆管理 (Memory)
+# -------------------------------------------------------------
+@router.get("/bots/{bot_id}/memory")
+def list_bot_memories(bot_id: str):
+    """获取指定 BOT 的长期记忆"""
+    return {"memories": [m.model_dump() for m in bot_manager.list_memories(bot_id)]}
+
+
+@router.post("/bots/{bot_id}/memory")
+def add_or_update_memory(bot_id: str, payload: MemoryPayload):
+    """保存或更新长期记忆"""
+    item = bot_manager.save_memory(bot_id, payload.key, payload.content)
+    return {"success": True, "memory": item.model_dump()}
+
+
+@router.delete("/bots/{bot_id}/memory/{key}")
+def delete_memory(bot_id: str, key: str):
+    """删除长期记忆"""
+    ok = bot_manager.delete_memory(bot_id, key)
+    return {"success": ok}
+
+
+# -------------------------------------------------------------
+# 提示词自我增强管理 (Prompt Self-Enhancement)
+# -------------------------------------------------------------
+@router.get("/bots/{bot_id}/guidelines")
+def list_bot_guidelines(bot_id: str):
+    """获取指定 BOT 的提示词自我强化准则"""
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+    return {"guidelines": [g.model_dump() for g in bot.learned_guidelines]}
+
+
+@router.post("/bots/{bot_id}/guidelines")
+def add_guideline(bot_id: str, payload: GuidelinePayload):
+    """手动或代添加行为准则"""
+    g = bot_manager.add_learned_guideline(bot_id, payload.instruction, payload.reason or "")
+    if not g:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+    return {"success": True, "guideline": g.model_dump()}
+
+
+@router.delete("/bots/{bot_id}/guidelines/{guideline_id}")
+def delete_guideline(bot_id: str, guideline_id: str):
+    """删除某条增强准则"""
+    ok = bot_manager.remove_learned_guideline(bot_id, guideline_id)
+    return {"success": ok}
+
+
+# -------------------------------------------------------------
+# 自编技能库管理 (Skills)
+# -------------------------------------------------------------
+@router.get("/bots/{bot_id}/skills")
+def list_bot_skills(bot_id: str):
+    """获取指定 BOT 沉淀的技能列表"""
+    skills = bot_manager.list_skills(bot_id)
+    return {"skills": [s.model_dump() for s in skills]}
+
+
+@router.post("/bots/{bot_id}/skills")
+def create_or_save_skill(bot_id: str, payload: SaveSkillPayload):
+    """用户或前端一键将验证通过的脚本沉淀为专属技能"""
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+    skill = bot_manager.save_skill(
+        bot_id=bot_id,
+        name=payload.name,
+        description=payload.description,
+        code=payload.python_code,
+        input_schema=payload.input_schema
+    )
+    return {"success": True, "skill": skill.model_dump()}
+
+
+@router.get("/bots/{bot_id}/skills/{name}")
+def get_bot_skill(bot_id: str, name: str):
+    """获取指定技能代码与入参"""
+    skill = bot_manager.get_skill(bot_id, name)
+    if not skill:
+        raise HTTPException(status_code=404, detail="技能不存在")
+    return {"skill": skill.model_dump()}
+
+
+@router.post("/bots/{bot_id}/skills/{name}/run")
+def run_bot_skill(bot_id: str, name: str, payload: RunSkillPayload):
+    """手动测试运行某个技能"""
+    tim_client = TimClient()
+    from core.agent.tools import RunSkillTool
+    runner = RunSkillTool(bot_id, bot_manager, tim_client)
+    res = runner.forward(name, payload.kwargs)
+    return res
+
+
+@router.delete("/bots/{bot_id}/skills/{name}")
+def delete_bot_skill(bot_id: str, name: str):
+    """删除技能"""
+    ok = bot_manager.delete_skill(bot_id, name)
+    return {"success": ok}
+
+
+# -------------------------------------------------------------
+# 企业知识库与运维手册挂载 (Lightweight RAG)
+# -------------------------------------------------------------
+@router.get("/bots/{bot_id}/knowledge/docs")
+def list_bot_knowledge_docs(bot_id: str):
+    """获取指定智能体挂载的所有企业知识库与手册文档"""
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+    docs = rag_manager.list_documents(bot_id)
+    return {"docs": docs}
+
+
+@router.post("/bots/{bot_id}/knowledge/upload")
+async def upload_bot_knowledge_doc(
+    bot_id: str,
+    file: UploadFile = File(...)
+):
+    """上传并挂载业务规范文档/排障手册（支持 MD、TXT、DOCX、PDF、JSON、CSV）"""
+    bot = bot_manager.get_bot(bot_id)
+    if not bot:
+        raise HTTPException(status_code=404, detail="BOT 不存在")
+
+    filename = file.filename or "unknown_doc.txt"
+    content = await file.read()
+    if not content:
+        raise HTTPException(status_code=400, detail="上传文件内容为空")
+
+    doc_meta = rag_manager.add_document(bot_id, filename, content)
+    return {
+        "success": True,
+        "message": f"文档《{filename}》已成功挂载并构建 RAG 索引（生成 {doc_meta.get('chunks_count')} 个检索切片）",
+        "doc": doc_meta
+    }
+
+
+@router.put("/bots/{bot_id}/knowledge/docs/{doc_id}")
+def update_bot_knowledge_doc(bot_id: str, doc_id: str, payload: ToggleKnowledgePayload):
+    """启用或禁用某篇文档参与 RAG 语义检索"""
+    ok = rag_manager.toggle_document(bot_id, doc_id, payload.enabled)
+    if not ok:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return {"success": True}
+
+
+@router.delete("/bots/{bot_id}/knowledge/docs/{doc_id}")
+def delete_bot_knowledge_doc(bot_id: str, doc_id: str):
+    """删除挂载的知识文档及其索引切片"""
+    ok = rag_manager.delete_document(bot_id, doc_id)
+    if not ok:
+        raise HTTPException(status_code=404, detail="文档不存在")
+    return {"success": True}
+
+
+@router.post("/bots/{bot_id}/knowledge/search")
+def test_search_bot_knowledge(bot_id: str, payload: SearchKnowledgePayload):
+    """在线检索与召回调试：测试特定问题在知识库中的命中结果与匹配分数"""
+    results = rag_manager.search(
+        bot_id=bot_id,
+        query=payload.query,
+        top_k=payload.top_k or 4,
+        min_score=payload.min_score or 0.05
+    )
+    return {
+        "query": payload.query,
+        "count": len(results),
+        "results": results
+    }
+
+
+@router.get("/bots/{bot_id}/knowledge/docs/{doc_id}/download")
+def download_knowledge_doc(bot_id: str, doc_id: str):
+    """下载知识库原始文件"""
+    path = rag_manager.get_document_file_path(bot_id, doc_id)
+    if not path or not os.path.exists(path):
+        raise HTTPException(status_code=404, detail="文件不存在")
+    doc = rag_manager.get_document(bot_id, doc_id)
+    filename = doc.get("name") if doc else os.path.basename(path)
+    return FileResponse(
+        path=path,
+        filename=filename,
+        media_type="application/octet-stream"
+    )
+
+
+# -------------------------------------------------------------
+# 多智能体协同网络拓扑与流转观测 (Agent Orchestration Topology)
+# -------------------------------------------------------------
+@router.get("/topology")
+def get_orchestration_topology():
+    """获取系统全局多智能体协同网络拓扑（节点、流转链路、调用频次与近期协同事件）"""
+    topology = bot_manager.get_orchestration_topology()
+    return topology
+
+
+@router.get("/bots/{bot_id}/orchestrations")
+def get_bot_orchestrations(bot_id: str, limit: int = Query(default=20, ge=1, le=100)):
+    """获取与指定智能体相关的协同调用流水"""
+    all_events = bot_manager.get_orchestrations(limit=200)
+    related = [e for e in all_events if e.get("caller_bot_id") == bot_id or e.get("target_bot_id") == bot_id]
+    return {"orchestrations": related[:limit]}
+

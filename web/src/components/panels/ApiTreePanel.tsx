@@ -220,9 +220,10 @@ const SubFolderView: React.FC<SubFolderNodeProps> = ({
 interface ApiTreePanelProps {
   onNavigateToBatch?: () => void
   onCloseSidebar?: () => void
+  isMobile?: boolean
 }
 
-export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, onCloseSidebar }) => {
+export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, onCloseSidebar, isMobile }) => {
   const {
     apis,
     activeApi,
@@ -339,7 +340,11 @@ export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, o
 
   const handleSelectApi = (api: ApiMeta) => {
     openTab(api)
-    onCloseSidebar?.()
+    // 仅在移动端小屏浮层模式下，点击选择接口后自动收回浮层；桌面端保持侧边栏常驻，不自动缩回
+    const isSmallScreen = isMobile ?? (typeof window !== 'undefined' ? window.innerWidth < 1024 : false)
+    if (isSmallScreen) {
+      onCloseSidebar?.()
+    }
   }
 
   const handleSetBatchTarget = (e: React.MouseEvent, api: ApiMeta) => {

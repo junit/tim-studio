@@ -166,7 +166,7 @@ export const BatchCenter: React.FC = () => {
   return (
     <div className="flex h-full flex-col bg-slate-50/60 dark:bg-slate-950 overflow-hidden">
       {/* 批量调用统一头部栏：支持「批量任务执行」与「历史执行台账」 */}
-      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4 select-none">
+      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4 select-none min-h-[56px]">
         <div className="flex items-center gap-3">
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
             <Layers className="h-4 w-4" />
@@ -194,10 +194,10 @@ export const BatchCenter: React.FC = () => {
           <button
             type="button"
             onClick={() => setBatchView('runner')}
-            className={`flex flex-1 sm:flex-initial items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex flex-1 sm:flex-initial items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
               batchView === 'runner'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/60 dark:border-slate-650'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border-slate-200/60 dark:border-slate-650'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border-transparent'
             }`}
           >
             <Play className="h-3.5 w-3.5" />
@@ -207,10 +207,10 @@ export const BatchCenter: React.FC = () => {
           <button
             type="button"
             onClick={() => setBatchView('history')}
-            className={`flex flex-1 sm:flex-initial items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+            className={`flex flex-1 sm:flex-initial items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
               batchView === 'history'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border border-slate-200/60 dark:border-slate-650'
-                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border-slate-200/60 dark:border-slate-650'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border-transparent'
             }`}
           >
             <Clock className="h-3.5 w-3.5 text-amber-500" />

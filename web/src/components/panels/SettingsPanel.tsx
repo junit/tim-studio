@@ -286,16 +286,33 @@ export const SettingsPanel: React.FC = () => {
 
   return (
     <div className="flex h-full flex-col bg-slate-50/60 dark:bg-slate-950 overflow-hidden">
-      {/* Top Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 sm:px-6 py-3.5 shadow-2xs">
-        <div>
-          <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-            <Settings className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-            <span>多环境配置与密钥安全管理</span>
-          </h2>
-          <p className="text-xs text-slate-400 mt-0.5">
-            支持针对开发、测试、正式等多套腾讯云 IM 凭据配置，全链路自动脱敏防覆盖
-          </p>
+      {/* 统一环境配置头部栏 (与批量调用、AI智能体高度/样式对齐: 标称 min-h-[56px] py-2.5 px-4 sm:px-6) */}
+      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4 select-none min-h-[56px]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
+            <Settings className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                多环境配置与密钥安全管理
+              </h2>
+              <Badge
+                variant="outline"
+                className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[9px] py-0 px-1.5 shrink-0"
+              >
+                Config
+              </Badge>
+              {activeEnv && (
+                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md border ${getTagBadgeStyle(activeEnv.tag || '')}`}>
+                  当前: {activeEnv.name}
+                </span>
+              )}
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              支持针对开发、测试、正式等多套腾讯云 IM 凭据配置，全链路自动脱敏防覆盖
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
@@ -305,7 +322,7 @@ export const SettingsPanel: React.FC = () => {
               size="sm"
               onClick={() => testConnection(formData.id)}
               disabled={isTesting}
-              className="h-8 gap-1.5 text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
+              className="h-8 gap-1.5 text-xs text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-750 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer shadow-2xs"
             >
               <RefreshCw className={`h-3.5 w-3.5 ${isTesting ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
               <span>{isTesting ? '测速联调中...' : '测试当前环境连通性'}</span>
@@ -316,10 +333,10 @@ export const SettingsPanel: React.FC = () => {
             size="sm"
             onClick={handleSave}
             disabled={isSaving || !formData}
-            className={`h-8 gap-1.5 text-xs transition-all cursor-pointer ${
+            className={`h-8 gap-1.5 text-xs transition-all cursor-pointer font-semibold shadow-xs ${
               justSaved
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-xs shadow-emerald-500/20'
-                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-xs shadow-blue-500/20'
+                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
             }`}
           >
             {isSaving ? (

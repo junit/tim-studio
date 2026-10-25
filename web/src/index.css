@@ -87,3 +87,234 @@ html.dark body {
 .dark ::-webkit-scrollbar-thumb:hover {
   background: #475569;
 }
+
+/* -------------------------------------------------------------
+ * Markdown 渲染排版样式 (GitHub / ChatGPT 风格精修)
+ * ------------------------------------------------------------- */
+.markdown-content {
+  font-size: 0.8125rem; /* 13px */
+  line-height: 1.65;
+  color: inherit;
+}
+
+.markdown-content > *:first-child {
+  margin-top: 0;
+}
+.markdown-content > *:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content h1,
+.markdown-content h2,
+.markdown-content h3,
+.markdown-content h4 {
+  font-weight: 700;
+  line-height: 1.35;
+  margin-top: 0.85rem;
+  margin-bottom: 0.45rem;
+  color: #0f172a;
+}
+.dark .markdown-content h1,
+.dark .markdown-content h2,
+.dark .markdown-content h3,
+.dark .markdown-content h4 {
+  color: #f1f5f9;
+}
+
+.markdown-content h1 { font-size: 1.15rem; border-bottom: 1px solid rgba(226, 232, 240, 0.8); padding-bottom: 0.25rem; }
+.markdown-content h2 { font-size: 1.05rem; }
+.markdown-content h3 { font-size: 0.95rem; }
+.markdown-content h4 { font-size: 0.875rem; }
+
+.markdown-content p {
+  margin-bottom: 0.55rem;
+  word-break: break-word;
+}
+
+.markdown-content strong {
+  font-weight: 700;
+  color: #020617;
+}
+.dark .markdown-content strong {
+  color: #fff;
+}
+
+.markdown-content ul {
+  list-style-type: disc;
+  padding-left: 1.25rem;
+  margin-bottom: 0.55rem;
+}
+.markdown-content ol {
+  list-style-type: decimal;
+  padding-left: 1.25rem;
+  margin-bottom: 0.55rem;
+}
+.markdown-content li {
+  margin-bottom: 0.2rem;
+}
+
+.markdown-content code:not(pre code) {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.15rem 0.35rem;
+  border-radius: 0.375rem;
+  background-color: rgba(241, 245, 249, 0.9);
+  color: #2563eb;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+.dark .markdown-content code:not(pre code) {
+  background-color: rgba(30, 41, 59, 0.7);
+  color: #60a5fa;
+  border-color: rgba(51, 65, 85, 0.8);
+}
+
+.markdown-content pre,
+.markdown-content pre.hljs-pre {
+  margin: 0.65rem 0;
+  padding: 0.75rem 0.95rem;
+  border-radius: 0.75rem;
+  background-color: #f8fafc;
+  color: #1e293b;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.75rem;
+  line-height: 1.6;
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+}
+
+.dark .markdown-content pre,
+.dark .markdown-content pre.hljs-pre {
+  background-color: #0b0f19;
+  color: #e2e8f0;
+  border-color: #1e293b;
+}
+
+/* 浅色模式下 highlight.js 语法高亮清晰化 (暗色模式沿用 atom-one-dark) */
+html:not(.dark) .hljs {
+  color: #1e293b;
+  background: transparent;
+}
+html:not(.dark) .hljs-keyword,
+html:not(.dark) .hljs-selector-tag,
+html:not(.dark) .hljs-built_in,
+html:not(.dark) .hljs-name,
+html:not(.dark) .hljs-tag {
+  color: #7c3aed;
+  font-weight: 600;
+}
+html:not(.dark) .hljs-string,
+html:not(.dark) .hljs-title,
+html:not(.dark) .hljs-section,
+html:not(.dark) .hljs-attribute,
+html:not(.dark) .hljs-literal,
+html:not(.dark) .hljs-template-tag,
+html:not(.dark) .hljs-template-variable,
+html:not(.dark) .hljs-type {
+  color: #059669;
+}
+html:not(.dark) .hljs-number {
+  color: #d97706;
+}
+html:not(.dark) .hljs-comment,
+html:not(.dark) .hljs-quote,
+html:not(.dark) .hljs-deletion,
+html:not(.dark) .hljs-meta {
+  color: #94a3b8;
+  font-style: italic;
+}
+html:not(.dark) .hljs-function,
+html:not(.dark) .hljs-class .hljs-title {
+  color: #2563eb;
+}
+html:not(.dark) .hljs-attr,
+html:not(.dark) .hljs-variable {
+  color: #0284c7;
+}
+
+.code-block-wrapper pre,
+.code-block-wrapper pre.hljs-pre {
+  margin: 0 !important;
+  border-top-left-radius: 0 !important;
+  border-top-right-radius: 0 !important;
+  border: none !important;
+}
+
+.markdown-content pre code.hljs {
+  padding: 0;
+  background: transparent;
+  font-family: inherit;
+  font-size: inherit;
+  border: none;
+}
+
+.markdown-content blockquote {
+  margin: 0.65rem 0;
+  padding: 0.35rem 0.75rem;
+  border-left: 3px solid #3b82f6;
+  background-color: rgba(239, 246, 255, 0.6);
+  color: #475569;
+  border-radius: 0 0.5rem 0.5rem 0;
+}
+.dark .markdown-content blockquote {
+  background-color: rgba(30, 58, 138, 0.2);
+  color: #94a3b8;
+}
+
+.markdown-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0.65rem 0;
+  font-size: 0.75rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+}
+.dark .markdown-content table {
+  border-color: rgba(51, 65, 85, 0.8);
+}
+
+.markdown-content th {
+  background-color: rgba(241, 245, 249, 0.9);
+  font-weight: 700;
+  padding: 0.45rem 0.65rem;
+  text-align: left;
+  border-bottom: 1px solid rgba(226, 232, 240, 0.8);
+  color: #334155;
+}
+.dark .markdown-content th {
+  background-color: rgba(30, 41, 59, 0.8);
+  border-color: rgba(51, 65, 85, 0.8);
+  color: #cbd5e1;
+}
+
+.markdown-content td {
+  padding: 0.4rem 0.65rem;
+  border-bottom: 1px solid rgba(241, 245, 249, 0.8);
+  color: #475569;
+}
+.dark .markdown-content td {
+  border-bottom-color: rgba(30, 41, 59, 0.6);
+  color: #94a3b8;
+}
+.markdown-content tr:last-child td {
+  border-bottom: none;
+}
+
+.markdown-content hr {
+  margin: 0.85rem 0;
+  border: 0;
+  border-top: 1px solid rgba(226, 232, 240, 0.8);
+}
+.dark .markdown-content hr {
+  border-top-color: rgba(51, 65, 85, 0.8);
+}
+
+.markdown-content a {
+  color: #2563eb;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.dark .markdown-content a {
+  color: #60a5fa;
+}

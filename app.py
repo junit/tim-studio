@@ -36,6 +36,7 @@ from core.task_runner import (
 from core.tim_client import TimClient
 from core.doc_syncer import doc_sync_manager
 from core.tree_syncer import sync_catalog_from_live_tree, fetch_official_hydration_tree
+from apis.agent import router as agent_router
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
@@ -49,6 +50,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(agent_router)
 
 
 # ---------------- 静态资源路由 ----------------

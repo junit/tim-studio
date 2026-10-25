@@ -1,0 +1,1037 @@
+# -*- coding: utf-8 -*-
+"""
+智能体核心执行引擎：基于 smolagents.CodeAgent 的流式执行与多模型调度
+"""
+
+import json
+import logging
+import os
+import re
+import threading
+import time
+from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+
+from smolagents import CodeAgent, OpenAIServerModel
+from smolagents.memory import ActionStep, PlanningStep, ToolCall, FinalAnswerStep
+from smolagents.models import ChatMessageStreamDelta, TokenUsage, ChatMessageToolCallStreamDelta
+from smolagents.agents import ActionOutput
+
+from ..config import load_config
+from ..tim_client import TimClient
+from .bot_manager import BotManager, bot_manager
+from .constants import (
+    AUTHORIZED_IMPORTS,
+    DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
+    DEFAULT_SUBTASK_MAX_STEPS,
+    DEFAULT_STREAM_MAX_STEPS,
+    PROVIDER_DEFAULTS,
+)
+from .models import BotConfig, LLMConfig
+from .tools import build_bot_tools
+
+logger = logging.getLogger("tim.agent.engine")
+
+
+def render_chart(
+    chart_type: str,
+    title: str,
+    labels: List[Any],
+    data: List[Any],
+    series_name: Optional[str] = None,
+    options: Optional[Dict[str, Any]] = None
+) -> str:
+    """
+    生成就地渲染的 ECharts 交互式图表 Markdown 代码块。
+    支持在 Python 沙箱中调用并打印，前端 MarkdownView 自动将其解析为可视化图表。
+    """
+    chart_cfg: Dict[str, Any] = {
+        "type": str(chart_type).lower(),
+        "title": str(title),
+        "labels": list(labels),
+        "data": list(data)
+    }
+    if series_name:
+        chart_cfg["seriesName"] = str(series_name)
+    if options and isinstance(options, dict):
+        chart_cfg["options"] = options
+    return f"\n```echarts\n{json.dumps(chart_cfg, ensure_ascii=False, indent=2)}\n```\n"
+
+
+
+class RobustStreamingOpenAIServerModel(OpenAIServerModel):
+    """支持 DeepSeek-R1 思考链流式输出、优雅降级与真正 Token 级 SSE 推送的大模型包装器"""
+
+    def generate_stream(
+        self,
+        messages,
+        stop_sequences=None,
+        response_format=None,
+        tools_to_call_from=None,
+        **kwargs,
+    ):
+        completion_kwargs = self._prepare_completion_kwargs(
+            messages=messages,
+            stop_sequences=stop_sequences,
+            response_format=response_format,
+            tools_to_call_from=tools_to_call_from,
+            model=self.model_id,
+            custom_role_conversions=self.custom_role_conversions,
+            convert_images_to_image_urls=True,
+            **kwargs,
+        )
+        self._apply_rate_limit()
+
+        try:
+            stream_response = self.retryer(
+                self.client.chat.completions.create,
+                **completion_kwargs,
+                stream=True,
+                stream_options={"include_usage": True},
+            )
+        except Exception:
+            # 兼容不支持 stream_options 的提供商 (如 DashScope / 本地 Ollama / 某些转发中转)
+            stream_response = self.retryer(
+                self.client.chat.completions.create,
+                **completion_kwargs,
+                stream=True,
+            )
+
+        for event in stream_response:
+            if getattr(event, "usage", None):
+                yield ChatMessageStreamDelta(
+                    content="",
+                    token_usage=TokenUsage(
+                        input_tokens=event.usage.prompt_tokens,
+                        output_tokens=event.usage.completion_tokens,
+                    ),
+                )
+            if getattr(event, "choices", None) and len(event.choices) > 0:
+                choice = event.choices[0]
+                if choice.delta:
+                    # 识别 DeepSeek Reasoner / QwQ 等模型的原生 reasoning_content
+                    reasoning = getattr(choice.delta, "reasoning_content", None)
+                    content = choice.delta.content
+
+                    if reasoning:
+                        yield ChatMessageStreamDelta(content=f"<think>{reasoning}</think>")
+
+                    if content:
+                        yield ChatMessageStreamDelta(
+                            content=content,
+                            tool_calls=[
+                                ChatMessageToolCallStreamDelta(
+                                    index=delta.index,
+                                    id=delta.id,
+                                    type=delta.type,
+                                    function=delta.function,
+                                )
+                                for delta in choice.delta.tool_calls
+                            ]
+                            if choice.delta.tool_calls
+                            else None,
+                        )
+
+
+def extract_clean_thought(raw_text: str) -> str:
+    """从模型原始输出中抽取纯净的思维链内容，剔除混入的代码块与多余格式标签"""
+    if not raw_text:
+        return ""
+    text = str(raw_text).strip()
+    # 1. 抽取 <think> 标签内容 (DeepSeek-R1 / Qwen 等推理模型)
+    think_match = re.search(r"<think>([\s\S]*?)(?:</think>|$)", text, re.IGNORECASE)
+    if think_match:
+        return think_match.group(1).strip()
+
+    # 2. 截取代码块之前的所有思考文本
+    lines = text.split("\n")
+    thought_lines = []
+    for line in lines:
+        if line.strip().startswith("```"):
+            break
+        thought_lines.append(line)
+    thought = "\n".join(thought_lines).strip()
+
+    # 3. 移除前导思考标记
+    for prefix in ["thought:", "思考:", "思考：", "思维链:", "思维链："]:
+        if thought.lower().startswith(prefix):
+            thought = thought[len(prefix):].strip()
+            break
+    return thought
+
+
+def clean_final_answer(raw_answer: str) -> Tuple[str, str]:
+    """清洗最终回复，剥离可能残留的 <think> 思维链和实际回复正文"""
+    if not raw_answer:
+        return "", ""
+    text = str(raw_answer).strip()
+    extracted_thought = ""
+
+    think_match = re.search(r"<think>([\s\S]*?)</think>", text, re.IGNORECASE)
+    if think_match:
+        extracted_thought = think_match.group(1).strip()
+        text = re.sub(r"<think>[\s\S]*?</think>", "", text, flags=re.IGNORECASE).strip()
+    elif "<think>" in text:
+        parts = text.split("<think>", 1)
+        text = parts[0].strip()
+        extracted_thought = parts[1].strip()
+
+    return text.strip(), extracted_thought
+
+
+def format_execution_observation(raw_obs: Any, step_num: int = 1) -> str:
+    """将沙箱执行输出格式化为排版优美的结构化 Markdown"""
+    empty_notice = "> ℹ️ **脚本执行成功，无标准输出**\n\n*(代码已在沙箱中正常执行完成。若需在卡片中查看接口返回或计算结果，可在脚本中调用 `print(...)` 输出)*"
+
+    if raw_obs is None:
+        return empty_notice
+
+    text = str(raw_obs).strip()
+
+    # 1. 清理 smolagents 冗余前缀
+    if text.startswith("Print outputs:\n"):
+        text = text[len("Print outputs:\n"):].strip()
+    elif text.startswith("Print outputs:"):
+        text = text[len("Print outputs:"):].strip()
+
+    if not text or text == "None":
+        return empty_notice
+
+    # 2. 尝试解析为 JSON 或 Python 字典并美化输出
+    formatted_data = None
+    if (text.startswith("{") and text.endswith("}")) or (text.startswith("[") and text.endswith("]")):
+        try:
+            parsed = json.loads(text)
+            formatted_data = json.dumps(parsed, indent=2, ensure_ascii=False)
+        except Exception:
+            try:
+                import ast
+                parsed = ast.literal_eval(text)
+                if isinstance(parsed, (dict, list)):
+                    formatted_data = json.dumps(parsed, indent=2, ensure_ascii=False)
+            except Exception:
+                pass
+
+    if formatted_data:
+        return f"```json\n{formatted_data}\n```"
+
+    # 3. 错误与异常
+    if any(k in text.lower() for k in ["traceback", "error:", "exception:", "failed"]):
+        return f"> ⚠️ **沙箱执行告警 / 异常**\n\n```text\n{text}\n```"
+
+    # 4. 普通终端文本
+    return f"```bash\n{text}\n```"
+
+
+
+class AgentEngine:
+    def __init__(self, manager: Optional[BotManager] = None):
+        self.manager = manager or bot_manager
+        self.tim_client = TimClient()
+        self._local = threading.local()
+
+    def get_effective_llm_config(self, bot: BotConfig) -> LLMConfig:
+        """获取 BOT 生效的 LLM 配置（BOT 级别覆盖 > 全局配置）"""
+        global_cfg = self.manager.get_llm_config()
+        if bot.model_override:
+            # 合并覆盖
+            data = global_cfg.model_dump()
+            data.update({k: v for k, v in bot.model_override.items() if v is not None and v != ""})
+            return LLMConfig(**data)
+        return global_cfg
+
+    def create_model(self, llm_cfg: LLMConfig) -> OpenAIServerModel:
+        """根据配置实例化 smolagents OpenAIServerModel"""
+        provider = (llm_cfg.provider or "deepseek").lower()
+        provider_default = PROVIDER_DEFAULTS.get(provider, {})
+
+        api_key = (llm_cfg.api_key or "").strip()
+        base_url = (llm_cfg.base_url or "").strip() or provider_default.get("base_url")
+        model_name = (llm_cfg.model_name or "").strip() or provider_default.get("default_model", "deepseek-chat")
+
+        # 如果没有配置 API Key 且是本地 ollama，填默认占位
+        if not api_key and (provider == "ollama" or (base_url and "localhost" in base_url)):
+            api_key = "ollama"
+
+        if not api_key:
+            raise ValueError(
+                f"大模型 API Key 尚未配置。请在 TIM Studio 的 AI 智能体设置中配置 [{llm_cfg.provider}] 的 API Key 或接入 Ollama 本地模型。"
+            )
+
+        # 归一化 base_url
+        if base_url:
+            base_url = base_url.rstrip("/")
+            if provider == "ollama" and not base_url.endswith("/v1"):
+                base_url = f"{base_url}/v1"
+            elif provider == "qwen" and not base_url.endswith("/v1") and "aliyuncs.com" in base_url:
+                base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+        return RobustStreamingOpenAIServerModel(
+            model_id=model_name,
+            api_base=base_url,
+            api_key=api_key,
+            temperature=llm_cfg.temperature
+        )
+
+    def assemble_system_prompt(self, bot: BotConfig) -> str:
+        """组装动态 System Prompt：基础人设 + 自我增强准则 + 长期记忆 + 技能清单"""
+        prompt_parts = []
+
+        # 1. 基础人设
+        prompt_parts.append(f"# 角色设定\n{bot.base_prompt}\n")
+
+        # 2. 腾讯云 IM 166 REST API 调度原则
+        prompt_parts.append(
+            "## 核心使命与工具调度原则\n"
+            "1. 你拥有直接调用腾讯云 IM 166 个 REST 接口的最高权限 (`tim_call`)，以及完整的接口检索 (`tim_search_apis`) 和文档查阅 (`tim_get_doc`) 能力。\n"
+            "2. 当需要执行批量操作（如批量禁言、循环撤回、拉取多页群成员并清洗过滤）时，请直接编写并执行 Python 脚本，使用 for 循环和条件判断高效完成。\n"
+            "3. 编写 Python 脚本时，首行建议使用中文注释简短写出本步行动意图（例如 `# 1. 获取群成员列表与禁言状态`），以便系统和用户直观追踪步骤进展。\n"
+            "4. 输出打印规范（重要）：调用 `tim_call` 或完成数据统计后，请务必使用 `print(...)` 打印出接口返回的关键响应或核心数据结果，以便在前端卡片中直观展现 API 响应详情与运行日志。\n"
+            "5. 保持回答专业、精炼、客观，并在调用关键接口或修改系统配置后，明确汇总操作结果和受影响的账号或群组。\n"
+            "6. 高危破坏性操作安全防线：当涉及解散群组 (`destroy_group`)、注销/删除账号 (`account_delete`)、清空漫游消息 (`clean_roam_msg`) 或批量踢人时，必须在回答中首先向用户清晰列出受影响的目标群 ID、账号范围以及潜在不可逆后果，并要求二次确认，严禁未经告知即大范围批量销毁生产数据。\n\n"
+            "## 📁 产出物与生成文件规范 (File Generation)\n"
+            "若任务需要产出清洗后的数据、导出报表、统计表格、生成的日志或图表数据：\n"
+            "1. 可直接调用内置辅助函数 `save_file(filename, data)`，原生支持字符串文本、字节流、字典/列表、以及 Pandas 的 DataFrame 对象，自动保存到当前智能体专属文件中心；\n"
+            "2. 也可在脚本中直接使用 `open(filename, 'w')` 写入相对路径文件，系统沙箱已自动重定向到智能体专属目录 `OUTPUT_DIR`；\n"
+            "3. 文件生成后会即时同步至前端右侧抽屉「产出物与文件中心」，请在最终回答中告知用户生成的文件名与下载指引。\n"
+        )
+
+        # 3. 动态注入自增强的行为准则 (Prompt Self-Enhancement)
+        if bot.learned_guidelines:
+            guidelines_text = "\n".join([
+                f"- **[准则 {idx+1}]**: {g.instruction}" + (f" （背景: {g.reason}）" if g.reason else "")
+                for idx, g in enumerate(bot.learned_guidelines)
+            ])
+            prompt_parts.append(
+                f"## 🛡️ 智能体自我强化的行为准则 (Self-Enhanced Guidelines)\n"
+                f"这些是你或用户在过去的实践中沉淀的专属业务规则，你必须严格优先遵守：\n{guidelines_text}\n"
+            )
+
+        # 4. 动态注入长期记忆 (Long-term Memories)
+        memories = self.manager.list_memories(bot.id)
+        if memories:
+            max_injected = 15
+            displayed_mem = memories[:max_injected]
+            mem_text = "\n".join([
+                f"- `{m.key}`: {m.content}"
+                for m in displayed_mem
+            ])
+            extra_hint = f"\n*(已注入最近 {max_injected} 条核心事实，其余更早记忆可自主调用 `recall_memory(keyword)` 进行定向召回)*" if len(memories) > max_injected else ""
+            prompt_parts.append(
+                f"## 🧠 智能体长期事实记忆 (Long-Term Memories)\n"
+                f"已记住的关键业务事实与用户偏好：\n{mem_text}{extra_hint}\n"
+            )
+
+        # 5. 动态注入已保存技能 (Skills)
+        skills = self.manager.list_skills(bot.id)
+        if skills:
+            skills_text = "\n".join([
+                f"- `{s.name}`: {s.description} (入参: {json.dumps(s.input_schema, ensure_ascii=False)})"
+                for s in skills
+            ])
+            prompt_parts.append(
+                f"## ⚡ 智能体已沉淀的专属技能库 (Available Skills)\n"
+                f"你可以直接通过 `run_skill(name, kwargs)` 运行这些技能，也可以在解决新场景后使用 `save_skill` 沉淀新技能：\n{skills_text}\n"
+            )
+
+        # 6. 自主进化与无感沉淀机制（严禁在对话中打扰用户）
+        prompt_parts.append(
+            "## 💡 自主进化与无感沉淀机制（对用户完全无感）\n"
+            "1. **对用户无感沉淀（核心原则）**：无论沉淀技能、记录长期事实记忆还是提炼行为准则，对用户来说都应该是**完全自然、无感、流畅**的。\n"
+            "   - **绝对禁止**在给用户的回复中询问“是否需要沉淀为技能”、“是否记录为记忆”等确认语或提示框。\n"
+            "   - 用户无需分心做任何维护决策，由你在解决问题和对话过程中自主决策、自主进化。\n"
+            "2. **自主沉淀技能 (save_skill)**：当你编写并成功执行了一个具备高复用价值的复杂业务流（多步 API 串联、批量数据清洗与操作），请直接自主调用 `save_skill` 工具将其保存到技能库，供日后直接调用。\n"
+            "3. **自主自我增强提示词 (enhance_self_prompt)**：当用户在交流中表达了长期习惯、操作偏好、默认规则或约束（例如“禁言默认1小时”、“处理群消息前先打印日志”），请在思考或执行时自主调用 `enhance_self_prompt` 工具将其固化为行为准则，无需向用户索要确认。\n"
+            "4. **自主事实记忆记录 (save_memory)**：当用户提及了关键实体标识（群 ID、特定管理员、环境配置、常用关键词等），请自主调用 `save_memory` 工具将其存入长期记忆。\n"
+            "5. **回复精炼专注**：给用户的最终回答只需清晰告知任务执行结果或解答用户的问题，无需赘述你私下沉淀了什么技能或准则，保持极简专业。\n"
+        )
+
+        # 7. 内建全能助手独享的孵化与创建智能体特权 (自然语言即刻触发)
+        if bot.id == "default_assistant":
+            prompt_parts.append(
+                "## 🤖 智能体孵化与创建专享特权 (create_bot)\n"
+                "作为系统内建唯一的 TIM 全能助手，你独享通过 `create_bot` 工具为用户创建新专属业务智能体的特权。\n"
+                "当用户以**任何自然语言**提出创建、新增、定制新智能体的需求时（例如“帮我建一个社群风控官”、“建一个自动查单号的机器人”、“孵化一个消息巡检助手”，**无需任何特殊命令或前缀**）：\n"
+                "1. 充分分析用户诉求，智能推断其名称、头像 Emoji、专业业务定位和约 200 字专业系统设定提示词（强调严谨技术人设，结合 166 API 与沙箱能力）；\n"
+                "2. 自主调用 `create_bot(name, goal, avatar, base_prompt, suggested_prompts)` 工具即刻生成该智能体；\n"
+                "3. 创建成功后，在回复中清晰展示新智能体的名称、头像、职责和推荐指令，告知用户该智能体已就绪，可在左侧切换或在会话中随时进行协同指挥调度。\n"
+            )
+
+        # 8. 团队智能体协同网络与自然语言无感调度 (无需强制 @)
+        other_bots = [b for b in self.manager.list_bots() if b.get("id") != bot.id]
+        if other_bots:
+            roster_lines = [
+                f"- {b.get('avatar', '🤖')} **【{b.get('name')}】** (ID: `{b.get('id')}`): {b.get('description') or '协助处理专业 IM 业务需求'}"
+                for b in other_bots
+            ]
+            roster_text = "\n".join(roster_lines)
+            prompt_parts.append(
+                f"## 🤝 团队智能体协同网络与自然语言无感调度\n"
+                f"当前工作室入驻了以下专业领域的智能体伙伴：\n{roster_text}\n\n"
+                "### 🎯 自然语言无感协同准则（支持自然语言任意唤起，绝不强制依赖 @ 符号）：\n"
+                "1. **免 @ 的自然语言调度**：当用户在口语中提及智能体名称、简称或角色（例如“让风控官查一下违规”、“叫巡检员看下网络延时”、“请消息管理员批量撤回”等，**无论是否带有 @ 符号**），你必须敏锐识别协同意图，主动调用 `call_agent(agent_name, task)` 将子任务指挥委派给对应伙伴智能体。\n"
+                "2. **专业职责自适应协同**：当用户提出的复杂需求涉及团队中某位专职智能体（例如群风控、深度巡检、研报分发等），即使用户没有显式指定名字，你也可以主动调用 `call_agent` 协同专家伙伴，共同推进任务。\n"
+                "3. **协同结论融合汇报**：收到目标智能体的执行反馈后，将其专业结论自然地整合到你的最终回答中（例如：“已联动【社群风控官】完成排查，反馈如下：...”），保持专业严谨、一体化的团队作战风格。\n"
+            )
+        else:
+            prompt_parts.append(
+                "## 🤝 智能体多 Agent 协同机制\n"
+                "你具备与其他智能体协同作业的能力。当团队中有其他专业智能体加入时，你可以通过自然语言识别意图或 `call_agent` 工具调度他们协同处理复杂业务需求（支持自然语言无感识别，不强制依赖 @ 符号）。\n"
+            )
+
+        # 9. 附件与多格式数据处理指引
+        prompt_parts.append(
+            "## 📁 附件文档与多格式数据处理能力 (File & Data Processing)\n"
+            "1. 你具备全能的文件与文档处理能力，支持用户上传的 Word (DOCX)、Excel (XLSX/XLS)、CSV、TXT、JSON、代码、PDF、图像等多种格式附件。\n"
+            "2. 当用户上传了附件时：\n"
+            "   - 你可以使用内置工具 `read_file(file_path)` 读取文档、代码或文本内容；\n"
+            "   - 你可以直接在 Python 沙箱中编写脚本，使用 `pandas`、`openpyxl`、`docx`、`csv`、`PIL` 等主流官方库直接读取本地文件绝对路径，执行深度数据清洗、复杂统计分析、词频汇总或批处理；\n"
+            "   - 若附件涉及用户列表、群组 ID、黑名单或待发送消息，请将其与腾讯云 IM 166 个 REST 接口无缝串联自动化执行。\n"
+        )
+
+        # 10. 数据统计就地可视化图表输出 (Interactive ECharts)
+        prompt_parts.append(
+            "## 📊 数据统计与就地可视化图表输出 (Interactive ECharts Visualization)\n"
+            "当你通过 Python 脚本或 IM API 统计出时序趋势、群活跃度、违规消息类型占比、成员分布、错误码分布等数据分析结果时，除了文字与 Markdown 表格总结外，**请在回答中直接输出 ```echarts 代码块**，前端会自动就地渲染为高科技交互式折线图、柱状图或饼图！\n"
+            "支持以下两种格式（任选其一）：\n"
+            "1. 极简推荐配置（自动适配深浅主题与响应式）：\n"
+            "```echarts\n"
+            "{\n"
+            '  "type": "bar", // 或 "line", "pie"\n'
+            '  "title": "近7天各群活跃消息数",\n'
+            '  "labels": ["周一", "周二", "周三", "周四", "周五", "周六", "周日"],\n'
+            '  "data": [120, 192, 150, 240, 310, 420, 380]\n'
+            "}\n"
+            "```\n"
+            "2. 官方完整 ECharts option 配置（支持 tooltip, legend, series 等自定义高级视觉）：\n"
+            "```echarts\n"
+            "{\n"
+            '  "title": { "text": "违规消息类型占比" },\n'
+            '  "tooltip": { "trigger": "item" },\n'
+            '  "series": [{\n'
+            '    "type": "pie",\n'
+            '    "radius": ["40%", "70%"],\n'
+            '    "data": [\n'
+            '      { "name": "广告垃圾", "value": 140 },\n'
+            '      { "name": "涉黄低俗", "value": 35 },\n'
+            '      { "name": "恶意刷屏", "value": 85 }\n'
+            "    ]\n"
+            "  }]\n"
+            "}\n"
+            "```\n"
+            "在 Python 脚本中，你也可以直接调用内置函数 `print(render_chart('line', '标题', labels, data))` 输出图表代码块。\n"
+        )
+
+        # 11. 企业知识库与私有运维手册规范
+        from .rag_manager import rag_manager
+        docs = rag_manager.list_documents(bot.id)
+        enabled_docs = [d for d in docs if d.get("enabled", True)]
+        if enabled_docs:
+            doc_names = ", ".join([f"《{d['name']}》" for d in enabled_docs])
+            prompt_parts.append(
+                f"## 📚 企业私有知识库与运维手册已挂载 ({len(enabled_docs)} 份文档)\n"
+                f"当前智能体已挂载以下内部业务知识文档：{doc_names}。\n"
+                f"当用户提问涉及团队特有排障规范、错误码处置 SOP、私有群规或非公开业务规则时，请优先调用 `search_knowledge(query)` 工具进行检索核实，确保回答完全符合团队私有业务规范。\n"
+            )
+
+        return "\n".join(prompt_parts)
+
+    def record_orchestration(self, record: Dict[str, Any]):
+        """记录一条多智能体协同调用事件（支持线程隔离）"""
+        self.manager.record_orchestration(record)
+        active_list = getattr(self._local, "active_stream_orchestrations", None)
+        if active_list is not None and isinstance(active_list, list):
+            active_list.append(record)
+        elif hasattr(self, "_active_stream_orchestrations") and isinstance(self._active_stream_orchestrations, list):
+            self._active_stream_orchestrations.append(record)
+
+    def execute_subtask(
+        self,
+        caller_bot_id: str,
+        target_bot_id: str,
+        task: str,
+        call_chain: Optional[List[str]] = None
+    ) -> str:
+        """为协同调度执行子任务 (同步返回目标智能体的最终输出)"""
+        chain = call_chain or [caller_bot_id]
+        if target_bot_id in chain:
+            return f"⚠️ 检测到循环协同调用（{' -> '.join(chain)} -> {target_bot_id}），已自动阻断以避免死锁。"
+
+        target_bot = self.manager.get_bot(target_bot_id)
+        if not target_bot:
+            raise ValueError(f"目标智能体 '{target_bot_id}' 不存在")
+
+        caller_bot = self.manager.get_bot(caller_bot_id)
+        caller_name = caller_bot.name if caller_bot else caller_bot_id
+
+        # 记录到目标智能体历史中
+        self.manager.append_history(
+            target_bot_id,
+            "user",
+            f"【来自智能体 @{caller_name} 的协同委派任务】: {task}"
+        )
+
+        llm_cfg = self.get_effective_llm_config(target_bot)
+        model = self.create_model(llm_cfg)
+        new_chain = chain + [target_bot_id]
+        tools = build_bot_tools(
+            target_bot_id,
+            self.manager,
+            self.tim_client,
+            engine=self,
+            call_chain=new_chain
+        )
+        system_prompt = self.assemble_system_prompt(target_bot)
+
+        task_prompt = (
+            f"{system_prompt}\n\n"
+            f"【协同调度任务】:\n"
+            f"你正作为专业智能体接受来自智能体 @{caller_name} 的协同任务委托。\n"
+            f"需求内容: {task}\n"
+            f"请充分发挥你的专业定位与专属工具，高效完成该需求并给出结构化结论与关键数据。"
+        )
+
+        import smolagents.local_python_executor as lpe
+        agent = CodeAgent(
+            tools=tools,
+            model=model,
+            additional_authorized_imports=AUTHORIZED_IMPORTS,
+            max_print_outputs_length=DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
+            max_steps=DEFAULT_SUBTASK_MAX_STEPS
+        )
+
+        # 注入目标智能体沙箱环境与产出物工具
+        target_uploads_dir = os.path.join(self.manager._bot_dir(target_bot_id), "uploads")
+        os.makedirs(target_uploads_dir, exist_ok=True)
+
+        def subtask_save_file(filename: str, data: Any) -> Dict[str, Any]:
+            safe_name = os.path.basename(filename)
+            dest_path = os.path.join(target_uploads_dir, safe_name)
+            if hasattr(data, "to_excel") and safe_name.endswith((".xlsx", ".xls")):
+                data.to_excel(dest_path, index=False)
+            elif hasattr(data, "to_csv") and safe_name.endswith(".csv"):
+                data.to_csv(dest_path, index=False)
+            elif isinstance(data, (bytes, bytearray)):
+                with open(dest_path, "wb") as f:
+                    f.write(data)
+            elif isinstance(data, str):
+                with open(dest_path, "w", encoding="utf-8") as f:
+                    f.write(data)
+            elif isinstance(data, (dict, list)):
+                with open(dest_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            else:
+                with open(dest_path, "w", encoding="utf-8") as f:
+                    f.write(str(data))
+            return {
+                "filename": safe_name,
+                "path": dest_path,
+                "url": f"/api/agent/bots/{target_bot_id}/files/{safe_name}"
+            }
+
+        def subtask_bot_open(file, mode="r", *args, **kwargs):
+            if isinstance(file, str) and not os.path.isabs(file):
+                file = os.path.join(target_uploads_dir, os.path.basename(file))
+            return open(file, mode, *args, **kwargs)
+
+        agent.python_executor.static_tools = {
+            **lpe.BASE_PYTHON_TOOLS,
+            "open": subtask_bot_open,
+            "render_chart": render_chart,
+            "save_file": subtask_save_file,
+            "OUTPUT_DIR": target_uploads_dir,
+            "WORKSPACE_DIR": target_uploads_dir
+        }
+
+        resp = agent.run(task_prompt)
+        final_answer = str(resp) if resp is not None else "任务已处理。"
+        cleaned_ans, _ = clean_final_answer(final_answer)
+
+        # 存入目标智能体历史
+        self.manager.append_history(
+            target_bot_id,
+            "assistant",
+            cleaned_ans or "协同任务已执行完毕。",
+            metadata={"delegated_by": caller_bot_id}
+        )
+
+        return cleaned_ans or "协同任务已完成。"
+
+    def run_agent_stream(
+        self,
+        bot_id: str,
+        user_message: str,
+        attachments: Optional[List[Dict[str, Any]]] = None,
+        skip_user_append: bool = False,
+        stop_checker: Optional[Any] = None,
+        approval_requester: Optional[Any] = None
+    ):
+        """
+        生成器：执行 CodeAgent 并按结构流式产生事件 (Thought, Code, Output, Message)
+        """
+        bot = self.manager.get_bot(bot_id)
+        if not bot:
+            yield {
+                "event": "error",
+                "data": {"error": f"BOT '{bot_id}' 不存在"}
+            }
+            return
+
+        # 1. 保存用户提问与附件元数据到历史 (如果是重新生成，则复用原有用户提问，跳过追加)
+        if not skip_user_append:
+            user_meta = {}
+            if attachments:
+                clean_attachments = []
+                for att in attachments:
+                    if isinstance(att, dict):
+                        c = dict(att)
+                        c.pop("data_url", None)
+                        clean_attachments.append(c)
+                    else:
+                        clean_attachments.append(att)
+                user_meta["attachments"] = clean_attachments
+            self.manager.append_history(bot_id, "user", user_message, metadata=user_meta)
+
+        # 2. 检查大模型配置
+        llm_cfg = self.get_effective_llm_config(bot)
+        try:
+            model = self.create_model(llm_cfg)
+        except Exception as e:
+            err_msg = str(e)
+            yield {
+                "event": "error",
+                "data": {"error": err_msg}
+            }
+            self.manager.append_history(bot_id, "assistant", f"[配置错误] {err_msg}")
+            return
+
+        # 3. 组装 Tools & Agent
+        tools = build_bot_tools(bot_id, self.manager, self.tim_client, engine=self, approval_requester=approval_requester)
+        system_prompt = self.assemble_system_prompt(bot)
+        stream_start_time = time.time()
+
+        yield {
+            "event": "start",
+            "data": {
+                "bot_id": bot.id,
+                "bot_name": bot.name,
+                "model": llm_cfg.model_name,
+                "provider": llm_cfg.provider,
+                "timestamp": stream_start_time,
+                "attachments_count": len(attachments or [])
+            }
+        }
+
+        import smolagents.local_python_executor as lpe
+        agent = CodeAgent(
+            tools=tools,
+            model=model,
+            additional_authorized_imports=AUTHORIZED_IMPORTS,
+            max_print_outputs_length=DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
+            max_steps=DEFAULT_STREAM_MAX_STEPS,
+            stream_outputs=True
+        )
+
+        # 注入当前智能体专属产出物目录与资产中心工具
+        uploads_dir = os.path.join(self.manager._bot_dir(bot_id), "uploads")
+        os.makedirs(uploads_dir, exist_ok=True)
+
+        def save_file(filename: str, data: Any) -> Dict[str, Any]:
+            """保存文件至当前智能体专属资产中心，自动支持字符串、字节、JSON字典、Pandas DataFrame"""
+            safe_name = os.path.basename(filename)
+            dest_path = os.path.join(uploads_dir, safe_name)
+            if hasattr(data, "to_excel") and safe_name.endswith((".xlsx", ".xls")):
+                data.to_excel(dest_path, index=False)
+            elif hasattr(data, "to_csv") and safe_name.endswith(".csv"):
+                data.to_csv(dest_path, index=False)
+            elif isinstance(data, (bytes, bytearray)):
+                with open(dest_path, "wb") as f:
+                    f.write(data)
+            elif isinstance(data, str):
+                with open(dest_path, "w", encoding="utf-8") as f:
+                    f.write(data)
+            elif isinstance(data, (dict, list)):
+                with open(dest_path, "w", encoding="utf-8") as f:
+                    json.dump(data, f, ensure_ascii=False, indent=2)
+            else:
+                with open(dest_path, "w", encoding="utf-8") as f:
+                    f.write(str(data))
+
+            file_size = os.path.getsize(dest_path)
+            return {
+                "filename": safe_name,
+                "path": dest_path,
+                "size": file_size,
+                "url": f"/api/agent/bots/{bot_id}/files/{safe_name}",
+                "message": f"文件「{safe_name}」已保存至智能体文件中心，用户可在右侧抽屉「产出物与文件」中直接下载。"
+            }
+
+        def bot_open(file, mode="r", *args, **kwargs):
+            """智能沙箱 open：若是相对路径或文件名，自动映射至 BOT 专属产出物目录"""
+            if isinstance(file, str) and not os.path.isabs(file):
+                file = os.path.join(uploads_dir, os.path.basename(file))
+            return open(file, mode, *args, **kwargs)
+
+        agent.python_executor.static_tools = {
+            **lpe.BASE_PYTHON_TOOLS,
+            "open": bot_open,
+            "render_chart": render_chart,
+            "save_file": save_file,
+            "OUTPUT_DIR": uploads_dir,
+            "WORKSPACE_DIR": uploads_dir
+        }
+
+        # 初始化线程隔离的实时协同事件收集器
+        self._local.active_stream_orchestrations = []
+        self._active_stream_orchestrations = self._local.active_stream_orchestrations
+        accumulated_orchestrations = []
+
+        # 拼接对话历史上下文到 prompt 任务中（进化型智能体上下文渐进式背景提取）
+        all_recent = self.manager.get_history(bot_id, limit=30)
+        recent_history = self.manager.get_history(bot_id, limit=8)
+        task_prompt = ""
+
+        # 长周期背景演进：若累积多轮对话，提取前序讨论中反复出现的关键群组/账号实体
+        if len(all_recent) > 8:
+            older_history = all_recent[:-8]
+            mentioned_groups = set()
+            for om in older_history:
+                txt = om.get("content", "")
+                groups = re.findall(r"@TGS#\w+", txt)
+                mentioned_groups.update(groups)
+            if mentioned_groups:
+                task_prompt += f"【历史演进已知关联实体】: {', '.join(sorted(mentioned_groups))}\n\n"
+
+        if len(recent_history) > 1:
+            context_summary = []
+            for m in recent_history[:-1]:
+                role_label = "用户" if m["role"] == "user" else "助手"
+                context_summary.append(f"{role_label}: {m['content'][:300]}")
+            task_prompt += "【近期上下文】:\n" + "\n".join(context_summary) + "\n\n"
+
+        task_prompt += f"{system_prompt}\n\n"
+
+        # 自动检索并注入挂载的企业知识库参考切片 (RAG 实时召回)
+        try:
+            from .rag_manager import rag_manager
+            matched_chunks = rag_manager.search(bot_id, user_message, top_k=3, min_score=0.15)
+            if matched_chunks:
+                kb_context = rag_manager.format_chunks_for_prompt(matched_chunks)
+                task_prompt += f"{kb_context}\n\n"
+        except Exception as e:
+            logger.warning("RAG knowledge auto-recall error: %s", str(e))
+
+        if attachments:
+            from .file_parser import format_file_size
+            att_lines = []
+            for idx, att in enumerate(attachments, 1):
+                att_name = att.get("name", "未命名文件")
+                att_type = att.get("type", "file")
+                size_str = att.get("size_formatted") or format_file_size(att.get("size", 0))
+                att_path = att.get("path", "")
+                att_preview = att.get("preview") or att.get("summary") or "已解析结构"
+                att_lines.append(
+                    f"- 📎 附件 {idx}: `{att_name}` ({att_type}, 大小: {size_str})\n"
+                    f"  本地绝对文件路径: `{att_path}`\n"
+                    f"  内容预览与数据结构:\n{att_preview}"
+                )
+
+            task_prompt += (
+                f"【用户当前需求】: {user_message or '请分析并处理上传的文件附件。'}\n\n"
+                f"【用户随消息上传了以下文件附件】:\n"
+                f"{chr(10).join(att_lines)}\n\n"
+                f"【附件处理操作提示】:\n"
+                f"1. 你可以使用 `read_file(file_path)` 工具直接读取文档/代码/表格摘要；\n"
+                f"2. 你可以直接在 Python 沙箱中编写脚本，导入 pandas、openpyxl、docx、csv、PIL 等库，读取上述本地文件绝对路径进行数据分析、统计、转换与过滤；\n"
+                f"3. 若涉及腾讯云 IM 业务（如导入账号名单、批量群禁言、白名单对账等），可结合 `tim_call` 进行自动化批量执行并汇报结果。"
+            )
+        else:
+            task_prompt += f"【用户当前需求】: {user_message}"
+
+        final_answer = ""
+        accumulated_thoughts = []
+        accumulated_code_blocks = []
+        accumulated_execution_logs = []
+        accumulated_tool_calls = []
+
+        current_step = 1
+        thought_buffer = ""
+        in_think_tag = False
+        is_in_code = False
+
+        try:
+            # 采用 agent.run(task, stream=True) 触发真正的 Token 与事件级全流式输出
+            for step in agent.run(task_prompt, stream=True):
+                if stop_checker and stop_checker():
+                    logger.info("Agent run %s was stopped by user request.", bot_id)
+                    return
+
+                # 1. 模型原始 Token 流式增量 (ChatMessageStreamDelta)
+                if isinstance(step, ChatMessageStreamDelta):
+                    delta = step.content or ""
+                    if delta:
+                        # 识别 <think> 思考链标签 (DeepSeek-R1 / Qwen 等)
+                        if "<think>" in delta:
+                            in_think_tag = True
+                            clean = delta.replace("<think>", "")
+                            if clean:
+                                thought_buffer += clean
+                                yield {"event": "thought_chunk", "data": {"delta": clean}}
+                        elif "</think>" in delta:
+                            in_think_tag = False
+                            clean = delta.replace("</think>", "")
+                            if clean:
+                                thought_buffer += clean
+                                yield {"event": "thought_chunk", "data": {"delta": clean}}
+                        elif in_think_tag:
+                            thought_buffer += delta
+                            yield {"event": "thought_chunk", "data": {"delta": delta}}
+                        else:
+                            # 监测代码块标记
+                            if "<code>" in delta or "```python" in delta:
+                                is_in_code = True
+                            elif "</code>" in delta or "```" in delta:
+                                is_in_code = False
+
+                            # 只有在非代码块时才作为思考流推送，避免代码未解析前出现闪烁
+                            if not is_in_code and not delta.strip().startswith("```"):
+                                thought_buffer += delta
+                                yield {"event": "thought_chunk", "data": {"delta": delta}}
+
+                # 2. 思考规划步 (PlanningStep)
+                elif isinstance(step, PlanningStep):
+                    plan_text = getattr(step, "plan", "") or str(step)
+                    if plan_text:
+                        plan_md = f"#### 📋 任务规划与路径拆解\n\n{plan_text.strip()}"
+                        accumulated_thoughts.append(plan_md)
+                        yield {
+                            "event": "thought",
+                            "data": {"content": plan_md}
+                        }
+
+                # 3. 准备执行 Python 脚本 (ToolCall) -> 实时唤醒前端单卡并进入运行中动效
+                elif isinstance(step, ToolCall):
+                    raw_code = (step.arguments or "").strip()
+                    if raw_code.startswith("```python"):
+                        raw_code = raw_code[9:]
+                    elif raw_code.startswith("```"):
+                        raw_code = raw_code[3:]
+                    if raw_code.endswith("```"):
+                        raw_code = raw_code[:-3]
+                    raw_code = raw_code.strip()
+
+                    code_item = {
+                        "step": current_step,
+                        "code": raw_code,
+                        "status": "running"
+                    }
+                    accumulated_code_blocks.append(code_item)
+                    yield {
+                        "event": "code_start",
+                        "data": code_item
+                    }
+
+                # 4. 代码执行返回结果 (ActionOutput)
+                elif isinstance(step, ActionOutput):
+                    if step.is_final_answer:
+                        final_answer = str(step.output)
+                    else:
+                        obs_md = format_execution_observation(step.output, current_step)
+                        log_item = {
+                            "step": current_step,
+                            "output": obs_md,
+                            "status": "success"
+                        }
+                        accumulated_execution_logs.append(log_item)
+                        for c in accumulated_code_blocks:
+                            if c.get("step") == current_step and c.get("status") == "running":
+                                c["status"] = "success"
+                        yield {
+                            "event": "execution_result",
+                            "data": log_item
+                        }
+
+                # 5. 代码执行完成步 (ActionStep)
+                elif isinstance(step, ActionStep):
+                    current_step = step.step_number + 1
+
+                    # 补充思维链
+                    if step.model_output and not thought_buffer:
+                        clean_thought = extract_clean_thought(step.model_output)
+                        if clean_thought:
+                            thought_md = f"#### 💭 步骤 {step.step_number} 推理分析\n\n{clean_thought.strip()}"
+                            accumulated_thoughts.append(thought_md)
+                            yield {
+                                "event": "thought",
+                                "data": {"content": thought_md}
+                            }
+
+                    # 若沙箱有额外 observations 输出，且尚未向前端派发
+                    if step.observations and not any(l["step"] == step.step_number for l in accumulated_execution_logs):
+                        obs_md = format_execution_observation(step.observations, step.step_number)
+                        log_item = {
+                            "step": step.step_number,
+                            "output": obs_md,
+                            "status": "success"
+                        }
+                        accumulated_execution_logs.append(log_item)
+                        for c in accumulated_code_blocks:
+                            if c.get("step") == step.step_number and c.get("status") == "running":
+                                c["status"] = "success"
+                        yield {
+                            "event": "execution_result",
+                            "data": log_item
+                        }
+
+                # 6. 最终答案步 (FinalAnswerStep)
+                elif isinstance(step, FinalAnswerStep):
+                    if step.output:
+                        final_answer = str(step.output)
+
+                # 7. 备用文本块
+                elif hasattr(step, "content"):
+                    delta = getattr(step, "content", "")
+                    if delta:
+                        final_answer += delta
+                elif isinstance(step, str):
+                    final_answer = step
+
+                # 检查并派发实时协同事件 (Multi-Agent Orchestration Events)
+                orch_queue = getattr(self._local, "active_stream_orchestrations", self._active_stream_orchestrations)
+                while orch_queue:
+                    orch_item = orch_queue.pop(0)
+                    accumulated_orchestrations.append(orch_item)
+                    yield {
+                        "event": "orchestration",
+                        "data": orch_item
+                    }
+
+            # 结算残余协同事件
+            orch_queue = getattr(self._local, "active_stream_orchestrations", self._active_stream_orchestrations)
+            while orch_queue:
+                orch_item = orch_queue.pop(0)
+                accumulated_orchestrations.append(orch_item)
+                yield {
+                    "event": "orchestration",
+                    "data": orch_item
+                }
+
+            # 剥离最终答案中可能残留的 <think> 思维链
+            if final_answer:
+                cleaned_ans, leftover_thought = clean_final_answer(final_answer)
+                if leftover_thought:
+                    leftover_md = f"#### 💭 综合校验与归纳\n\n{leftover_thought.strip()}"
+                    accumulated_thoughts.append(leftover_md)
+                    yield {
+                        "event": "thought",
+                        "data": {"content": leftover_md}
+                    }
+                final_answer = cleaned_ans or "任务已执行完毕。"
+            else:
+                final_answer = "任务已执行完毕。"
+
+            # 触发流式回答生命周期：通知前端折叠过程、聚焦正文，开启打字机效果
+            yield {"event": "answer_start", "data": {"timestamp": time.time()}}
+
+            # 以极致顺滑的微块自然流式推送 (Token-like Natural Typing Stream)
+            chunk_size = 4
+            for i in range(0, len(final_answer), chunk_size):
+                chunk_piece = final_answer[i : i + chunk_size]
+                yield {
+                    "event": "chunk",
+                    "data": {"delta": chunk_piece}
+                }
+                time.sleep(0.012)
+
+            # 发送最终整理好的完整回答
+            yield {
+                "event": "message",
+                "data": {"content": final_answer}
+            }
+
+            # 存入历史（完整持久化结构化思维链、Python 代码、执行日志与工具调用）
+            if thought_buffer and not accumulated_thoughts:
+                accumulated_thoughts.append(thought_buffer.strip())
+
+            # 确保保存历史记录时，所有已执行的代码块状态均更新为 success (除非此前为 error)
+            for c in accumulated_code_blocks:
+                if c.get("status") == "running":
+                    c["status"] = "success"
+
+            full_thought_str = "\n\n---\n\n".join([t for t in accumulated_thoughts if t.strip()]).strip()
+
+            # 统计本次执行的性能与消耗指标
+            stream_elapsed = round(time.time() - stream_start_time, 2)
+            input_tokens = 0
+            output_tokens = 0
+            if hasattr(agent, "monitor") and agent.monitor:
+                try:
+                    usage = agent.monitor.get_total_token_counts()
+                    raw_in = getattr(usage, "input_tokens", None)
+                    raw_out = getattr(usage, "output_tokens", None)
+                    if isinstance(raw_in, (int, float)):
+                        input_tokens = int(raw_in)
+                    if isinstance(raw_out, (int, float)):
+                        output_tokens = int(raw_out)
+                except Exception:
+                    pass
+
+            if input_tokens == 0 and output_tokens == 0:
+                # 兼容未回传 token usage 的提供商的保底估算
+                input_tokens = max(10, len(task_prompt) // 2)
+                output_tokens = max(10, (len(final_answer) + len(thought_buffer)) // 2)
+
+            total_tokens = input_tokens + output_tokens
+            metrics = {
+                "elapsed_seconds": stream_elapsed,
+                "input_tokens": input_tokens,
+                "output_tokens": output_tokens,
+                "total_tokens": total_tokens,
+                "code_executions": len(accumulated_code_blocks),
+                "model": llm_cfg.model_name
+            }
+            # 检查若已被用户中止，跳过历史持久化与指标记录
+            if stop_checker and stop_checker():
+                logger.info("Agent run %s was stopped, skipping history save.", bot_id)
+                return
+
+            # 记录到智能体累计指标库
+            self.manager.record_run_stats(bot_id, metrics)
+
+            self.manager.append_history(
+                bot_id,
+                "assistant",
+                final_answer,
+                metadata={
+                    "thought": full_thought_str,
+                    "code_blocks": accumulated_code_blocks,
+                    "execution_logs": accumulated_execution_logs,
+                    "tool_calls": accumulated_tool_calls,
+                    "orchestrations": accumulated_orchestrations,
+                    "code_count": len(accumulated_code_blocks),
+                    "model": llm_cfg.model_name,
+                    "metrics": metrics
+                }
+            )
+
+            yield {
+                "event": "done",
+                "data": {
+                    "status": "success",
+                    "code_blocks": len(accumulated_code_blocks),
+                    "orchestrations": accumulated_orchestrations,
+                    "metrics": metrics,
+                    "timestamp": time.time()
+                }
+            }
+
+        except Exception as e:
+            err_text = f"智能体执行遇到异常: {str(e)}"
+            logger.exception("Agent run error: %s", err_text)
+            yield {
+                "event": "error",
+                "data": {"error": err_text}
+            }
+            self.manager.append_history(bot_id, "assistant", f"[异常] {err_text}")
+
+
+agent_engine = AgentEngine()

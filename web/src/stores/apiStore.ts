@@ -59,7 +59,7 @@ export interface ApiTab {
 
 export interface ToastMessage {
   id: string
-  type?: 'success' | 'info' | 'warning'
+  type?: 'success' | 'info' | 'warning' | 'error'
   message: string
   actionLabel?: string
   onAction?: () => void
@@ -101,6 +101,9 @@ interface ApiState {
   setSidebarWidth: (width: number) => void
   setPreviewMode: (enabled: boolean) => void
   togglePreviewMode: () => void
+  recentApiIds: string[]
+  getRecentApis: () => ApiMeta[]
+  getFrequentApis: () => ApiMeta[]
   invokeSingleApi: (apiId: string, payload: Record<string, any>, dryRun?: boolean) => Promise<any>
   clearTabInvokeHistory: (tabId: string) => void
   restoreTabInvokeHistory: (tabId: string, historyItem: InvokeHistoryItem, restorePayload?: boolean) => void
@@ -268,6 +271,73 @@ function clearLocalApiHistory(apiId: string) {
   } catch {}
 }
 
+export const CORE_FREQUENT_API_IDS = [
+  'c2c_send_msg',          // 单发单聊消息
+  'group_send_msg',        // 在群组中发送普通消息
+  'group_get_info',        // 获取群详细资料
+  'profile_portrait_get',  // 拉取资料
+  'group_forbid_send_msg', // 批量禁言和取消禁言
+  'c2c_msg_withdraw',      // 撤回单聊消息
+]
+
+function getRecentApiIds(): string[] {
+  try {
+    const raw = localStorage.getItem('tim_recent_api_ids')
+    return raw ? JSON.parse(raw) : []
+  } catch {
+    return []
+  }
+}
+
+function recordRecentApiId(apiId: string) {
+  try {
+    const list = getRecentApiIds().filter((id) => id !== apiId)
+    const updated = [apiId, ...list].slice(0, 20)
+    localStorage.setItem('tim_recent_api_ids', JSON.stringify(updated))
+  } catch {}
+}
+
+function getPersistedTabsState(): { tabIds: string[]; activeTabId: string | null } {
+  try {
+    const raw = localStorage.getItem('tim_open_tabs_state')
+    if (raw) {
+      const data = JSON.parse(raw)
+      return {
+        tabIds: Array.isArray(data.tabIds) ? data.tabIds : [],
+        activeTabId: data.activeTabId || null,
+      }
+    }
+  } catch {}
+  return { tabIds: [], activeTabId: null }
+}
+
+function savePersistedTabsState(tabs: ApiTab[], activeTabId: string | null) {
+  try {
+    const state = {
+      tabIds: tabs.map((t) => t.apiId),
+      activeTabId,
+    }
+    localStorage.setItem('tim_open_tabs_state', JSON.stringify(state))
+  } catch {}
+}
+
+function getApiCallCounts(): Record<string, number> {
+  try {
+    const raw = localStorage.getItem('tim_api_call_counts')
+    return raw ? JSON.parse(raw) : {}
+  } catch {
+    return {}
+  }
+}
+
+function incrementApiCallCount(apiId: string) {
+  try {
+    const counts = getApiCallCounts()
+    counts[apiId] = (counts[apiId] || 0) + 1
+    localStorage.setItem('tim_api_call_counts', JSON.stringify(counts))
+  } catch {}
+}
+
 function createTabFromApi(api: ApiMeta): ApiTab {
   const initialData = initializeFormData(api)
   const savedHistory = getLocalApiHistory(api.api_id)
@@ -304,6 +374,46 @@ export const useApiStore = create<ApiState>((set, get) => ({
   isSidebarOpen: typeof window !== 'undefined' ? window.innerWidth >= 1024 : true, // 大屏默认展开，小屏/移动端默认收起
   sidebarWidth: 320, // 侧边栏固定默认宽度 320px
   isPreviewMode: false,
+  recentApiIds: getRecentApiIds(),
+
+  getRecentApis: () => {
+    const { apis, recentApiIds } = get()
+    const list: ApiMeta[] = []
+    for (const rid of recentApiIds) {
+      const a = apis.find((x) => x.api_id === rid)
+      if (a && !list.some((item) => item.api_id === a.api_id)) {
+        list.push(a)
+      }
+    }
+    return list
+  },
+
+  getFrequentApis: () => {
+    const { apis } = get()
+    const counts = getApiCallCounts()
+    // 找出有实际调用记录且频次最高的接口
+    const sortedByUsage = Object.entries(counts)
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => apis.find((x) => x.api_id === id))
+      .filter((x): x is ApiMeta => Boolean(x))
+
+    // 结合官方核心常用高频接口
+    const coreApis = CORE_FREQUENT_API_IDS.map((id) =>
+      apis.find((x) => x.api_id === id)
+    ).filter((x): x is ApiMeta => Boolean(x))
+
+    // 合并去重并截取前 6 个
+    const result: ApiMeta[] = []
+    const seen = new Set<string>()
+    for (const a of [...sortedByUsage, ...coreApis]) {
+      if (!seen.has(a.api_id)) {
+        seen.add(a.api_id)
+        result.push(a)
+      }
+      if (result.length >= 6) break
+    }
+    return result
+  },
 
   fetchApis: async () => {
     try {
@@ -311,17 +421,47 @@ export const useApiStore = create<ApiState>((set, get) => ({
       const json = await res.json()
       if (json.status === 'success') {
         const apis: ApiMeta[] = json.data
-        const defaultApi = apis.find(a => a.api_id === 'c2c_msg_withdraw') || apis[0] || null
+        const persisted = getPersistedTabsState()
         let initialTabs: ApiTab[] = []
-        if (defaultApi) {
-          initialTabs = [createTabFromApi(defaultApi)]
+        let activeTab: ApiTab | null = null
+
+        // 1. 优先恢复用户上次关闭应用/刷新页面时打开的标签页工作区
+        if (persisted.tabIds.length > 0) {
+          for (const tid of persisted.tabIds) {
+            const matched = apis.find((a) => a.api_id === tid)
+            if (matched && !initialTabs.some((t) => t.apiId === matched.api_id)) {
+              initialTabs.push(createTabFromApi(matched))
+            }
+          }
+          if (persisted.activeTabId) {
+            activeTab = initialTabs.find((t) => t.apiId === persisted.activeTabId) || null
+          }
         }
+
+        // 2. 若无历史保存的标签页（首次进入），默认打开高频常用核心接口「单发单聊消息」(c2c_send_msg)
+        if (initialTabs.length === 0) {
+          const defaultApi =
+            apis.find((a) => a.api_id === 'c2c_send_msg') ||
+            apis[0] ||
+            null
+          if (defaultApi) {
+            initialTabs = [createTabFromApi(defaultApi)]
+            activeTab = initialTabs[0]
+          }
+        } else if (!activeTab) {
+          activeTab = initialTabs[0]
+        }
+
+        const activeId = activeTab ? activeTab.id : null
+        savePersistedTabsState(initialTabs, activeId)
+
         set({
           apis,
           tabs: initialTabs,
-          activeTabId: defaultApi ? defaultApi.api_id : null,
-          activeApi: defaultApi,
+          activeTabId: activeId,
+          activeApi: activeTab ? activeTab.api : null,
           invokeResponse: initialTabs[0]?.invokeResponse || null,
+          recentApiIds: getRecentApiIds(),
           openCategories: {},
         })
       }
@@ -335,29 +475,43 @@ export const useApiStore = create<ApiState>((set, get) => ({
   },
 
   openTab: (api: ApiMeta, overrides?: Partial<ApiTab>) => {
+    recordRecentApiId(api.api_id)
     const { tabs } = get()
     const existing = tabs.find(t => t.apiId === api.api_id)
+    let newTabs: ApiTab[]
+    let activeId: string
+    let activeApi: ApiMeta
+
     if (existing) {
       const updated = overrides
         ? { ...existing, ...overrides, dataVersion: Date.now() }
         : existing
+      newTabs = overrides ? tabs.map(t => t.id === existing.id ? updated : t) : tabs
+      activeId = existing.id
+      activeApi = existing.api
       set({
-        tabs: overrides ? tabs.map(t => t.id === existing.id ? updated : t) : tabs,
-        activeTabId: existing.id,
-        activeApi: existing.api,
+        tabs: newTabs,
+        activeTabId: activeId,
+        activeApi: activeApi,
         invokeResponse: updated.invokeResponse,
         isInvoking: updated.isInvoking,
+        recentApiIds: getRecentApiIds(),
       })
     } else {
       const newTab = { ...createTabFromApi(api), ...(overrides || {}), dataVersion: Date.now() }
+      newTabs = [...tabs, newTab]
+      activeId = newTab.id
+      activeApi = api
       set({
-        tabs: [...tabs, newTab],
-        activeTabId: newTab.id,
-        activeApi: api,
+        tabs: newTabs,
+        activeTabId: activeId,
+        activeApi: activeApi,
         invokeResponse: newTab.invokeResponse,
         isInvoking: false,
+        recentApiIds: getRecentApiIds(),
       })
     }
+    savePersistedTabsState(newTabs, activeId)
   },
 
   closeTab: (tabId: string) => {
@@ -382,6 +536,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
     }
 
     const currentTab = newTabs.find(t => t.id === nextActiveTabId)
+    savePersistedTabsState(newTabs, nextActiveTabId)
     set({
       tabs: newTabs,
       activeTabId: nextActiveTabId,
@@ -395,6 +550,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
     const { tabs } = get()
     const keepTab = tabs.find(t => t.id === tabId)
     if (!keepTab) return
+    savePersistedTabsState([keepTab], keepTab.id)
     set({
       tabs: [keepTab],
       activeTabId: keepTab.id,
@@ -417,6 +573,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
       nextActiveApi = current ? current.api : null
     }
     const currentTab = newTabs.find(t => t.id === nextActiveTabId)
+    savePersistedTabsState(newTabs, nextActiveTabId)
     set({
       tabs: newTabs,
       activeTabId: nextActiveTabId,
@@ -427,6 +584,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
   },
 
   closeAllTabs: () => {
+    savePersistedTabsState([], null)
     set({
       tabs: [],
       activeTabId: null,
@@ -440,6 +598,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
     const { tabs } = get()
     const target = tabs.find(t => t.id === tabId)
     if (target) {
+      savePersistedTabsState(tabs, target.id)
       set({
         activeTabId: target.id,
         activeApi: target.api,
@@ -534,6 +693,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
   togglePreviewMode: () => set((state) => ({ isPreviewMode: !state.isPreviewMode })),
 
   invokeSingleApi: async (apiId: string, payload: Record<string, any>, dryRun?: boolean) => {
+    incrementApiCallCount(apiId)
     const isDry = dryRun !== undefined ? dryRun : get().isPreviewMode
     const { activeTabId } = get()
     if (activeTabId) {

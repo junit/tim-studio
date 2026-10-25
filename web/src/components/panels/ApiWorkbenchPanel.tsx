@@ -822,6 +822,8 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
     togglePreviewMode,
     clearTabInvokeHistory,
     restoreTabInvokeHistory,
+    getRecentApis,
+    getFrequentApis,
   } = useApiStore()
   const { setApiId } = useBatchStore()
   const { config } = useConfigStore()
@@ -1337,31 +1339,66 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
   ]
 
   if (tabs.length === 0 || !activeApi || !currentTab) {
+    const recentApis = getRecentApis().slice(0, 6)
+    const frequentApis = getFrequentApis().slice(0, 6)
+
     return (
-      <div className="flex h-full w-full flex-col items-center justify-center bg-slate-50/70 dark:bg-slate-950/70 p-8 text-center text-slate-500 dark:text-slate-400 select-none">
-        <div className="max-w-md flex flex-col items-center space-y-4">
+      <div className="flex h-full w-full flex-col items-center justify-center bg-slate-50/70 dark:bg-slate-950/70 p-8 text-center text-slate-500 dark:text-slate-400 select-none overflow-y-auto">
+        <div className="max-w-xl flex flex-col items-center space-y-5">
           <div className="flex h-16 w-16 items-center justify-center rounded-2xl bg-orange-100/70 dark:bg-orange-950/40 border border-orange-200/80 dark:border-orange-900/40 text-orange-600 dark:text-orange-400 shadow-2xs">
             <Terminal className="h-8 w-8" />
           </div>
           <div className="space-y-1.5">
             <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">暂无打开的接口标签页</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed">
-              支持类似 Postman / Apifox 的多标签页隔离调试。请从左侧接口导航树中点击任意接口以打开多标签调试，或从下方快捷方式打开常用接口。
+            <p className="text-xs text-slate-500 dark:text-slate-400 leading-relaxed max-w-md">
+              支持类似 Postman / Apifox 的多标签页隔离调试。请从左侧接口导航树中点击任意接口以打开多标签调试，或从下方快捷方式打开常用或最近接口。
             </p>
           </div>
-          <div className="flex flex-wrap items-center justify-center gap-2 pt-2">
-            {apis.slice(0, 4).map((api) => (
-              <Button
-                key={api.api_id}
-                variant="outline"
-                size="sm"
-                onClick={() => openTab(api)}
-                className="h-8 text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-300 dark:hover:border-orange-600 border-slate-200 dark:border-slate-700 shadow-2xs gap-1"
-              >
-                <Plus className="h-3 w-3 text-orange-500" />
-                <span>{api.name}</span>
-              </Button>
-            ))}
+
+          {recentApis.length > 0 && (
+            <div className="w-full flex flex-col items-center gap-2 pt-1">
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+                <Clock className="h-3.5 w-3.5 text-blue-500" />
+                <span>最近打开</span>
+              </div>
+              <div className="flex flex-wrap items-center justify-center gap-2">
+                {recentApis.map((api) => (
+                  <Button
+                    key={`recent-${api.api_id}`}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => openTab(api)}
+                    className="h-8 text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-blue-600 dark:hover:text-blue-400 hover:border-blue-300 dark:hover:border-blue-600 border-slate-200 dark:border-slate-700 shadow-2xs gap-1.5"
+                  >
+                    <span className="text-[10px] px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-mono">
+                      {api.subcategory || api.category}
+                    </span>
+                    <span>{api.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="w-full flex flex-col items-center gap-2 pt-1">
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-600 dark:text-slate-300">
+              <Sparkles className="h-3.5 w-3.5 text-orange-500" />
+              <span>常用高频接口推荐</span>
+            </div>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              {frequentApis.map((api) => (
+                <Button
+                  key={`freq-${api.api_id}`}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => openTab(api)}
+                  className="h-8 text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-300 dark:hover:border-orange-600 border-slate-200 dark:border-slate-700 shadow-2xs gap-1.5"
+                >
+                  <Plus className="h-3 w-3 text-orange-500" />
+                  <span>{api.name}</span>
+                </Button>
+              ))}
+            </div>
           </div>
         </div>
       </div>

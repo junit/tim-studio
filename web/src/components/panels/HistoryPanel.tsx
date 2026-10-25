@@ -246,31 +246,44 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
     <div className="flex h-full flex-col bg-slate-50/60 dark:bg-slate-950 overflow-hidden">
       {/* Top Header */}
       <div
-        className={`flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 sm:px-6 ${
-          isEmbedded ? 'py-3' : 'py-4'
-        } shadow-2xs`}
+        className={`shrink-0 flex flex-wrap items-center justify-between gap-3 sm:gap-4 border-b border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-900 px-4 sm:px-6 ${
+          isEmbedded ? 'py-2.5 min-h-[52px]' : 'py-2.5 min-h-[56px]'
+        } shadow-2xs select-none`}
       >
-        <div>
-          {!isEmbedded ? (
-            <h2 className="text-base font-bold text-slate-900 dark:text-slate-100 tracking-tight flex items-center gap-2">
-              <History className="h-5 w-5 text-blue-600 dark:text-blue-400" />
-              <span>执行审计台账与调用历史</span>
-            </h2>
-          ) : (
-            <div className="flex items-center gap-2 text-xs font-semibold text-slate-700 dark:text-slate-300">
-              <History className="h-4 w-4 text-amber-500" />
-              <span>历史任务归档记录</span>
-              <Badge
-                variant="outline"
-                className="text-[10px] font-mono px-1.5 py-0 border-slate-200 dark:border-slate-700 text-slate-500"
-              >
-                共 {historyList.length} 批次
-              </Badge>
-            </div>
-          )}
-          <p className="text-xs text-slate-400 mt-0.5">
-            本地持久化记录所有批处理任务调用台账、成功率统计与各行响应回执（自动保留最近 50 次）
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
+            <History className="h-4 w-4" />
+          </div>
+          <div className="min-w-0">
+            {!isEmbedded ? (
+              <div className="flex items-center gap-2">
+                <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                  执行审计台账与调用历史
+                </h2>
+                <Badge
+                  variant="outline"
+                  className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[9px] py-0 px-1.5 shrink-0"
+                >
+                  Audit
+                </Badge>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                  历史任务归档记录
+                </h2>
+                <Badge
+                  variant="outline"
+                  className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[9px] py-0 px-1.5 shrink-0"
+                >
+                  共 {historyList.length} 批次
+                </Badge>
+              </div>
+            )}
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              本地持久化记录所有批处理任务调用台账、成功率统计与各行响应回执（自动保留最近 50 次）
+            </p>
+          </div>
         </div>
 
         <div className="flex items-center gap-2.5">

@@ -4,11 +4,13 @@ import {
   ChevronLeft,
   ChevronRight,
   CheckCircle2,
+  AlertCircle,
   X,
   Terminal,
   BookOpen,
   Layers,
   Settings,
+  Bot,
 } from 'lucide-react'
 import { Header } from '@/components/common/Header'
 import { ApiTreePanel } from '@/components/panels/ApiTreePanel'
@@ -16,10 +18,11 @@ import { ApiWorkbenchPanel } from '@/components/panels/ApiWorkbenchPanel'
 import { BatchCenter } from '@/components/panels/BatchCenter'
 import { SettingsPanel } from '@/components/panels/SettingsPanel'
 import { DocsCenterPanel } from '@/components/panels/DocsCenterPanel'
+import { AgentPanel } from '@/components/panels/AgentPanel'
 import { useApiStore } from '@/stores/apiStore'
 
 export function App() {
-  const [activeTab, setActiveTab] = useState<'sandbox' | 'docs' | 'batch' | 'settings'>(
+  const [activeTab, setActiveTab] = useState<'sandbox' | 'docs' | 'batch' | 'agent' | 'settings'>(
     'sandbox'
   )
   const [isMobile, setIsMobile] = useState<boolean>(() =>
@@ -128,6 +131,7 @@ export function App() {
                 className="h-full"
               >
                 <ApiTreePanel
+                  isMobile={isMobile}
                   onNavigateToBatch={() => {
                     setActiveTab('batch')
                     if (isMobile && isSidebarOpen) toggleSidebar()
@@ -189,6 +193,8 @@ export function App() {
 
         {activeTab === 'batch' && <BatchCenter />}
 
+        {activeTab === 'agent' && <AgentPanel />}
+
         {activeTab === 'settings' && <SettingsPanel />}
       </main>
 
@@ -197,7 +203,7 @@ export function App() {
         <button
           type="button"
           onClick={() => setActiveTab('sandbox')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'sandbox'
               ? 'text-blue-600 dark:text-blue-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -209,7 +215,7 @@ export function App() {
         <button
           type="button"
           onClick={() => setActiveTab('docs')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'docs'
               ? 'text-blue-600 dark:text-blue-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -221,7 +227,7 @@ export function App() {
         <button
           type="button"
           onClick={() => setActiveTab('batch')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'batch'
               ? 'text-blue-600 dark:text-blue-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -232,8 +238,20 @@ export function App() {
         </button>
         <button
           type="button"
+          onClick={() => setActiveTab('agent')}
+          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
+            activeTab === 'agent'
+              ? 'text-blue-600 dark:text-blue-400 font-bold'
+              : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+          }`}
+        >
+          <Bot className="h-4 w-4" />
+          <span>AI 智能体</span>
+        </button>
+        <button
+          type="button"
           onClick={() => setActiveTab('settings')}
-          className={`flex flex-col items-center gap-0.5 py-1 px-3 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
+          className={`flex flex-col items-center gap-0.5 py-1 px-2.5 rounded-lg text-[10px] font-semibold transition-colors cursor-pointer ${
             activeTab === 'settings'
               ? 'text-blue-600 dark:text-blue-400 font-bold'
               : 'text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -254,7 +272,11 @@ export function App() {
             transition={{ duration: 0.2 }}
             className="fixed bottom-16 md:bottom-6 right-3 md:right-6 z-50 flex items-center gap-3 px-4 py-3 rounded-2xl border border-slate-700/80 bg-slate-900/95 text-white shadow-2xl backdrop-blur-md"
           >
-            <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            {toast.type === 'error' ? (
+              <AlertCircle className="h-4 w-4 text-rose-400 shrink-0" />
+            ) : (
+              <CheckCircle2 className="h-4 w-4 text-emerald-400 shrink-0" />
+            )}
             <span className="text-xs font-medium text-slate-100">{toast.message}</span>
             {toast.actionLabel && (
               <button

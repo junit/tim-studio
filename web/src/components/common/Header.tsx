@@ -18,6 +18,8 @@ import {
   BookOpen,
   Sun,
   Moon,
+  Bot,
+  Sparkles,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -26,8 +28,8 @@ import { useApiStore } from '@/stores/apiStore'
 import { useThemeStore } from '@/stores/themeStore'
 
 interface HeaderProps {
-  activeTab: 'sandbox' | 'docs' | 'batch' | 'settings'
-  setActiveTab: (tab: 'sandbox' | 'docs' | 'batch' | 'settings') => void
+  activeTab: 'sandbox' | 'docs' | 'batch' | 'agent' | 'settings'
+  setActiveTab: (tab: 'sandbox' | 'docs' | 'batch' | 'agent' | 'settings') => void
 }
 
 export const getTagBadgeStyle = (tag: string) => {
@@ -122,10 +124,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
       <nav className="hidden md:flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-950/70 p-1 border border-slate-200/60 dark:border-slate-800 shadow-inner shrink-0">
         <button
           onClick={() => setActiveTab('sandbox')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'sandbox'
-              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border border-slate-200/60 dark:border-slate-700'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
           }`}
         >
           <Terminal className="h-3.5 w-3.5" />
@@ -134,10 +136,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
         <button
           onClick={() => setActiveTab('docs')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'docs'
-              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border border-slate-200/60 dark:border-slate-700'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
           }`}
         >
           <BookOpen className="h-3.5 w-3.5" />
@@ -146,10 +148,10 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
         <button
           onClick={() => setActiveTab('batch')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'batch'
-              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border border-slate-200/60 dark:border-slate-700'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
           }`}
         >
           <Layers className="h-3.5 w-3.5" />
@@ -157,11 +159,24 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
         </button>
 
         <button
+          onClick={() => setActiveTab('agent')}
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+            activeTab === 'agent'
+              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
+          }`}
+        >
+          <Bot className="h-3.5 w-3.5 text-blue-500" />
+          <span>AI 智能体</span>
+          <span className="h-1.5 w-1.5 rounded-full bg-blue-500 animate-pulse" />
+        </button>
+
+        <button
           onClick={() => setActiveTab('settings')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-all cursor-pointer ${
+          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'settings'
-              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border border-slate-200/60 dark:border-slate-700'
-              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50'
+              ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
+              : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
           }`}
         >
           <Settings className="h-3.5 w-3.5" />

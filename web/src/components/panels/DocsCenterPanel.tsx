@@ -451,139 +451,137 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
-      {/* 顶部统计卡片与全局同步操作面板 */}
-      <div className="shrink-0 p-3.5 sm:p-5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs space-y-4">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs">
-              <BookOpen className="h-5 w-5" />
-            </div>
-            <div>
-              <div className="flex items-center gap-2">
-                <h2 className="text-base font-bold text-slate-900 dark:text-slate-100">腾讯云 IM 官方 API 文档中心</h2>
-                <Badge
-                  variant="outline"
-                  className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[11px]"
-                >
-                  REST API 166 全量
-                </Badge>
-              </div>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                自动化抓取官方原生文档，支持参数字典、多场景请求体、应答结构及错误码智能解析
-              </p>
-            </div>
+      {/* 顶部统一 Header (与批量调用、AI智能体高度/样式对齐: 标称 min-h-[56px] py-2.5 px-4 sm:px-6) */}
+      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4 select-none min-h-[56px]">
+        <div className="flex items-center gap-3">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
+            <BookOpen className="h-4 w-4" />
           </div>
-
-          {/* 全局同步按钮组 */}
-          <div className="flex items-center gap-2.5">
-            {/* 数据源模式选择器 */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-lg px-2.5 h-8 text-xs">
-              <span className="text-slate-500 dark:text-slate-400 font-medium">数据源:</span>
-              <select
-                value={syncMode}
-                onChange={(e) => setSyncMode(e.target.value as any)}
-                className="bg-transparent text-slate-800 dark:text-slate-200 outline-none cursor-pointer font-semibold"
-                title="切换数据源抓取方式：动态接口极速拉取；静态网页直接抓取原生 HTML（防频控限制）"
-              >
-                <option value="auto" className="dark:bg-slate-800">智能混合 (优先API+失败回退HTML)</option>
-                <option value="html" className="dark:bg-slate-800">静态网页抓取 (HTML 避频控)</option>
-                <option value="api" className="dark:bg-slate-800">动态接口 (API 极速正文)</option>
-              </select>
-            </div>
-
-            {syncStatus?.is_running ? (
-              <Button
+          <div className="min-w-0">
+            <div className="flex items-center gap-2">
+              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
+                腾讯云 IM 官方 API 文档中心
+              </h2>
+              <Badge
                 variant="outline"
-                size="sm"
-                onClick={handleCancelBatchSync}
-                className="h-8 text-xs border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 font-semibold"
+                className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[9px] py-0 px-1.5 shrink-0"
               >
-                终止同步任务
-              </Button>
-            ) : (
-              <>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleSyncTree}
-                  disabled={isSyncingTree}
-                  className="h-8 text-xs border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-semibold gap-1.5 shadow-2xs cursor-pointer"
-                  title="实时抓取腾讯云 1519 页面 window.__staticRouterHydrationData，热重载并同步全部目录树"
-                >
-                  <RefreshCw className={`h-3.5 w-3.5 ${isSyncingTree ? 'animate-spin' : ''}`} />
-                  <span>{isSyncingTree ? '抓取目录树中...' : '在线同步官方目录树'}</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handleStartBatchSync(false, undefined, syncMode)}
-                  className="h-8 text-xs border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium gap-1.5 shadow-2xs cursor-pointer"
-                  title="仅同步本地尚未下载的文档"
-                >
-                  <RefreshCw className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                  <span>增量同步</span>
-                </Button>
-                <Button
-                  size="sm"
-                  onClick={() => handleStartBatchSync(true, undefined, syncMode)}
-                  className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-1.5 shadow-xs cursor-pointer"
-                  title="重新并发抓取全量 166 个接口的官方最新文档并结构化存储"
-                >
-                  <Play className="h-3.5 w-3.5 fill-white" />
-                  <span>全量覆盖同步 (166项)</span>
-                </Button>
-              </>
-            )}
+                REST API 166 全量
+              </Badge>
+            </div>
+            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
+              自动化抓取官方原生文档，支持参数字典、多场景请求体、应答结构及错误码智能解析
+            </p>
           </div>
         </div>
 
-        {/* 指标卡片网格 */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">官方 REST API 总数</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-xl font-bold font-mono text-slate-900 dark:text-slate-100">
-                {summary?.total_apis || 166}
-              </span>
-              <span className="text-xs text-slate-400 dark:text-slate-500">个接口</span>
+        {/* 全局同步按钮组 */}
+        <div className="flex items-center gap-2">
+          {/* 数据源模式选择器 */}
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-lg px-2.5 h-8 text-xs">
+            <span className="text-slate-500 dark:text-slate-400 font-medium">数据源:</span>
+            <select
+              value={syncMode}
+              onChange={(e) => setSyncMode(e.target.value as any)}
+              className="bg-transparent text-slate-800 dark:text-slate-200 outline-none cursor-pointer font-semibold"
+              title="切换数据源抓取方式：动态接口极速拉取；静态网页直接抓取原生 HTML（防频控限制）"
+            >
+              <option value="auto" className="dark:bg-slate-800">智能混合</option>
+              <option value="html" className="dark:bg-slate-800">静态网页 (HTML)</option>
+              <option value="api" className="dark:bg-slate-800">动态接口 (API)</option>
+            </select>
+          </div>
+
+          {syncStatus?.is_running ? (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={handleCancelBatchSync}
+              className="h-8 text-xs border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 font-semibold cursor-pointer"
+            >
+              终止同步任务
+            </Button>
+          ) : (
+            <>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleSyncTree}
+                disabled={isSyncingTree}
+                className="h-8 text-xs border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-semibold gap-1.5 shadow-2xs cursor-pointer"
+                title="实时抓取腾讯云 1519 页面 window.__staticRouterHydrationData，热重载并同步全部目录树"
+              >
+                <RefreshCw className={`h-3.5 w-3.5 ${isSyncingTree ? 'animate-spin' : ''}`} />
+                <span className="hidden sm:inline">{isSyncingTree ? '抓取中...' : '同步目录树'}</span>
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleStartBatchSync(false, undefined, syncMode)}
+                className="h-8 text-xs border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium gap-1.5 shadow-2xs cursor-pointer"
+                title="仅同步本地尚未下载的文档"
+              >
+                <RefreshCw className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                <span>增量同步</span>
+              </Button>
+              <Button
+                size="sm"
+                onClick={() => handleStartBatchSync(true, undefined, syncMode)}
+                className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-1.5 shadow-xs cursor-pointer"
+                title="重新并发抓取全量 166 个接口的官方最新文档并结构化存储"
+              >
+                <Play className="h-3.5 w-3.5 fill-white" />
+                <span>全量覆盖同步</span>
+              </Button>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* 指标卡片与实时同步进度区域 */}
+      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-slate-50/70 dark:bg-slate-950/70 border-b border-slate-200/60 dark:border-slate-800/60 space-y-2.5">
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">REST API 总数</span>
+            <div className="flex items-baseline gap-1 font-mono font-bold text-slate-900 dark:text-slate-100 text-sm">
+              <span>{summary?.total_apis || 166}</span>
+              <span className="text-[10px] text-slate-400 font-normal">个接口</span>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">已结构化同步</span>
-            <div className="flex items-baseline gap-2 mt-1">
-              <span className="text-xl font-bold font-mono text-emerald-600 dark:text-emerald-400">
+            <div className="flex items-baseline gap-1.5">
+              <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
                 {summary?.synced_count || 0}
               </span>
-              <span className="text-xs text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.2 rounded font-mono font-semibold border border-emerald-200 dark:border-emerald-800">
+              <span className="text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1 py-0.2 rounded font-mono font-semibold border border-emerald-200 dark:border-emerald-800">
                 {summary?.synced_percent || 0}% 覆盖
               </span>
             </div>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">最近全量同步时间</span>
-            <div className="mt-1">
-              <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
-                {summary?.last_sync_time || '—'}
-              </span>
-            </div>
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">全量同步时间</span>
+            <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
+              {summary?.last_sync_time ? summary.last_sync_time.slice(0, 16) : '—'}
+            </span>
           </div>
 
-          <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">同步引擎状态</span>
-            <div className="flex items-center gap-1.5 mt-1">
+            <div className="flex items-center gap-1.5">
               {syncStatus?.is_running ? (
                 <>
-                  <RefreshCw className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 animate-spin" />
+                  <RefreshCw className="h-3 w-3 text-blue-600 dark:text-blue-400 animate-spin" />
                   <span className="text-xs font-semibold text-blue-700 dark:text-blue-400">
-                    正在同步 ({syncStatus.completed}/{syncStatus.total})
+                    同步中 ({syncStatus.completed}/{syncStatus.total})
                   </span>
                 </>
               ) : (
                 <>
                   <CheckCircle2 className="h-3.5 w-3.5 text-emerald-600 dark:text-emerald-400" />
-                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">同步就绪 · 本地可用</span>
+                  <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">本地就绪</span>
                 </>
               )}
             </div>
@@ -592,7 +590,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
 
         {/* 实时同步进度条 (仅在运行中展示) */}
         {syncStatus?.is_running && (
-          <div className="space-y-1.5 p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60">
+          <div className="space-y-1.5 p-2.5 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200 dark:border-blue-900/60">
             <div className="flex items-center justify-between text-xs">
               <span className="font-semibold text-blue-900 dark:text-blue-300 flex items-center gap-1.5">
                 <RefreshCw className="h-3 w-3 animate-spin text-blue-600 dark:text-blue-400" />
@@ -602,7 +600,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                 {syncStatus.completed} / {syncStatus.total} ({syncStatus.percent}%)
               </span>
             </div>
-            <div className="h-2 w-full rounded-full bg-blue-200/80 dark:bg-blue-900 overflow-hidden">
+            <div className="h-1.5 w-full rounded-full bg-blue-200/80 dark:bg-blue-900 overflow-hidden">
               <div
                 className="h-full bg-gradient-to-r from-blue-600 to-indigo-600 transition-all duration-300 rounded-full"
                 style={{ width: `${syncStatus.percent}%` }}
