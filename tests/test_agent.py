@@ -1270,6 +1270,239 @@ def test_fetch_available_models_api():
         assert "gpt-4o" in data3["models"]
 
 
+def test_clean_final_answer_sanitization():
+    """测试 final_answer 的净化能力：剥离 Calling tools 内部协议、DSML 标签，规范化 code 标签"""
+    from core.agent.engine import clean_final_answer
+
+    # 1. 包含 Calling tools 泄露
+    dirty_text1 = (
+        "已为您获取前两个群。\n"
+        "Calling tools:\n"
+        "[{'id': 'call_11', 'type': 'function', 'function': {'name': 'python_interpreter', 'arguments': 'print(1)'}}]\n"
+        "后续分析如下。"
+    )
+    cleaned1, thought1 = clean_final_answer(dirty_text1)
+    assert "Calling tools" not in cleaned1
+    assert "call_11" not in cleaned1
+    assert "已为您获取前两个群" in cleaned1
+    assert "后续分析如下" in cleaned1
+
+    # 2. 包含 <code>...</code> 标签
+    dirty_text2 = (
+        "分析如下：\n"
+        "<code>\n"
+        "import json\n"
+        "print('hello')\n"
+        "</code>"
+    )
+    cleaned2, thought2 = clean_final_answer(dirty_text2)
+    assert "<code>" not in cleaned2
+    assert "</code>" not in cleaned2
+    assert "```python" in cleaned2
+    assert "import json" in cleaned2
+
+    # 3. 包含 DSML 原生调用标签
+    dirty_text3 = (
+        "数据处理完成。\n"
+        "<｜｜DSML｜｜ calls>\n"
+        "<｜｜DSML｜｜ invoke name=\"python_interpreter\">\n"
+        "<parameter name=\"code\">print('secret')</parameter>\n"
+        "</invoke>"
+    )
+    cleaned3, thought3 = clean_final_answer(dirty_text3)
+    assert "<｜｜DSML｜｜" not in cleaned3
+    assert "数据处理完成" in cleaned3
+
+
+def test_robust_parse_code_blobs():
+    """测试增强型代码块解析器支持 standard code tags、DSML 与 XML parameter"""
+    from core.agent.engine import robust_parse_code_blobs
+
+    # 1. 常见 <code> 标签
+    code1 = robust_parse_code_blobs("Thought: test\n<code>\nprint('code1')\n</code>", ("<code>", "</code>"))
+    assert "print('code1')" in code1
+
+    # 2. Markdown 块
+    code2 = robust_parse_code_blobs("Thought: test\n```python\nprint('code2')\n```", ("<code>", "</code>"))
+    assert "print('code2')" in code2
+
+    # 3. DeepSeek DSML parameter code
+    dsml_text = (
+        "Let me do it.<｜｜DSML｜｜ calls>\n"
+        "<｜｜DSML｜｜ invoke name=\"python_interpreter\">\n"
+        "<parameter name=\"code\">print('code_dsml')</parameter>\n"
+        "</invoke>"
+    )
+    code3 = robust_parse_code_blobs(dsml_text, ("<code>", "</code>"))
+    assert "print('code_dsml')" in code3
+
+    # 4. XML python 标签
+    xml_text = "Thought: xml\n<python>\nprint('code_xml')\n</python>"
+    code4 = robust_parse_code_blobs(xml_text, ("<code>", "</code>"))
+    assert "print('code_xml')" in code4
+
+
+def test_sandbox_state_persistence_and_clearing(temp_bot_manager):
+    """测试跨轮对话沙箱状态持久化与清空"""
+    from core.agent.engine import agent_engine
+
+    bot_id = "test_sandbox_bot"
+    agent_engine._bot_sandbox_states[bot_id] = {
+        "top5": [{"gid": "123", "name": "群A"}],
+        "total_count": 42
+    }
+
+    assert bot_id in agent_engine._bot_sandbox_states
+    assert agent_engine._bot_sandbox_states[bot_id]["total_count"] == 42
+
+    # 清空沙箱
+    agent_engine.clear_sandbox(bot_id)
+    assert bot_id not in agent_engine._bot_sandbox_states
+
+
+def test_hierarchical_memory_manager_all_four_layers(temp_bot_manager, tmp_path):
+    """综合测试四层分级记忆与无限上下文架构 (Layer 1~4)"""
+    import json
+    import os
+    from core.agent.memory import HierarchicalMemoryManager
+    from core.agent.models import BotConfig
+    import pandas as pd
+
+    mem_mgr = HierarchicalMemoryManager()
+    bot_id = "test_memory_bot"
+    bot_dir = str(tmp_path / bot_id)
+    os.makedirs(bot_dir, exist_ok=True)
+
+    # 1. Layer 4: 沙箱运行时变量自省 (DataFrame, list, dict, primitives)
+    df_sample = pd.DataFrame([{"GroupId": "GROUP_CHAT_V2:974", "Members": 100}])
+    sandbox_state = {
+        "df_result": df_sample,
+        "target_groups": ["GROUP_CHAT_V2:974", "GROUP_CHAT_V2:1043"],
+        "summary_dict": {"total": 2, "active": 1},
+        "query_count": 5
+    }
+    sandbox_prompt, var_map = mem_mgr.inspect_sandbox_variables(sandbox_state)
+    assert "df_result" in sandbox_prompt
+    assert "pandas.DataFrame" in sandbox_prompt
+    assert "target_groups" in sandbox_prompt
+    assert "query_count" in var_map
+    assert var_map["query_count"] == "int = 5"
+
+    # 2. Layer 3: 实体提取 (从文本及代码块中抓取群号和接口)
+    messages = [
+        {"role": "user", "content": "请拉取 @TGS#abc12345 和 GROUP_CHAT_V2:974 的消息"},
+        {
+            "role": "assistant",
+            "content": "正在调用 tim_call('group_open_http_svc/group_msg_get_simple')",
+            "metadata": {
+                "code_blocks": [{"code": "tim_call('group_open_http_svc/group_msg_get_simple', {'GroupId': 'LIVE_999'})"}]
+            }
+        }
+    ]
+    entities = mem_mgr.extract_entities_from_messages(messages)
+    assert "@TGS#abc12345" in entities["groups"]
+    assert "GROUP_CHAT_V2:974" in entities["groups"]
+    assert "LIVE_999" in entities["groups"]
+    assert "group_open_http_svc/group_msg_get_simple" in entities["apis"]
+
+    # 3. Layer 1: 即时工作记忆与观测蒸馏 (Observation Distillation)
+    distilled = mem_mgr.distill_assistant_turn(
+        "成功拉取消息数据并完成清洗。",
+        {"code_blocks": [{"code": "print(1)"}], "tool_calls": [{"name": "tim_call"}]},
+        max_len=100
+    )
+    assert "成功拉取消息数据" in distilled
+    assert "执行了 1 段 Python 脚本" in distilled
+    assert "tim_call" in distilled
+
+    working_memory_turns = mem_mgr.build_working_memory(messages)
+    assert len(working_memory_turns) == 2
+    assert "用户:" in working_memory_turns[0]
+    assert "助手:" in working_memory_turns[1]
+
+    # 4. Layer 2: 会话演化滚动摘要增量折叠 (Running Session Summary)
+    older_history = []
+    for i in range(25):
+        older_history.append({"id": f"msg-{i}", "role": "user", "content": f"第 {i} 轮分析 GROUP_CHAT_V2:{1000 + i}"})
+        older_history.append({"id": f"ast-{i}", "role": "assistant", "content": f"已完成第 {i} 轮 group_open_http_svc/group_msg_get_simple 数据统计"})
+
+    summary_text = mem_mgr.build_or_update_session_summary(bot_id, bot_dir, older_history)
+    assert "【会话至今已累计推进" in summary_text
+    assert "核心业务脉络与阶段目标" in summary_text
+    assert "阶段性执行成果与关键发现" in summary_text
+
+    # 验证 session_summary.json 是否已持久化
+    summary_file = os.path.join(bot_dir, "session_summary.json")
+    assert os.path.exists(summary_file)
+    with open(summary_file, "r", encoding="utf-8") as f:
+        data = json.load(f)
+        assert data["total_compacted_count"] == 50
+        assert data["last_compacted_msg_id"] == "ast-24"
+
+    # 5. 清理记忆
+    mem_mgr.clear_session_memory(bot_id, bot_dir)
+    assert not os.path.exists(summary_file)
+
+
+def test_context_budget_dynamic_configuration(temp_bot_manager, tmp_path):
+    """测试即时工作记忆动态预算配置 (Context Budgeting)"""
+    from core.agent.memory import HierarchicalMemoryManager
+    from core.agent.models import BotConfig, LLMConfig
+
+    mem_mgr = HierarchicalMemoryManager()
+    bot_id = "test_budget_bot"
+    bot_dir = str(tmp_path / bot_id)
+    os.makedirs(bot_dir, exist_ok=True)
+
+    bot = BotConfig(
+        id=bot_id,
+        name="测试预算Bot",
+        context_budget=12000,
+        max_context_turns=10
+    )
+
+    # 构造 15 轮长消息历史
+    history = []
+    for i in range(15):
+        history.append({"id": f"u-{i}", "role": "user", "content": f"用户提问 {i}: " + "长文本内容" * 50})
+        history.append({"id": f"a-{i}", "role": "assistant", "content": f"助手回答 {i}: " + "详细排查结果" * 50})
+
+    # 1. 采用 bot 自定义小预算：仅保留 10 轮且字符不超过 12000
+    ctx_small = mem_mgr.build_hierarchical_context(
+        bot_id=bot_id,
+        bot=bot,
+        user_message="当前最新需求",
+        all_history=history,
+        saved_state={},
+        attachments=[],
+        system_prompt="System Prompt",
+        manager=temp_bot_manager,
+        uploads_dir=bot_dir,
+        context_budget=12000,
+        max_context_turns=10
+    )
+    assert ctx_small.working_memory_turns <= 10
+    assert ctx_small.compacted_history_count == 20  # 30 条消息中前 20 条被判定为超期
+
+    # 2. 采用超大模型预算：64000 字符，保留 25 轮
+    ctx_large = mem_mgr.build_hierarchical_context(
+        bot_id=bot_id,
+        bot=bot,
+        user_message="当前最新需求",
+        all_history=history,
+        saved_state={},
+        attachments=[],
+        system_prompt="System Prompt",
+        manager=temp_bot_manager,
+        uploads_dir=bot_dir,
+        context_budget=64000,
+        max_context_turns=25
+    )
+    assert ctx_large.working_memory_turns > ctx_small.working_memory_turns
+
+
+
+
 
 
 

@@ -65,21 +65,45 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({
   const [isCopied, setIsCopied] = useState<boolean>(false)
   const containerRef = useRef<HTMLDivElement>(null)
 
+  // 预处理内容：清洗模型内部协议残留，并将多行 <code>...</code> 规范化为 Markdown 代码块
+  const preprocessedContent = useMemo(() => {
+    if (!content) return ''
+    let cleaned = content
+
+    // 1. 过滤任何泄漏到正文中的 Calling tools: [...] 内部调试调用
+    cleaned = cleaned.replace(/Calling tools:\s*\[[\s\S]*?\]/g, '').trim()
+
+    // 2. 过滤任何残留的 DeepSeek 原生 DSML 工具标记
+    cleaned = cleaned.replace(/<｜｜DSML｜｜\s*calls>[\s\S]*?(?:<\/invoke>|$)/g, '').trim()
+    cleaned = cleaned.replace(/<parameter name=["']code["']>([\s\S]*?)<\/parameter>/gi, '\n```python\n$1\n```\n')
+
+    // 3. 将大模型可能输出的 <code>...</code> 标签规范化为 Markdown 代码块 ```python
+    cleaned = cleaned.replace(/<code>\s*([\s\S]*?)\s*<\/code>/gi, (_match, p1) => {
+      const code = p1.trim()
+      if (code.includes('\n') || code.includes('import ') || code.includes('def ') || code.includes(' = ')) {
+        return `\n\`\`\`python\n${code}\n\`\`\`\n`
+      }
+      return `\`${code}\``
+    })
+
+    return cleaned
+  }, [content])
+
   // 检查是否包含 ```echarts 或 ```chart 语法块，支持代码块就地交互式图表渲染
   const segments = useMemo(() => {
-    if (!content) return []
+    if (!preprocessedContent) return []
     const regex = /```(?:echarts|chart)\s*\n([\s\S]*?)\n```/gi
     let match
     let lastIndex = 0
     const list: Array<{ type: 'markdown' | 'echarts'; text: string }> = []
 
-    while ((match = regex.exec(content)) !== null) {
+    while ((match = regex.exec(preprocessedContent)) !== null) {
       const matchStart = match.index
       const matchEnd = regex.lastIndex
       if (matchStart > lastIndex) {
         list.push({
           type: 'markdown',
-          text: content.slice(lastIndex, matchStart),
+          text: preprocessedContent.slice(lastIndex, matchStart),
         })
       }
       list.push({
@@ -89,30 +113,30 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({
       lastIndex = matchEnd
     }
 
-    if (lastIndex < content.length) {
+    if (lastIndex < preprocessedContent.length) {
       list.push({
         type: 'markdown',
-        text: content.slice(lastIndex),
+        text: preprocessedContent.slice(lastIndex),
       })
     }
 
     return list
-  }, [content])
+  }, [preprocessedContent])
 
   const htmlContent = useMemo(() => {
-    if (!content || segments.some((s) => s.type === 'echarts')) return ''
+    if (!preprocessedContent || segments.some((s) => s.type === 'echarts')) return ''
     try {
-      return marked.parse(content) as string
+      return marked.parse(preprocessedContent) as string
     } catch (e) {
       console.error('Failed to parse markdown:', e)
-      return content
+      return preprocessedContent
     }
-  }, [content, segments])
+  }, [preprocessedContent, segments])
 
   const handleCopy = (e: React.MouseEvent) => {
     e.stopPropagation()
-    if (!content) return
-    navigator.clipboard.writeText(content)
+    if (!preprocessedContent) return
+    navigator.clipboard.writeText(preprocessedContent)
     setIsCopied(true)
     setTimeout(() => setIsCopied(false), 2000)
   }

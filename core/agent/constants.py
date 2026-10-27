@@ -24,9 +24,17 @@ AUTHORIZED_IMPORTS: List[str] = [
 ]
 
 # 沙箱执行输出与步骤限制
-DEFAULT_MAX_PRINT_OUTPUTS_LENGTH: int = 4000
-DEFAULT_SUBTASK_MAX_STEPS: int = 6
-DEFAULT_STREAM_MAX_STEPS: int = 10
+DEFAULT_MAX_PRINT_OUTPUTS_LENGTH: int = 8000
+DEFAULT_SUBTASK_MAX_STEPS: int = 15
+DEFAULT_STREAM_MAX_STEPS: int = 30
+
+# 四层分级记忆与无限上下文常量 (Hierarchical Infinite Memory)
+DEFAULT_WORKING_MEMORY_TURNS: int = 25           # Layer 1: 即时高保真工作记忆轮数
+DEFAULT_WORKING_MEMORY_CHAR_BUDGET: int = 32000  # Layer 1: 即时工作记忆总字符预算 (~16k tokens)
+DEFAULT_MESSAGE_CONTENT_MAX_CHARS: int = 4000    # Layer 1: 单条消息最大保留字符
+DEFAULT_SUMMARY_TRIGGER_THRESHOLD: int = 20      # Layer 2: 触发滚动摘要折叠的历史轮数阈值
+DEFAULT_CONTEXT_HISTORY_LIMIT: int = 25          # 兼容旧常量别名
+DEFAULT_CONTEXT_CONTENT_MAX_CHARS: int = 4000    # 兼容旧常量别名
 
 # 后台任务缓存生命周期与最大实例数（防止长时间运行内存泄漏）
 MAX_CACHED_RUNS: int = 50

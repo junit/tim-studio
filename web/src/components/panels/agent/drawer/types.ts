@@ -53,6 +53,9 @@ export interface LLMConfigData {
   api_key_masked?: string
   has_api_key?: boolean
   temperature: number
+  max_steps?: number
+  context_budget?: number
+  max_context_turns?: number
 }
 
 export interface BotSummary {
@@ -83,4 +86,23 @@ export interface BotSummary {
   }
   skills?: SkillItem[]
   memories?: MemoryItem[]
+  assembled_prompt?: string
+  hierarchical_memory?: HierarchicalMemoryData
+}
+
+export interface HierarchicalMemoryData {
+  working_memory_turns: number
+  working_memory_chars?: number
+  context_budget: number
+  max_context_turns: number
+  compacted_history_count: number
+  running_summary: string
+  entities_catalog: {
+    groups?: string[]
+    apis?: string[]
+    accounts?: string[]
+  }
+  runtime_variables: Record<string, string>
+  total_history_count: number
+  assembled_task_prompt: string
 }

@@ -773,6 +773,16 @@ class BotManager:
         with self._lock:
             hist_path = os.path.join(self._bot_dir(bot_id), "history.json")
             _atomic_dump_json(hist_path, [])
+            try:
+                from .engine import agent_engine
+                agent_engine.clear_sandbox(bot_id)
+            except Exception:
+                pass
+            try:
+                from .memory import memory_manager
+                memory_manager.clear_session_memory(bot_id, self._bot_dir(bot_id))
+            except Exception:
+                pass
             if delete_files:
                 uploads_dir = os.path.join(self._bot_dir(bot_id), "uploads")
                 if os.path.exists(uploads_dir):

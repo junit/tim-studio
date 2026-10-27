@@ -14,6 +14,12 @@ import {
   Info,
   Trash2,
   Zap,
+  Cpu,
+  Database,
+  Globe,
+  History,
+  Box,
+  Terminal,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -51,13 +57,18 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
 }) => {
   const [promptViewMode, setPromptViewMode] = useState<'assembled' | 'base'>('assembled')
   const [blueprintViewMode, setBlueprintViewMode] = useState<'cards' | 'raw'>('cards')
+  const [rawSubMode, setRawSubMode] = useState<'task' | 'system'>('task')
   const [expandedBlueprintCards, setExpandedBlueprintCards] = useState<Record<string, boolean>>({
     mod1: true,
-    mod2: true,
+    mod2: false,
     mod3: true,
     mod4: true,
     mod5: true,
-    mod6: true,
+    mem_l3: true,
+    mem_l2: true,
+    mem_l4: true,
+    mem_l1: true,
+    mod6: false,
   })
   const [isEditingBasePrompt, setIsEditingBasePrompt] = useState<boolean>(false)
   const [editedBasePrompt, setEditedBasePrompt] = useState<string>('')
@@ -75,14 +86,11 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
 
   const toggleAllBlueprintCards = () => {
     const nextVal = !isAllBlueprintExpanded
-    setExpandedBlueprintCards({
-      mod1: nextVal,
-      mod2: nextVal,
-      mod3: nextVal,
-      mod4: nextVal,
-      mod5: nextVal,
-      mod6: nextVal,
+    const nextState: Record<string, boolean> = {}
+    Object.keys(expandedBlueprintCards).forEach((k) => {
+      nextState[k] = nextVal
     })
+    setExpandedBlueprintCards(nextState)
   }
 
   const handleCopyBotId = () => {
@@ -289,10 +297,83 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
               </div>
             </div>
 
+            {/* 四层分级记忆架构实时运行状态看板 */}
+            {activeBot?.hierarchical_memory && (
+              <div className="p-3.5 rounded-2xl border border-slate-200 dark:border-slate-800 bg-gradient-to-br from-slate-50 via-white to-slate-50 dark:from-slate-900 dark:via-slate-950 dark:to-slate-900 shadow-2xs space-y-2.5">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="font-bold flex items-center gap-1.5 text-slate-800 dark:text-slate-100">
+                    <Layers className="h-4 w-4 text-indigo-500" />
+                    <span>四层分级记忆架构运行状态</span>
+                  </div>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    会话总历史: {activeBot.hierarchical_memory.total_history_count} 轮
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+                  {/* Layer 1 */}
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-900/60 shadow-2xs">
+                    <div className="text-[10px] text-emerald-600 dark:text-emerald-400 font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                      <span>L1 即时工作记忆</span>
+                    </div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 font-mono">
+                      {activeBot.hierarchical_memory.working_memory_turns} 轮高保真
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {Math.round((activeBot.hierarchical_memory.working_memory_chars || 0) / 1000)}k / {Math.round(activeBot.hierarchical_memory.context_budget / 1000)}k 字符 ({Math.min(100, Math.round(((activeBot.hierarchical_memory.working_memory_chars || 0) / activeBot.hierarchical_memory.context_budget) * 100))}%)
+                    </div>
+                  </div>
+
+                  {/* Layer 2 */}
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-purple-200/80 dark:border-purple-900/60 shadow-2xs">
+                    <div className="text-[10px] text-purple-600 dark:text-purple-400 font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-purple-500"></span>
+                      <span>L2 演化滚动摘要</span>
+                    </div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 font-mono">
+                      {activeBot.hierarchical_memory.compacted_history_count > 0 ? `已折叠 ${activeBot.hierarchical_memory.compacted_history_count} 轮` : '暂未触发折叠'}
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {activeBot.hierarchical_memory.running_summary ? '业务主线常驻生效中' : '全量在即时工作区'}
+                    </div>
+                  </div>
+
+                  {/* Layer 3 */}
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-blue-200/80 dark:border-blue-900/60 shadow-2xs">
+                    <div className="text-[10px] text-blue-600 dark:text-blue-400 font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-blue-500"></span>
+                      <span>L3 实体知识字典</span>
+                    </div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 font-mono">
+                      {activeBot.hierarchical_memory.entities_catalog?.groups?.length || 0} 个群资产
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {activeBot.hierarchical_memory.entities_catalog?.apis?.length || 0} 个核心接口跟踪
+                    </div>
+                  </div>
+
+                  {/* Layer 4 */}
+                  <div className="p-2.5 rounded-xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-900/60 shadow-2xs">
+                    <div className="text-[10px] text-amber-600 dark:text-amber-400 font-medium flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                      <span>L4 沙箱运行时内存</span>
+                    </div>
+                    <div className="text-xs font-bold text-slate-800 dark:text-slate-200 mt-1 font-mono">
+                      {Object.keys(activeBot.hierarchical_memory.runtime_variables || {}).length} 个活跃变量
+                    </div>
+                    <div className="text-[10px] text-slate-400 mt-0.5">
+                      {Object.keys(activeBot.hierarchical_memory.runtime_variables || {}).length > 0 ? '内存数据免请求复用' : '沙箱初始纯净状态'}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
             <div className="p-3 rounded-xl bg-blue-50/70 dark:bg-blue-950/40 border border-blue-200/80 dark:border-blue-800/60 text-xs text-blue-900 dark:text-blue-200 leading-relaxed flex items-start gap-2.5 shadow-2xs">
               <Info className="h-4 w-4 text-blue-500 shrink-0 mt-0.5" />
               <div>
-                <strong>运行期全量装配透视</strong>：每次交互前，系统将以下 6 大层级动态合成为送入大模型的 System Prompt。点击各卡片头部可自由展开或收起全部内容。
+                <strong>运行期全量装配透视</strong>：每次交互前，系统将以下人设基底、平台规范与四层分级记忆动态装配为送入大模型的完整上下文。点击各卡片头部可自由展开或收起全部内容。
               </div>
             </div>
 
@@ -632,7 +713,227 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
                   )}
                 </div>
 
-                {/* 模块 6: 自主进化契约 */}
+                {/* 模块 6: 会话演化全局业务实体字典 (Layer 3: Entity Catalog) */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs overflow-hidden transition-all">
+                  <div
+                    onClick={() => toggleBlueprintCard('mem_l3')}
+                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-blue-50 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 flex items-center justify-center text-sm shrink-0">
+                        🌐
+                      </div>
+                      <div className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
+                        <span>模块 6：会话演化全局业务实体字典</span>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-blue-300 dark:border-blue-700 text-blue-600 font-normal">Layer 3 实体知识</Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-slate-400 font-mono">
+                        {(activeBot?.hierarchical_memory?.entities_catalog?.groups?.length || 0)} 群 / {(activeBot?.hierarchical_memory?.entities_catalog?.apis?.length || 0)} 接口
+                      </span>
+                      {expandedBlueprintCards.mem_l3 ? (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedBlueprintCards.mem_l3 && (
+                    <div className="p-3.5 pt-0 space-y-2.5 border-t border-slate-100 dark:border-slate-800/60 mt-1">
+                      {activeBot?.hierarchical_memory?.entities_catalog?.groups?.length ? (
+                        <div className="space-y-1.5 mt-2">
+                          <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                            <span>已知业务群组 (跨多轮自动追踪):</span>
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 max-h-32 overflow-y-auto p-2 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200/70 dark:border-slate-800">
+                            {activeBot.hierarchical_memory.entities_catalog.groups.map((gid: string) => (
+                              <span key={gid} className="px-2 py-0.5 rounded-md bg-blue-50 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 text-[10px] font-mono">
+                                {gid}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-slate-50/60 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-400 text-center italic mt-2">
+                          暂无提取到的群组实体，对话中提及群号时系统将自动持久化至知识字典。
+                        </div>
+                      )}
+
+                      {activeBot?.hierarchical_memory?.entities_catalog?.apis?.length ? (
+                        <div className="space-y-1.5">
+                          <div className="text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                            核心调用接口追踪:
+                          </div>
+                          <div className="flex flex-wrap gap-1.5 p-2 rounded-xl bg-slate-50 dark:bg-slate-950/70 border border-slate-200/70 dark:border-slate-800">
+                            {activeBot.hierarchical_memory.entities_catalog.apis.map((api: string) => (
+                              <span key={api} className="px-2 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-950 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 text-[10px] font-mono">
+                                {api}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
+                      ) : null}
+                    </div>
+                  )}
+                </div>
+
+                {/* 模块 7: 会话演化滚动摘要 (Layer 2: Running Session Summary) */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs overflow-hidden transition-all">
+                  <div
+                    onClick={() => toggleBlueprintCard('mem_l2')}
+                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-purple-50 dark:bg-purple-950/80 border border-purple-200 dark:border-purple-800 flex items-center justify-center text-sm shrink-0">
+                        📜
+                      </div>
+                      <div className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
+                        <span>模块 7：会话演化滚动摘要</span>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-purple-300 dark:border-purple-700 text-purple-600 font-normal">Layer 2 长期主线</Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-slate-400 font-mono">
+                        {activeBot?.hierarchical_memory?.compacted_history_count ? `已折叠 ${activeBot.hierarchical_memory.compacted_history_count} 轮` : '暂未折叠'}
+                      </span>
+                      {expandedBlueprintCards.mem_l2 ? (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedBlueprintCards.mem_l2 && (
+                    <div className="p-3.5 pt-0 space-y-2 border-t border-slate-100 dark:border-slate-800/60 mt-1">
+                      {activeBot?.hierarchical_memory?.running_summary ? (
+                        <div className="mt-2.5 rounded-xl border border-purple-200/70 dark:border-purple-900/50 bg-purple-50/30 dark:bg-purple-950/20 p-3 text-xs leading-relaxed font-mono">
+                          <MarkdownView
+                            content={activeBot.hierarchical_memory.running_summary}
+                            className="text-xs text-slate-700 dark:text-slate-300"
+                          />
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-slate-50/60 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-400 text-center italic mt-2">
+                          当前会话历史尚未超过工作记忆预算阈值（{activeBot?.hierarchical_memory?.max_context_turns || 25} 轮），所有对话均在 Layer 1 工作记忆中高保真保留。
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 模块 8: Python 沙箱常驻运行时变量 (Layer 4: Execution Runtime Memory) */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs overflow-hidden transition-all">
+                  <div
+                    onClick={() => toggleBlueprintCard('mem_l4')}
+                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-amber-50 dark:bg-amber-950/80 border border-amber-200 dark:border-amber-800 flex items-center justify-center text-sm shrink-0">
+                        ⚡
+                      </div>
+                      <div className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
+                        <span>模块 8：Python 沙箱常驻运行时变量</span>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-amber-300 dark:border-amber-700 text-amber-600 font-normal">Layer 4 沙箱内存</Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-slate-400 font-mono">
+                        {Object.keys(activeBot?.hierarchical_memory?.runtime_variables || {}).length} 个变量
+                      </span>
+                      {expandedBlueprintCards.mem_l4 ? (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedBlueprintCards.mem_l4 && (
+                    <div className="p-3.5 pt-0 space-y-2 border-t border-slate-100 dark:border-slate-800/60 mt-1">
+                      {activeBot?.hierarchical_memory?.runtime_variables && Object.keys(activeBot.hierarchical_memory.runtime_variables).length > 0 ? (
+                        <div className="space-y-1.5 mt-2">
+                          {Object.entries(activeBot.hierarchical_memory.runtime_variables).map(([name, desc]) => (
+                            <div key={name} className="p-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 flex items-center justify-between">
+                              <div className="min-w-0">
+                                <span className="font-mono font-bold text-amber-600 dark:text-amber-400 text-xs">`{name}`</span>
+                                <span className="text-slate-600 dark:text-slate-300 text-xs ml-2 font-mono">{desc as string}</span>
+                              </div>
+                              <span className="text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/70 border border-emerald-200 dark:border-emerald-800 px-1.5 py-0.5 rounded font-mono shrink-0">
+                                内存驻留
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="p-3 rounded-xl bg-slate-50/60 dark:bg-slate-950/60 border border-dashed border-slate-200 dark:border-slate-800 text-xs text-slate-400 text-center italic mt-2">
+                          当前沙箱环境处于初始纯净态。智能体在执行数据计算或拉取后，变量将在此处常驻供后续脚本直接读取复用。
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                {/* 模块 9: 即时高保真工作区与观测蒸馏 (Layer 1: Working Memory) */}
+                <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs overflow-hidden transition-all">
+                  <div
+                    onClick={() => toggleBlueprintCard('mem_l1')}
+                    className="p-3.5 flex items-center justify-between cursor-pointer hover:bg-slate-50/80 dark:hover:bg-slate-800/40 transition-colors select-none"
+                  >
+                    <div className="flex items-center gap-2.5 min-w-0">
+                      <div className="w-7 h-7 rounded-lg bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-200 dark:border-emerald-800 flex items-center justify-center text-sm shrink-0">
+                        💬
+                      </div>
+                      <div className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
+                        <span>模块 9：即时高保真工作区与观测蒸馏</span>
+                        <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-emerald-300 dark:border-emerald-700 text-emerald-600 font-normal">Layer 1 工作记忆</Badge>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2 shrink-0">
+                      <span className="text-xs text-slate-400 font-mono">
+                        {activeBot?.hierarchical_memory?.working_memory_turns || 0} 轮 / {Math.round((activeBot?.hierarchical_memory?.working_memory_chars || 0) / 1000)}k 字符
+                      </span>
+                      {expandedBlueprintCards.mem_l1 ? (
+                        <ChevronDown className="h-4 w-4 text-slate-400" />
+                      ) : (
+                        <ChevronRight className="h-4 w-4 text-slate-400" />
+                      )}
+                    </div>
+                  </div>
+
+                  {expandedBlueprintCards.mem_l1 && (
+                    <div className="p-3.5 pt-0 space-y-2.5 border-t border-slate-100 dark:border-slate-800/60 mt-1">
+                      <div className="mt-2.5 p-3 rounded-xl bg-slate-50/70 dark:bg-slate-950/70 border border-slate-200/80 dark:border-slate-800 text-xs space-y-2">
+                        <div className="flex items-center justify-between text-slate-600 dark:text-slate-400 text-[11px]">
+                          <span>字符预算利用率:</span>
+                          <span className="font-mono font-bold text-slate-800 dark:text-slate-200">
+                            {activeBot?.hierarchical_memory?.working_memory_chars || 0} / {activeBot?.hierarchical_memory?.context_budget || 32000} 字符 ({Math.min(100, Math.round(((activeBot?.hierarchical_memory?.working_memory_chars || 0) / (activeBot?.hierarchical_memory?.context_budget || 32000)) * 100))}%)
+                          </span>
+                        </div>
+                        <div className="w-full bg-slate-200 dark:bg-slate-800 h-2 rounded-full overflow-hidden">
+                          <div
+                            className="bg-emerald-500 h-full rounded-full transition-all"
+                            style={{
+                              width: `${Math.min(100, Math.round(((activeBot?.hierarchical_memory?.working_memory_chars || 0) / (activeBot?.hierarchical_memory?.context_budget || 32000)) * 100))}%`
+                            }}
+                          ></div>
+                        </div>
+                        <div className="text-[10px] text-slate-400 flex items-center justify-between pt-1">
+                          <span>✨ 历史执行过程已启用智能观测蒸馏 (Observation Distillation)</span>
+                          <span>上限 {activeBot?.hierarchical_memory?.max_context_turns || 25} 轮</span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+
+                {/* 模块 10: 自主进化契约 */}
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs overflow-hidden transition-all">
                   <div
                     onClick={() => toggleBlueprintCard('mod6')}
@@ -643,7 +944,7 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
                         💡
                       </div>
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
-                        <span>模块 6：自主进化与无感沉淀规则</span>
+                        <span>模块 10：自主进化与无感沉淀规则</span>
                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-indigo-300 dark:border-indigo-700 text-indigo-600 font-normal">核心准则</Badge>
                       </div>
                     </div>
@@ -697,43 +998,81 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
                 </div>
               </div>
             ) : (
-              /* Markdown 完整原文视图 */
+              /* Markdown 完整原文视图 (含 运行期全量送模 vs 静态底座 双子视图) */
               <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-950 overflow-hidden shadow-2xs">
-                <div className="flex items-center justify-between px-3.5 py-2 bg-slate-100/90 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs font-mono select-none">
-                  <div className="flex items-center gap-2 text-slate-600 dark:text-slate-400">
-                    <Code2 className="h-3.5 w-3.5 text-indigo-500" />
-                    <span className="font-semibold text-slate-700 dark:text-slate-300">system_prompt.md (实时装配全量)</span>
-                    <span className="text-[11px] text-slate-400 font-normal">({activeBot?.assembled_prompt?.length || 0} 字)</span>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between px-3.5 py-2.5 bg-slate-100/90 dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 text-xs font-mono select-none gap-2">
+                  {/* 子选项卡: 运行期送模全量 vs 静态基础 System Prompt */}
+                  <div className="flex items-center gap-1 bg-slate-200/80 dark:bg-slate-800 p-0.5 rounded-lg text-[11px]">
+                    <button
+                      type="button"
+                      onClick={() => setRawSubMode('task')}
+                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                        rawSubMode === 'task'
+                          ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <Sparkles className="h-3 w-3 text-amber-500" />
+                      <span>运行期送模全量 (含四层记忆)</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setRawSubMode('system')}
+                      className={`px-2.5 py-1 rounded-md transition-all cursor-pointer flex items-center gap-1 ${
+                        rawSubMode === 'system'
+                          ? 'bg-white dark:bg-slate-900 text-blue-600 dark:text-blue-400 font-bold shadow-2xs'
+                          : 'text-slate-500 hover:text-slate-700'
+                      }`}
+                    >
+                      <FileText className="h-3 w-3 text-blue-500" />
+                      <span>静态底座 (System Prompt)</span>
+                    </button>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => {
-                      if (activeBot?.assembled_prompt) {
-                        navigator.clipboard.writeText(activeBot.assembled_prompt)
-                        setCopiedPromptId('assembled-raw')
-                        setTimeout(() => setCopiedPromptId(null), 2000)
-                        showToast({ type: 'success', message: '已复制全量 System Prompt' })
-                      }
-                    }}
-                    className="flex items-center gap-1 px-2.5 py-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer text-xs"
-                    title="复制完整 System Prompt"
-                  >
-                    {copiedPromptId === 'assembled-raw' ? (
-                      <>
-                        <Check className="h-3.5 w-3.5 text-emerald-500" />
-                        <span className="text-emerald-600 font-semibold text-[11px]">已复制</span>
-                      </>
-                    ) : (
-                      <>
-                        <Copy className="h-3.5 w-3.5 text-slate-400" />
-                        <span className="text-[11px]">复制</span>
-                      </>
-                    )}
-                  </button>
+
+                  <div className="flex items-center gap-2 justify-end">
+                    <span className="text-[11px] text-slate-400 font-normal">
+                      ({(rawSubMode === 'task'
+                        ? activeBot?.hierarchical_memory?.assembled_task_prompt?.length || activeBot?.assembled_prompt?.length || 0
+                        : activeBot?.assembled_prompt?.length || 0)} 字)
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const targetText =
+                          rawSubMode === 'task'
+                            ? activeBot?.hierarchical_memory?.assembled_task_prompt || activeBot?.assembled_prompt
+                            : activeBot?.assembled_prompt
+                        if (targetText) {
+                          navigator.clipboard.writeText(targetText)
+                          setCopiedPromptId('assembled-raw')
+                          setTimeout(() => setCopiedPromptId(null), 2000)
+                          showToast({ type: 'success', message: '已复制提示词原文' })
+                        }
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1 rounded-md hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 transition-colors cursor-pointer text-xs shrink-0"
+                      title="复制完整提示词"
+                    >
+                      {copiedPromptId === 'assembled-raw' ? (
+                        <>
+                          <Check className="h-3.5 w-3.5 text-emerald-500" />
+                          <span className="text-emerald-600 font-semibold text-[11px]">已复制</span>
+                        </>
+                      ) : (
+                        <>
+                          <Copy className="h-3.5 w-3.5 text-slate-400" />
+                          <span className="text-[11px]">复制</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
                 </div>
                 <div className="p-4 max-h-[560px] overflow-y-auto font-mono text-xs leading-relaxed text-slate-800 dark:text-slate-200">
                   <MarkdownView
-                    content={activeBot?.assembled_prompt || '暂无装配提示词'}
+                    content={
+                      (rawSubMode === 'task'
+                        ? activeBot?.hierarchical_memory?.assembled_task_prompt || activeBot?.assembled_prompt
+                        : activeBot?.assembled_prompt) || '暂无装配提示词'
+                    }
                     className="text-slate-800 dark:text-slate-200 text-xs"
                   />
                 </div>

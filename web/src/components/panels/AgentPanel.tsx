@@ -890,6 +890,9 @@ export const AgentPanel: React.FC = () => {
     model_name: 'deepseek-chat',
     base_url: 'https://api.deepseek.com',
     temperature: 0.2,
+    max_steps: 30,
+    context_budget: 32000,
+    max_context_turns: 25,
   })
   const [inputApiKey, setInputApiKey] = useState<string>('')
   const [isTestingModel, setIsTestingModel] = useState<boolean>(false)
@@ -3671,7 +3674,7 @@ export const AgentPanel: React.FC = () => {
       {/* 6. 大模型配置弹窗 */}
       {isModelModalOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4">
-          <div className="w-full max-w-md bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xl space-y-4">
+          <div className="w-full max-w-lg max-h-[92vh] overflow-y-auto bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-5 shadow-2xl space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-sm font-bold text-slate-900 dark:text-slate-100 flex items-center gap-2">
                 <Settings className="h-4 w-4 text-blue-600" />
@@ -3691,13 +3694,13 @@ export const AgentPanel: React.FC = () => {
                     const p = e.target.value
                     let updated: LLMConfigData
                     if (p === 'deepseek') {
-                      updated = { ...llmConfig, provider: p, model_name: 'deepseek-chat', base_url: 'https://api.deepseek.com' }
+                      updated = { ...llmConfig, provider: p, model_name: 'deepseek-chat', base_url: 'https://api.deepseek.com', context_budget: 32000, max_context_turns: 25 }
                     } else if (p === 'qwen') {
-                      updated = { ...llmConfig, provider: p, model_name: 'qwen-plus', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1' }
+                      updated = { ...llmConfig, provider: p, model_name: 'qwen-plus', base_url: 'https://dashscope.aliyuncs.com/compatible-mode/v1', context_budget: 32000, max_context_turns: 25 }
                     } else if (p === 'ollama') {
-                      updated = { ...llmConfig, provider: p, model_name: 'qwen2.5-coder:7b', base_url: 'http://localhost:11434/v1' }
+                      updated = { ...llmConfig, provider: p, model_name: 'qwen2.5-coder:7b', base_url: 'http://localhost:11434/v1', context_budget: 16000, max_context_turns: 15 }
                     } else if (p === 'openai') {
-                      updated = { ...llmConfig, provider: p, model_name: 'gpt-4o', base_url: 'https://api.openai.com/v1' }
+                      updated = { ...llmConfig, provider: p, model_name: 'gpt-4o', base_url: 'https://api.openai.com/v1', context_budget: 48000, max_context_turns: 30 }
                     } else {
                       updated = { ...llmConfig, provider: p }
                     }
@@ -3809,6 +3812,124 @@ export const AgentPanel: React.FC = () => {
                   placeholder={llmConfig.has_api_key ? '留空保持原有 Key，或输入新 Key' : '请输入 API Key'}
                   className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono"
                 />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3 pt-1">
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 mb-1 font-medium">
+                    执行轮数上限 (Max Steps)
+                  </label>
+                  <input
+                    type="number"
+                    min={5}
+                    max={100}
+                    value={llmConfig.max_steps ?? 30}
+                    onChange={(e) => setLlmConfig({ ...llmConfig, max_steps: parseInt(e.target.value) || 30 })}
+                    placeholder="30"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-0.5">默认 30 轮（支持 10~100 轮）</p>
+                </div>
+                <div>
+                  <label className="block text-slate-600 dark:text-slate-400 mb-1 font-medium">
+                    模型温度 (Temperature)
+                  </label>
+                  <input
+                    type="number"
+                    step={0.1}
+                    min={0}
+                    max={2}
+                    value={llmConfig.temperature ?? 0.2}
+                    onChange={(e) => setLlmConfig({ ...llmConfig, temperature: parseFloat(e.target.value) || 0.2 })}
+                    placeholder="0.2"
+                    className="w-full px-3 py-2 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono"
+                  />
+                  <p className="text-[10px] text-slate-400 mt-0.5">推荐 0.1 ~ 0.3</p>
+                </div>
+              </div>
+
+              {/* 四层分级架构：即时工作记忆上下文预算 (Context Budgeting) */}
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="text-slate-600 dark:text-slate-400 font-medium flex items-center gap-1.5">
+                    <span>上下文工作区预算 (Context Budget)</span>
+                  </label>
+                  <span className="text-[10px] text-slate-400 font-mono">
+                    约 {Math.round((llmConfig.context_budget ?? 32000) / 2)} Tokens / {llmConfig.max_context_turns ?? 25} 轮
+                  </span>
+                </div>
+
+                {/* 快捷档位预设 */}
+                <div className="grid grid-cols-4 gap-1.5">
+                  {[
+                    { label: '精简省流', chars: 16000, turns: 15, hint: '适合本地 Ollama / 低显存' },
+                    { label: '标准均衡', chars: 32000, turns: 25, hint: '推荐 DeepSeek / Qwen 黄金比' },
+                    { label: '超长深度', chars: 64000, turns: 35, hint: '适合长周期复杂对账' },
+                    { label: '海量吞吐', chars: 128000, turns: 50, hint: '适合 1M+ 超长上下文模型' },
+                  ].map((p) => {
+                    const active = (llmConfig.context_budget ?? 32000) === p.chars
+                    return (
+                      <button
+                        key={p.chars}
+                        type="button"
+                        onClick={() =>
+                          setLlmConfig({
+                            ...llmConfig,
+                            context_budget: p.chars,
+                            max_context_turns: p.turns,
+                          })
+                        }
+                        title={p.hint}
+                        className={`px-2 py-1.5 rounded-lg text-center transition-all cursor-pointer border ${
+                          active
+                            ? 'bg-blue-600 text-white border-blue-600 font-bold shadow-2xs'
+                            : 'bg-slate-50 dark:bg-slate-950 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-800 hover:border-blue-400'
+                        }`}
+                      >
+                        <div className="text-[11px] font-medium leading-tight">{p.label}</div>
+                        <div className={`text-[9px] mt-0.5 ${active ? 'text-blue-100' : 'text-slate-400'}`}>
+                          {p.chars / 1000}k 字符
+                        </div>
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="grid grid-cols-2 gap-3 pt-1">
+                  <div>
+                    <label className="block text-slate-500 dark:text-slate-400 mb-0.5 text-[11px]">
+                      字符预算 (Char Budget)
+                    </label>
+                    <input
+                      type="number"
+                      step={4000}
+                      min={4000}
+                      max={256000}
+                      value={llmConfig.context_budget ?? 32000}
+                      onChange={(e) =>
+                        setLlmConfig({ ...llmConfig, context_budget: parseInt(e.target.value) || 32000 })
+                      }
+                      placeholder="32000"
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-slate-500 dark:text-slate-400 mb-0.5 text-[11px]">
+                      高保真保留轮数 (Max Turns)
+                    </label>
+                    <input
+                      type="number"
+                      min={5}
+                      max={100}
+                      value={llmConfig.max_context_turns ?? 25}
+                      onChange={(e) =>
+                        setLlmConfig({ ...llmConfig, max_context_turns: parseInt(e.target.value) || 25 })
+                      }
+                      placeholder="25"
+                      className="w-full px-2.5 py-1.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs font-mono"
+                    />
+                  </div>
+                </div>
               </div>
             </div>
 

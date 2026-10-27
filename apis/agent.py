@@ -6,6 +6,7 @@
 import asyncio
 import base64
 import json
+import logging
 import mimetypes
 import os
 import re
@@ -15,6 +16,8 @@ import requests
 from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from fastapi.responses import StreamingResponse, FileResponse
 from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 from core.agent.bot_manager import bot_manager
 from core.agent.constants import SUPPORTED_PROVIDERS, BOT_PRESET_TEMPLATES, HIGH_RISK_API_KEYWORDS
@@ -37,6 +40,9 @@ class LLMConfigPayload(BaseModel):
     base_url: str = Field(default="", description="Base URL")
     api_key: Optional[str] = Field(default="", description="API Key")
     temperature: float = Field(default=0.2, description="温度")
+    max_steps: Optional[int] = Field(default=30, description="最大执行步数（推荐 20~50 轮）")
+    context_budget: Optional[int] = Field(default=32000, description="即时工作记忆总字符预算")
+    max_context_turns: Optional[int] = Field(default=25, description="即时工作记忆保留最大轮数")
 
 
 class FetchModelsPayload(BaseModel):
@@ -189,7 +195,10 @@ def save_llm_config(payload: LLMConfigPayload):
         model_name=payload.model_name.strip(),
         base_url=payload.base_url.strip(),
         api_key=api_key,
-        temperature=payload.temperature
+        temperature=payload.temperature,
+        max_steps=payload.max_steps if payload.max_steps and payload.max_steps >= 5 else 30,
+        context_budget=payload.context_budget if payload.context_budget and payload.context_budget >= 4000 else 32000,
+        max_context_turns=payload.max_context_turns if payload.max_context_turns and payload.max_context_turns >= 5 else 25,
     )
     bot_manager.save_llm_config(new_cfg)
     return {"success": True, "config": bot_manager.get_masked_llm_config()}
@@ -379,7 +388,7 @@ def create_bot(payload: CreateBotPayload):
 
 
 def _format_bot_response(bot):
-    """格式化智能体返回体，包含记忆、技能与实时合成的系统提示词"""
+    """格式化智能体返回体，包含记忆、技能与实时合成的系统提示词以及四层分级记忆运行期透视"""
     data = bot.model_dump()
     data["skills"] = [s.model_dump() for s in bot_manager.list_skills(bot.id)]
     data["memories"] = [m.model_dump() for m in bot_manager.list_memories(bot.id)]
@@ -387,6 +396,53 @@ def _format_bot_response(bot):
     data["assembled_prompt"] = agent_engine.assemble_system_prompt(bot)
     if not data.get("suggested_prompts"):
         data["suggested_prompts"] = bot_manager.infer_suggested_prompts(bot.name, bot.description, bot.base_prompt)
+
+    # 注入四层分级记忆运行期透视全景 (Hierarchical Memory Blueprint)
+    try:
+        from core.agent.memory import memory_manager
+        llm_cfg = bot_manager.get_llm_config()
+        effective_budget = getattr(bot, "context_budget", None) or getattr(llm_cfg, "context_budget", None) or 32000
+        effective_turns = getattr(bot, "max_context_turns", None) or getattr(llm_cfg, "max_context_turns", None) or 25
+        history = bot_manager.get_history(bot.id, limit=500)
+        saved_state = agent_engine._bot_sandbox_states.get(bot.id, {})
+        uploads_dir = os.path.join(bot_manager._bot_dir(bot.id), "uploads")
+
+        ctx = memory_manager.build_hierarchical_context(
+            bot_id=bot.id,
+            bot=bot,
+            user_message="[实时全量透视示例：当前会话状态探查]",
+            all_history=history,
+            saved_state=saved_state,
+            attachments=[],
+            system_prompt=data["assembled_prompt"],
+            manager=bot_manager,
+            uploads_dir=uploads_dir,
+            context_budget=effective_budget,
+            max_context_turns=effective_turns
+        )
+
+        working_limit = effective_turns
+        recent_slice = history[-working_limit:] if len(history) > working_limit else history
+        dialogue_slice = recent_slice[:-1] if (dialogue_slice := recent_slice) and len(recent_slice) > 1 else recent_slice
+        working_turns_texts = memory_manager.build_working_memory(dialogue_slice, char_budget=effective_budget)
+        working_chars = sum(len(t) for t in working_turns_texts)
+
+        data["hierarchical_memory"] = {
+            "working_memory_turns": ctx.working_memory_turns,
+            "working_memory_chars": working_chars,
+            "context_budget": effective_budget,
+            "max_context_turns": effective_turns,
+            "compacted_history_count": ctx.compacted_history_count,
+            "running_summary": ctx.running_summary,
+            "entities_catalog": ctx.entities_catalog,
+            "runtime_variables": ctx.runtime_variables,
+            "total_history_count": len(history),
+            "assembled_task_prompt": ctx.task_prompt
+        }
+    except Exception as e:
+        logger.warning("Failed to build hierarchical memory preview for bot %s: %s", bot.id, str(e))
+        data["hierarchical_memory"] = None
+
     return data
 
 

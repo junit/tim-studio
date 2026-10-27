@@ -130,9 +130,9 @@ class TimSearchApisTool(Tool):
                     "category": item.get("category"),
                     "path": "/".join(item.get("path", [])),
                     "full_command": item.get("full_command"),
-                    "description": item.get("description", "")[:100]
+                    "description": item.get("description", "")[:200]
                 })
-        return matches[:15]
+        return matches[:25]
 
 
 class TimGetDocTool(Tool):
@@ -174,7 +174,7 @@ class TimGetDocTool(Tool):
                     "doc_url": item.get("doc_url"),
                     "description": item.get("description"),
                     "sample_payload": item.get("sample_payload"),
-                    "fields": item.get("fields", [])[:10]
+                    "fields": item.get("fields", [])
                 }
         return {"error": f"未找到接口文档: {api_path}"}
 

@@ -11,10 +11,44 @@ import threading
 import time
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
-from smolagents import CodeAgent, OpenAIServerModel
+from smolagents import CodeAgent, OpenAIServerModel, AgentMaxStepsError
+import smolagents.agents as saa
 from smolagents.memory import ActionStep, PlanningStep, ToolCall, FinalAnswerStep
 from smolagents.models import ChatMessageStreamDelta, TokenUsage, ChatMessageToolCallStreamDelta
 from smolagents.agents import ActionOutput
+
+# 增强 smolagents 代码块解析器：无缝兼容 DeepSeek 原生 DSML、标准 Markdown 与 XML parameter
+_original_parse_code_blobs = getattr(saa, "parse_code_blobs", None)
+
+def robust_parse_code_blobs(text: str, code_block_tags: tuple[str, str]) -> str:
+    # 1. 尝试原厂解析
+    if _original_parse_code_blobs:
+        try:
+            return _original_parse_code_blobs(text, code_block_tags)
+        except Exception:
+            pass
+
+    # 2. 兼容 DeepSeek 原生 DSML 结构: <parameter name="code">...</parameter>
+    dsml_match = re.search(r'<parameter name=[\"\']code[\"\']>([\s\S]*?)</parameter>', text)
+    if dsml_match:
+        code = dsml_match.group(1).strip()
+        if code:
+            return code
+
+    # 3. 兼容通用 XML/HTML 标签 <code>...</code>, <python>...</python>, <execute>...</execute>
+    tag_match = re.search(r'<(?:code|python|execute)>([\s\S]*?)</(?:code|python|execute)>', text, re.IGNORECASE)
+    if tag_match:
+        code = tag_match.group(1).strip()
+        if code:
+            return code
+
+    # 4. 回退
+    if _original_parse_code_blobs:
+        return _original_parse_code_blobs(text, code_block_tags)
+    return text
+
+if _original_parse_code_blobs:
+    saa.parse_code_blobs = robust_parse_code_blobs
 
 from ..config import load_config
 from ..tim_client import TimClient
@@ -24,6 +58,8 @@ from .constants import (
     DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
     DEFAULT_SUBTASK_MAX_STEPS,
     DEFAULT_STREAM_MAX_STEPS,
+    DEFAULT_CONTEXT_HISTORY_LIMIT,
+    DEFAULT_CONTEXT_CONTENT_MAX_CHARS,
     PROVIDER_DEFAULTS,
 )
 from .models import BotConfig, LLMConfig
@@ -96,6 +132,7 @@ class RobustStreamingOpenAIServerModel(OpenAIServerModel):
                 stream=True,
             )
 
+        in_reasoning = False
         for event in stream_response:
             if getattr(event, "usage", None):
                 yield ChatMessageStreamDelta(
@@ -113,9 +150,15 @@ class RobustStreamingOpenAIServerModel(OpenAIServerModel):
                     content = choice.delta.content
 
                     if reasoning:
-                        yield ChatMessageStreamDelta(content=f"<think>{reasoning}</think>")
+                        if not in_reasoning:
+                            yield ChatMessageStreamDelta(content="<think>")
+                            in_reasoning = True
+                        yield ChatMessageStreamDelta(content=reasoning)
 
                     if content:
+                        if in_reasoning:
+                            yield ChatMessageStreamDelta(content="</think>")
+                            in_reasoning = False
                         yield ChatMessageStreamDelta(
                             content=content,
                             tool_calls=[
@@ -130,6 +173,8 @@ class RobustStreamingOpenAIServerModel(OpenAIServerModel):
                             if choice.delta.tool_calls
                             else None,
                         )
+        if in_reasoning:
+            yield ChatMessageStreamDelta(content="</think>")
 
 
 def extract_clean_thought(raw_text: str) -> str:
@@ -160,12 +205,13 @@ def extract_clean_thought(raw_text: str) -> str:
 
 
 def clean_final_answer(raw_answer: str) -> Tuple[str, str]:
-    """清洗最终回复，剥离可能残留的 <think> 思维链和实际回复正文"""
+    """清洗最终回复，剥离残留的 <think> 思维链、内部 Calling tools: 协议残留与 DSML 标签，规范化代码块"""
     if not raw_answer:
         return "", ""
     text = str(raw_answer).strip()
     extracted_thought = ""
 
+    # 1. 抽取并剥离 <think> 思考链
     think_match = re.search(r"<think>([\s\S]*?)</think>", text, re.IGNORECASE)
     if think_match:
         extracted_thought = think_match.group(1).strip()
@@ -174,6 +220,22 @@ def clean_final_answer(raw_answer: str) -> Tuple[str, str]:
         parts = text.split("<think>", 1)
         text = parts[0].strip()
         extracted_thought = parts[1].strip()
+
+    # 2. 剥离 smolagents 内部工具调用协议泄露 Calling tools: [...]
+    text = re.sub(r"Calling tools:\s*\[[\s\S]*?\]\s*", "", text).strip()
+
+    # 3. 剥离 DeepSeek 原生 DSML / XML 工具调用泄露
+    text = re.sub(r"<｜｜DSML｜｜\s*calls>[\s\S]*?(?:</invoke>|$)", "", text).strip()
+    text = re.sub(r"<parameter name=[\"\']code[\"\']>[\s\S]*?</parameter>", "", text).strip()
+
+    # 4. 规范化 <code>...</code> 标签为 Markdown ```python 代码块
+    def _code_repl(m):
+        c = m.group(1).strip()
+        if not c:
+            return ""
+        return f"\n```python\n{c}\n```\n"
+
+    text = re.sub(r"<code>\s*([\s\S]*?)\s*</code>", _code_repl, text, flags=re.IGNORECASE).strip()
 
     return text.strip(), extracted_thought
 
@@ -228,6 +290,12 @@ class AgentEngine:
         self.manager = manager or bot_manager
         self.tim_client = TimClient()
         self._local = threading.local()
+        # 跨轮多会话 Python 沙箱环境变量存储 (按 bot_id 隔离)
+        self._bot_sandbox_states: Dict[str, Dict[str, Any]] = {}
+
+    def clear_sandbox(self, bot_id: str):
+        """清空指定 BOT 的跨轮沙箱变量缓存"""
+        self._bot_sandbox_states.pop(bot_id, None)
 
     def get_effective_llm_config(self, bot: BotConfig) -> LLMConfig:
         """获取 BOT 生效的 LLM 配置（BOT 级别覆盖 > 全局配置）"""
@@ -287,7 +355,13 @@ class AgentEngine:
             "3. 编写 Python 脚本时，首行建议使用中文注释简短写出本步行动意图（例如 `# 1. 获取群成员列表与禁言状态`），以便系统和用户直观追踪步骤进展。\n"
             "4. 输出打印规范（重要）：调用 `tim_call` 或完成数据统计后，请务必使用 `print(...)` 打印出接口返回的关键响应或核心数据结果，以便在前端卡片中直观展现 API 响应详情与运行日志。\n"
             "5. 保持回答专业、精炼、客观，并在调用关键接口或修改系统配置后，明确汇总操作结果和受影响的账号或群组。\n"
-            "6. 高危破坏性操作安全防线：当涉及解散群组 (`destroy_group`)、注销/删除账号 (`account_delete`)、清空漫游消息 (`clean_roam_msg`) 或批量踢人时，必须在回答中首先向用户清晰列出受影响的目标群 ID、账号范围以及潜在不可逆后果，并要求二次确认，严禁未经告知即大范围批量销毁生产数据。\n\n"
+            "6. 高危破坏性操作安全防线：当涉及解散群组 (`destroy_group`)、注销/删除账号 (`account_delete`)、清空漫游消息 (`clean_roam_msg`) 或批量踢人时，必须在回答中首先向用户清晰列出受影响的目标群 ID、账号范围以及潜在不可逆后果，并要求二次确认，严禁未经告知即大范围批量销毁生产数据。\n"
+            "7. 高效批量执行与收敛准则（关键）：\n"
+            "   - 在处理复杂任务（如「拉取 TOP5 群并拉取各自最近10条消息」）时，应在一个完整的 Python 脚本中通过循环和函数紧凑完成（如一次性完成分页拉取、详情合并、排序与前 N 个群消息提取并打印），严禁将单一流程拆分为过多单行探索脚本，以免耗尽步数配额；\n"
+            "   - 当已通过 print 获得核心数据后，必须在脚本最后调用 `final_answer(markdown_report)` 直接输出完整的结构化业务报告。\n"
+            "8. 腾讯云 IM 数据结构防御式编程规范：\n"
+            "   - 在拉取历史消息时（如 `group_msg_get_simple`），普通聊天消息的 `MsgBody` 是列表 (`list`)，但在群组系统通知/事件（如 `GroupJoinType`）中，部分群类型返回的 `MsgBody` 是字典 (`dict`) 或空；\n"
+            "   - 编写解析函数时务必同时兼容：`if isinstance(body, list): ... elif isinstance(body, dict): ...`，绝不可假定一定是 list。\n\n"
             "## 📁 产出物与生成文件规范 (File Generation)\n"
             "若任务需要产出清洗后的数据、导出报表、统计表格、生成的日志或图表数据：\n"
             "1. 可直接调用内置辅助函数 `save_file(filename, data)`，原生支持字符串文本、字节流、字典/列表、以及 Pandas 的 DataFrame 对象，自动保存到当前智能体专属文件中心；\n"
@@ -621,15 +695,43 @@ class AgentEngine:
             }
         }
 
+        effective_max_steps = (
+            bot.max_steps
+            or getattr(llm_cfg, "max_steps", None)
+            or DEFAULT_STREAM_MAX_STEPS
+        )
+
         import smolagents.local_python_executor as lpe
         agent = CodeAgent(
             tools=tools,
             model=model,
             additional_authorized_imports=AUTHORIZED_IMPORTS,
             max_print_outputs_length=DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
-            max_steps=DEFAULT_STREAM_MAX_STEPS,
+            max_steps=effective_max_steps,
             stream_outputs=True
         )
+
+        # 挂载跨轮已留存的沙箱变量环境
+        saved_state = self._bot_sandbox_states.get(bot_id, {})
+        if saved_state:
+            try:
+                agent.state.update(saved_state)
+            except Exception as e:
+                logger.warning("Failed to restore sandbox state for %s: %s", bot_id, str(e))
+
+        # 定制 final_answer 兜底 Prompt 模板，严禁输出代码和内部调用标记
+        if hasattr(agent, "prompt_templates") and "final_answer" in agent.prompt_templates:
+            agent.prompt_templates["final_answer"]["pre_messages"] = (
+                "智能体在执行任务时达到了步数上限。请你作为资深架构师和业务助手，基于前面各步骤已收集到的所有数据、输出和日志（Observation），直接向用户给出最终的结构化 Markdown 业务汇报。\n"
+                "【严格禁令与输出格式规范】：\n"
+                "1. 严禁输出任何 Python 代码块、严禁使用 <code> 标签、严禁输出 ```python 继续写脚本；\n"
+                "2. 严禁输出任何 'Calling tools:' 等系统内部工具调用内容；\n"
+                "3. 必须直接使用专业清晰的 Markdown 格式（表格、列表、要点汇总）向用户呈现已获取到的结果；\n"
+                "4. 若因步数限制导致部分数据尚未拉全，请如实向用户汇总已获取部分，并给出后续指引。"
+            )
+            agent.prompt_templates["final_answer"]["post_messages"] = (
+                "请基于上述全部执行记录与数据结果，直接向用户给出针对需求「{{task}}」的最终 Markdown 专业报告（切记：只输出面向用户的文字/表格结论，绝不要输出代码）："
+            )
 
         # 注入当前智能体专属产出物目录与资产中心工具
         uploads_dir = os.path.join(self.manager._bot_dir(bot_id), "uploads")
@@ -685,67 +787,34 @@ class AgentEngine:
         self._active_stream_orchestrations = self._local.active_stream_orchestrations
         accumulated_orchestrations = []
 
-        # 拼接对话历史上下文到 prompt 任务中（进化型智能体上下文渐进式背景提取）
-        all_recent = self.manager.get_history(bot_id, limit=30)
-        recent_history = self.manager.get_history(bot_id, limit=8)
-        task_prompt = ""
+        # 4. 构建四层分级记忆与无限上下文 (Hierarchical Infinite Memory)
+        from .memory import memory_manager
+        effective_context_budget = (
+            getattr(bot, "context_budget", None)
+            or getattr(llm_cfg, "context_budget", None)
+            or DEFAULT_WORKING_MEMORY_CHAR_BUDGET
+        )
+        effective_context_turns = (
+            getattr(bot, "max_context_turns", None)
+            or getattr(llm_cfg, "max_context_turns", None)
+            or DEFAULT_WORKING_MEMORY_TURNS
+        )
 
-        # 长周期背景演进：若累积多轮对话，提取前序讨论中反复出现的关键群组/账号实体
-        if len(all_recent) > 8:
-            older_history = all_recent[:-8]
-            mentioned_groups = set()
-            for om in older_history:
-                txt = om.get("content", "")
-                groups = re.findall(r"@TGS#\w+", txt)
-                mentioned_groups.update(groups)
-            if mentioned_groups:
-                task_prompt += f"【历史演进已知关联实体】: {', '.join(sorted(mentioned_groups))}\n\n"
-
-        if len(recent_history) > 1:
-            context_summary = []
-            for m in recent_history[:-1]:
-                role_label = "用户" if m["role"] == "user" else "助手"
-                context_summary.append(f"{role_label}: {m['content'][:300]}")
-            task_prompt += "【近期上下文】:\n" + "\n".join(context_summary) + "\n\n"
-
-        task_prompt += f"{system_prompt}\n\n"
-
-        # 自动检索并注入挂载的企业知识库参考切片 (RAG 实时召回)
-        try:
-            from .rag_manager import rag_manager
-            matched_chunks = rag_manager.search(bot_id, user_message, top_k=3, min_score=0.15)
-            if matched_chunks:
-                kb_context = rag_manager.format_chunks_for_prompt(matched_chunks)
-                task_prompt += f"{kb_context}\n\n"
-        except Exception as e:
-            logger.warning("RAG knowledge auto-recall error: %s", str(e))
-
-        if attachments:
-            from .file_parser import format_file_size
-            att_lines = []
-            for idx, att in enumerate(attachments, 1):
-                att_name = att.get("name", "未命名文件")
-                att_type = att.get("type", "file")
-                size_str = att.get("size_formatted") or format_file_size(att.get("size", 0))
-                att_path = att.get("path", "")
-                att_preview = att.get("preview") or att.get("summary") or "已解析结构"
-                att_lines.append(
-                    f"- 📎 附件 {idx}: `{att_name}` ({att_type}, 大小: {size_str})\n"
-                    f"  本地绝对文件路径: `{att_path}`\n"
-                    f"  内容预览与数据结构:\n{att_preview}"
-                )
-
-            task_prompt += (
-                f"【用户当前需求】: {user_message or '请分析并处理上传的文件附件。'}\n\n"
-                f"【用户随消息上传了以下文件附件】:\n"
-                f"{chr(10).join(att_lines)}\n\n"
-                f"【附件处理操作提示】:\n"
-                f"1. 你可以使用 `read_file(file_path)` 工具直接读取文档/代码/表格摘要；\n"
-                f"2. 你可以直接在 Python 沙箱中编写脚本，导入 pandas、openpyxl、docx、csv、PIL 等库，读取上述本地文件绝对路径进行数据分析、统计、转换与过滤；\n"
-                f"3. 若涉及腾讯云 IM 业务（如导入账号名单、批量群禁言、白名单对账等），可结合 `tim_call` 进行自动化批量执行并汇报结果。"
-            )
-        else:
-            task_prompt += f"【用户当前需求】: {user_message}"
+        all_history = self.manager.get_history(bot_id, limit=500)
+        hierarchical_ctx = memory_manager.build_hierarchical_context(
+            bot_id=bot_id,
+            bot=bot,
+            user_message=user_message,
+            all_history=all_history,
+            saved_state=saved_state,
+            attachments=attachments,
+            system_prompt=system_prompt,
+            manager=self.manager,
+            uploads_dir=uploads_dir,
+            context_budget=effective_context_budget,
+            max_context_turns=effective_context_turns
+        )
+        task_prompt = hierarchical_ctx.task_prompt
 
         final_answer = ""
         accumulated_thoughts = []
@@ -770,7 +839,12 @@ class AgentEngine:
                     delta = step.content or ""
                     if delta:
                         # 识别 <think> 思考链标签 (DeepSeek-R1 / Qwen 等)
-                        if "<think>" in delta:
+                        if "<think>" in delta and "</think>" in delta:
+                            clean = delta.replace("<think>", "").replace("</think>", "")
+                            if clean:
+                                thought_buffer += clean
+                                yield {"event": "thought_chunk", "data": {"delta": clean}}
+                        elif "<think>" in delta:
                             in_think_tag = True
                             clean = delta.replace("<think>", "")
                             if clean:
@@ -915,7 +989,14 @@ class AgentEngine:
                     "data": orch_item
                 }
 
-            # 剥离最终答案中可能残留的 <think> 思维链
+            # 8. 判断是否触发了最大执行步数限制
+            is_max_steps_reached = any(
+                isinstance(getattr(st, "error", None), AgentMaxStepsError)
+                or "Reached max steps" in str(getattr(st, "error", ""))
+                for st in getattr(agent.memory, "steps", [])
+            ) or (len(accumulated_code_blocks) >= effective_max_steps)
+
+            # 剥离最终答案中可能残留的 <think> 思维链与系统协议
             if final_answer:
                 cleaned_ans, leftover_thought = clean_final_answer(final_answer)
                 if leftover_thought:
@@ -929,18 +1010,70 @@ class AgentEngine:
             else:
                 final_answer = "任务已执行完毕。"
 
+            # 智能抢救：若达到步数上限且最终文本仍然包含未执行的代码块，尝试在沙箱中补执行
+            if is_max_steps_reached and "```python" in final_answer:
+                code_matches = re.findall(r"```(?:python|py)?\s*\n([\s\S]*?)\n```", final_answer)
+                for unexecuted_code in code_matches:
+                    unexecuted_code = unexecuted_code.strip()
+                    if unexecuted_code and not unexecuted_code.startswith("final_answer") and len(unexecuted_code) > 20:
+                        try:
+                            rescue_step = current_step
+                            current_step += 1
+                            accumulated_code_blocks.append({
+                                "step": rescue_step,
+                                "code": unexecuted_code,
+                                "status": "running"
+                            })
+                            yield {
+                                "event": "code_start",
+                                "data": {"step": rescue_step, "code": unexecuted_code, "status": "running"}
+                            }
+                            rescue_res = agent.python_executor(unexecuted_code)
+                            rescue_logs = rescue_res.logs.strip() if rescue_res and rescue_res.logs else ""
+                            obs_md = format_execution_observation(rescue_logs, rescue_step)
+                            accumulated_execution_logs.append({
+                                "step": rescue_step,
+                                "output": obs_md,
+                                "status": "success"
+                            })
+                            for c in accumulated_code_blocks:
+                                if c.get("step") == rescue_step:
+                                    c["status"] = "success"
+                            yield {
+                                "event": "execution_result",
+                                "data": {"step": rescue_step, "output": obs_md, "status": "success"}
+                            }
+                        except Exception as rex:
+                            logger.warning("Rescue execution failed: %s", str(rex))
+
+            # 步数上限友情提示
+            if is_max_steps_reached:
+                if "最大步数" not in final_answer and "步数上限" not in final_answer:
+                    final_answer = final_answer + f"\n\n> ℹ️ **说明**：该轮任务已达单次执行步数上限（已执行 {len(accumulated_code_blocks)} 步并记录沙箱数据）。相关变量与结果已保存在当前会话环境中，您可以直接回复继续操作或导出数据！"
+
             # 触发流式回答生命周期：通知前端折叠过程、聚焦正文，开启打字机效果
             yield {"event": "answer_start", "data": {"timestamp": time.time()}}
 
-            # 以极致顺滑的微块自然流式推送 (Token-like Natural Typing Stream)
-            chunk_size = 4
-            for i in range(0, len(final_answer), chunk_size):
+            # 自适应平滑打字机流式推送 (Token-like Natural Typing Stream)
+            # 根据内容长度自适应块大小与延时，避免长文本渲染产生过长的人为等待
+            total_len = len(final_answer)
+            if total_len > 2000:
+                chunk_size = 24
+                sleep_time = 0.003
+            elif total_len > 800:
+                chunk_size = 12
+                sleep_time = 0.006
+            else:
+                chunk_size = 6
+                sleep_time = 0.010
+
+            for i in range(0, total_len, chunk_size):
                 chunk_piece = final_answer[i : i + chunk_size]
                 yield {
                     "event": "chunk",
                     "data": {"delta": chunk_piece}
                 }
-                time.sleep(0.012)
+                time.sleep(sleep_time)
 
             # 发送最终整理好的完整回答
             yield {
@@ -1013,10 +1146,34 @@ class AgentEngine:
                 }
             )
 
+            # 保存沙箱环境供后续跨轮交互直接复用
+            if hasattr(agent, "python_executor") and hasattr(agent.python_executor, "state"):
+                persistent_vars = {}
+                for k, v in agent.python_executor.state.items():
+                    if k.startswith("_") or k in ("open", "render_chart", "save_file", "OUTPUT_DIR", "WORKSPACE_DIR", "final_answer"):
+                        continue
+                    if callable(v) and not hasattr(v, "__code__"):
+                        continue
+                    persistent_vars[k] = v
+                self._bot_sandbox_states[bot_id] = persistent_vars
+
+            # 触发四层分级记忆演化归档与增量滚动摘要更新
+            try:
+                from .memory import memory_manager
+                memory_manager.on_turn_completed(
+                    bot_id=bot_id,
+                    bot_dir=self.manager._bot_dir(bot_id),
+                    all_history=self.manager.get_history(bot_id, limit=500),
+                    saved_state=self._bot_sandbox_states.get(bot_id, {}),
+                    max_context_turns=effective_context_turns
+                )
+            except Exception as mex:
+                logger.warning("Memory manager on_turn_completed error: %s", str(mex))
+
             yield {
                 "event": "done",
                 "data": {
-                    "status": "success",
+                    "status": "max_steps_reached" if is_max_steps_reached else "success",
                     "code_blocks": len(accumulated_code_blocks),
                     "orchestrations": accumulated_orchestrations,
                     "metrics": metrics,
