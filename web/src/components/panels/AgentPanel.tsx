@@ -1296,6 +1296,11 @@ export const AgentPanel: React.FC = () => {
                     if (payload.orchestrations) {
                       updated.orchestrations = payload.orchestrations
                     }
+                    if (payload.attachments && payload.attachments.length > 0) {
+                      updated.attachments = payload.attachments
+                    } else if (payload.files && payload.files.length > 0) {
+                      updated.attachments = payload.files
+                    }
                     setActiveRunsMap((prev) => {
                       if (!prev[botId]) return prev
                       const next = { ...prev }
@@ -1310,6 +1315,8 @@ export const AgentPanel: React.FC = () => {
                     if (updated.startTime) {
                       updated.elapsedSeconds = Number(((Date.now() - updated.startTime) / 1000).toFixed(1))
                     }
+                    // 实时联动刷新右侧抽屉「产出物与文件中心」
+                    fetchBotFiles(botId)
                   } else if (currentEvent === 'error') {
                     updated.isStreaming = false
                     updated.streamStatus = 'error'
@@ -2716,6 +2723,83 @@ export const AgentPanel: React.FC = () => {
                                 <div className="flex items-center gap-2 text-slate-400 text-xs py-1">
                                   <Sparkles className="h-3.5 w-3.5 animate-spin text-blue-500" />
                                   <span>正在流式组织最终专业回复...</span>
+                                </div>
+                              )}
+
+                              {/* 产出物与生成文件一键下载中心 (Artifacts & Output Files Hub) */}
+                              {msg.attachments && msg.attachments.length > 0 && (
+                                <div className="mt-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 not-prose">
+                                  <div className="flex items-center justify-between mb-2">
+                                    <div className="flex items-center gap-1.5 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
+                                      <FolderArchive className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400" />
+                                      <span>本次生成产出物 ({msg.attachments.length})</span>
+                                    </div>
+                                    {msg.attachments.length > 1 && (
+                                      <button
+                                        type="button"
+                                        onClick={handleExportAllFiles}
+                                        className="text-[10px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 cursor-pointer"
+                                        title="打包下载全部生成文件为 ZIP"
+                                      >
+                                        <Archive className="h-3 w-3" />
+                                        <span>打包下载全部 (.zip)</span>
+                                      </button>
+                                    )}
+                                  </div>
+                                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                    {msg.attachments.map((att, attIdx) => {
+                                      const dlUrl = att.url
+                                        ? att.url.includes('?')
+                                          ? `${att.url}&download=true`
+                                          : `${att.url}?download=true`
+                                        : '#'
+                                      return (
+                                        <div
+                                          key={att.id || attIdx}
+                                          className="flex items-center justify-between gap-2.5 p-2.5 rounded-xl bg-slate-50/90 dark:bg-slate-950/70 border border-slate-200 dark:border-slate-800 hover:border-blue-300 dark:hover:border-blue-700 transition-all group/att shadow-2xs"
+                                        >
+                                          <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                                            <div className="w-8 h-8 rounded-lg bg-blue-100/70 dark:bg-blue-950/80 border border-blue-200 dark:border-blue-800 flex items-center justify-center shrink-0">
+                                              {getAttachmentIcon(att.category, att.type)}
+                                            </div>
+                                            <div className="min-w-0 flex-1">
+                                              <div className="text-xs font-semibold text-slate-800 dark:text-slate-200 truncate" title={att.name}>
+                                                {att.name}
+                                              </div>
+                                              <div className="text-[10px] text-slate-400 flex items-center gap-1.5 mt-0.5 font-mono">
+                                                <span>{att.type?.toUpperCase()}</span>
+                                                <span>·</span>
+                                                <span>{att.size_formatted || `${Math.round(att.size / 1024)} KB`}</span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                          <div className="flex items-center gap-1 shrink-0">
+                                            {att.category === 'image' && (
+                                              <button
+                                                type="button"
+                                                onClick={() => setPreviewImage({ url: att.url || att.data_url || '', name: att.name })}
+                                                className="p-1.5 rounded-lg hover:bg-slate-200 dark:hover:bg-slate-800 text-slate-500 hover:text-blue-600 transition-colors cursor-pointer"
+                                                title="预览原图"
+                                              >
+                                                <Eye className="h-3.5 w-3.5" />
+                                              </button>
+                                            )}
+                                            <a
+                                              href={dlUrl}
+                                              download={att.name}
+                                              target="_blank"
+                                              rel="noreferrer"
+                                              className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-medium shadow-xs transition-colors cursor-pointer no-underline"
+                                              title="点击立即下载该文件"
+                                            >
+                                              <Download className="h-3 w-3" />
+                                              <span>下载</span>
+                                            </a>
+                                          </div>
+                                        </div>
+                                      )
+                                    })}
+                                  </div>
                                 </div>
                               )}
                             </div>

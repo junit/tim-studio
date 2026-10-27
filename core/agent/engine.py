@@ -7,8 +7,10 @@ import json
 import logging
 import os
 import re
+import shutil
 import threading
 import time
+from datetime import datetime, timezone
 from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
 
 from smolagents import CodeAgent, OpenAIServerModel, AgentMaxStepsError
@@ -53,6 +55,7 @@ if _original_parse_code_blobs:
 from ..config import load_config
 from ..tim_client import TimClient
 from .bot_manager import BotManager, bot_manager
+from .file_parser import get_file_category_and_type, format_file_size
 from .constants import (
     AUTHORIZED_IMPORTS,
     DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
@@ -363,10 +366,12 @@ class AgentEngine:
             "   - 在拉取历史消息时（如 `group_msg_get_simple`），普通聊天消息的 `MsgBody` 是列表 (`list`)，但在群组系统通知/事件（如 `GroupJoinType`）中，部分群类型返回的 `MsgBody` 是字典 (`dict`) 或空；\n"
             "   - 编写解析函数时务必同时兼容：`if isinstance(body, list): ... elif isinstance(body, dict): ...`，绝不可假定一定是 list。\n\n"
             "## 📁 产出物与生成文件规范 (File Generation)\n"
-            "若任务需要产出清洗后的数据、导出报表、统计表格、生成的日志或图表数据：\n"
-            "1. 可直接调用内置辅助函数 `save_file(filename, data)`，原生支持字符串文本、字节流、字典/列表、以及 Pandas 的 DataFrame 对象，自动保存到当前智能体专属文件中心；\n"
-            "2. 也可在脚本中直接使用 `open(filename, 'w')` 写入相对路径文件，系统沙箱已自动重定向到智能体专属目录 `OUTPUT_DIR`；\n"
-            "3. 文件生成后会即时同步至前端右侧抽屉「产出物与文件中心」，请在最终回答中告知用户生成的文件名与下载指引。\n"
+            "若任务需要产出清洗后的数据、导出报表（Excel/CSV）、统计表格、生成的日志或图表数据：\n"
+            "1. 【推荐】直接调用内置辅助函数 `save_file(filename, data)`（原生支持 Pandas DataFrame、字典、列表、字节与文本），自动保存至智能体专属文件中心；\n"
+            "2. 【沙箱路径】若直接使用 Pandas/openpyxl 或文件写操作，请务必使用 `os.path.join(OUTPUT_DIR, filename)`，避免散落在项目根目录下；\n"
+            f"3. 【会话下载链接规范】（重要）：在通过 `final_answer(...)` 输出最终回答汇报给用户时，只要本次任务生成了文件，必须在 Markdown 回答中为用户提供直接下载链接，格式规范如下：\n"
+            f"   - `[📥 点击直接下载 文件名](/api/agent/bots/{bot.id}/files/文件名?download=true)`\n"
+            "4. 系统会在会话界面自动为你生成的产出物渲染专属的一键下载卡片，并即时同步至右侧抽屉「产出物与文件中心」。\n"
         )
 
         # 3. 动态注入自增强的行为准则 (Prompt Self-Enhancement)
@@ -737,6 +742,61 @@ class AgentEngine:
         uploads_dir = os.path.join(self.manager._bot_dir(bot_id), "uploads")
         os.makedirs(uploads_dir, exist_ok=True)
 
+        run_start_time = time.time()
+        initial_root_files = set(os.listdir("."))
+        initial_uploads_files = set(os.listdir(uploads_dir)) if os.path.exists(uploads_dir) else set()
+        tracked_output_files: List[Dict[str, Any]] = []
+
+        def sync_generated_artifacts():
+            """双向探测并归集执行期间生成的文件（包括根目录误写与 uploads 产生的文件）"""
+            try:
+                current_root_files = set(os.listdir("."))
+                new_root_files = current_root_files - initial_root_files
+                for fn in new_root_files:
+                    fp = os.path.join(".", fn)
+                    if not os.path.isfile(fp):
+                        continue
+                    if fn.startswith(".") or fn in (
+                        "app.py", "config.json", "requirements.txt", "README.md",
+                        "LICENSE", "config.example.json", "package.json", "pnpm-lock.yaml"
+                    ):
+                        continue
+                    cat, ftype = get_file_category_and_type(fn)
+                    if cat in ("table", "image", "document", "text") or ftype in ("json", "zip", "parquet", "xlsx", "xls", "csv"):
+                        dest_fp = os.path.join(uploads_dir, fn)
+                        shutil.move(fp, dest_fp)
+                        logger.info("Auto-rescued generated artifact from root to uploads: %s -> %s", fp, dest_fp)
+            except Exception as ex:
+                logger.warning("Error scanning root files in sync_generated_artifacts: %s", ex)
+
+            try:
+                if os.path.exists(uploads_dir):
+                    for fn in os.listdir(uploads_dir):
+                        fp = os.path.join(uploads_dir, fn)
+                        if not os.path.isfile(fp):
+                            continue
+                        stat = os.stat(fp)
+                        mtime = stat.st_mtime
+                        if fn not in initial_uploads_files or mtime >= (run_start_time - 2.0):
+                            if not any(f["name"] == fn or f.get("saved_name") == fn for f in tracked_output_files):
+                                cat, ftype = get_file_category_and_type(fn)
+                                orig_name = re.sub(r"^f_\d+_", "", fn)
+                                tracked_output_files.append({
+                                    "id": f"att-{int(time.time()*1000)}-{len(tracked_output_files)}",
+                                    "name": orig_name,
+                                    "saved_name": fn,
+                                    "size": stat.st_size,
+                                    "size_formatted": format_file_size(stat.st_size),
+                                    "category": cat,
+                                    "type": ftype,
+                                    "path": fp,
+                                    "url": f"/api/agent/bots/{bot_id}/files/{fn}",
+                                    "download_url": f"/api/agent/bots/{bot_id}/files/{fn}?download=true",
+                                    "created_at": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
+                                })
+            except Exception as ex:
+                logger.warning("Error scanning uploads in sync_generated_artifacts: %s", ex)
+
         def save_file(filename: str, data: Any) -> Dict[str, Any]:
             """保存文件至当前智能体专属资产中心，自动支持字符串、字节、JSON字典、Pandas DataFrame"""
             safe_name = os.path.basename(filename)
@@ -759,12 +819,32 @@ class AgentEngine:
                     f.write(str(data))
 
             file_size = os.path.getsize(dest_path)
+            cat, ftype = get_file_category_and_type(safe_name)
+            download_url = f"/api/agent/bots/{bot_id}/files/{safe_name}?download=true"
+            preview_url = f"/api/agent/bots/{bot_id}/files/{safe_name}"
+
+            if not any(f["name"] == safe_name or f.get("saved_name") == safe_name for f in tracked_output_files):
+                tracked_output_files.append({
+                    "id": f"att-{int(time.time()*1000)}-{len(tracked_output_files)}",
+                    "name": safe_name,
+                    "saved_name": safe_name,
+                    "size": file_size,
+                    "size_formatted": format_file_size(file_size),
+                    "category": cat,
+                    "type": ftype,
+                    "path": dest_path,
+                    "url": preview_url,
+                    "download_url": download_url,
+                    "created_at": datetime.now(timezone.utc).isoformat()
+                })
+
             return {
                 "filename": safe_name,
                 "path": dest_path,
                 "size": file_size,
-                "url": f"/api/agent/bots/{bot_id}/files/{safe_name}",
-                "message": f"文件「{safe_name}」已保存至智能体文件中心，用户可在右侧抽屉「产出物与文件」中直接下载。"
+                "url": preview_url,
+                "download_url": download_url,
+                "message": f"文件「{safe_name}」已成功保存至资产中心！请在回答中附上下载链接：[📥 点击下载 {safe_name}]({download_url})"
             }
 
         def bot_open(file, mode="r", *args, **kwargs):
@@ -906,6 +986,7 @@ class AgentEngine:
 
                 # 4. 代码执行返回结果 (ActionOutput)
                 elif isinstance(step, ActionOutput):
+                    sync_generated_artifacts()
                     if step.is_final_answer:
                         final_answer = str(step.output)
                     else:
@@ -926,6 +1007,7 @@ class AgentEngine:
 
                 # 5. 代码执行完成步 (ActionStep)
                 elif isinstance(step, ActionStep):
+                    sync_generated_artifacts()
                     current_step = step.step_number + 1
 
                     # 补充思维链
@@ -1051,6 +1133,25 @@ class AgentEngine:
                 if "最大步数" not in final_answer and "步数上限" not in final_answer:
                     final_answer = final_answer + f"\n\n> ℹ️ **说明**：该轮任务已达单次执行步数上限（已执行 {len(accumulated_code_blocks)} 步并记录沙箱数据）。相关变量与结果已保存在当前会话环境中，您可以直接回复继续操作或导出数据！"
 
+            # 全流程产出物最终同步归集
+            sync_generated_artifacts()
+
+            # 若有产出物文件，检查 final_answer 是否包含直接下载链接；若缺失则自动追加规范下载区
+            if tracked_output_files:
+                missing_download_links = []
+                for f in tracked_output_files:
+                    fn = f["name"]
+                    sn = f.get("saved_name", fn)
+                    if f"/files/{sn}" not in final_answer and f"/files/{fn}" not in final_answer:
+                        missing_download_links.append(f)
+
+                if missing_download_links:
+                    download_md_lines = ["\n\n---\n### 📥 产出物文件直接下载\n"]
+                    for mf in missing_download_links:
+                        dl_url = mf.get("download_url") or f"/api/agent/bots/{bot_id}/files/{mf['saved_name']}?download=true"
+                        download_md_lines.append(f"- [📥 **{mf['name']}** ({mf['size_formatted']})]({dl_url})\n")
+                    final_answer = final_answer + "".join(download_md_lines)
+
             # 触发流式回答生命周期：通知前端折叠过程、聚焦正文，开启打字机效果
             yield {"event": "answer_start", "data": {"timestamp": time.time()}}
 
@@ -1142,7 +1243,9 @@ class AgentEngine:
                     "orchestrations": accumulated_orchestrations,
                     "code_count": len(accumulated_code_blocks),
                     "model": llm_cfg.model_name,
-                    "metrics": metrics
+                    "metrics": metrics,
+                    "attachments": tracked_output_files,
+                    "artifacts": tracked_output_files
                 }
             )
 
@@ -1177,7 +1280,9 @@ class AgentEngine:
                     "code_blocks": len(accumulated_code_blocks),
                     "orchestrations": accumulated_orchestrations,
                     "metrics": metrics,
-                    "timestamp": time.time()
+                    "timestamp": time.time(),
+                    "attachments": tracked_output_files,
+                    "files": tracked_output_files
                 }
             }
 

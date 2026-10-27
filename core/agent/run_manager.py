@@ -194,6 +194,10 @@ class AgentRun:
             self.status = "done"
             self.stream_status = "done"
             self.end_time = time.time()
+            if data.get("attachments"):
+                self.attachments = data.get("attachments")
+            elif data.get("files"):
+                self.attachments = data.get("files")
             for b in self.code_blocks:
                 if b.get("status") == "running":
                     b["status"] = "success"

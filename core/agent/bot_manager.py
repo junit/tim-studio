@@ -904,11 +904,29 @@ class BotManager:
     # -------------------------------------------------------------
     def list_bot_files(self, bot_id: str) -> List[Dict[str, Any]]:
         """查询指定智能体所有的上传与产出文件，带有大小、时间与引用状态"""
+        import shutil
         with self._lock:
             bot_dir = self._bot_dir(bot_id)
             uploads_dir = os.path.join(bot_dir, "uploads")
-            if not os.path.exists(uploads_dir):
-                return []
+            os.makedirs(uploads_dir, exist_ok=True)
+
+            # 自动防护：若根目录下有非系统残留的报表或导出文件，自动归集进该智能体文件中心
+            try:
+                for fn in os.listdir("."):
+                    if fn.startswith(".") or fn in (
+                        "app.py", "config.json", "requirements.txt", "README.md",
+                        "LICENSE", "config.example.json", "package.json", "pnpm-lock.yaml"
+                    ):
+                        continue
+                    fp = os.path.join(".", fn)
+                    if os.path.isfile(fp):
+                        cat, ftype = get_file_category_and_type(fn)
+                        if cat in ("table", "image", "document") or ftype in ("xlsx", "xls", "csv", "parquet"):
+                            dest_fp = os.path.join(uploads_dir, fn)
+                            if not os.path.exists(dest_fp):
+                                shutil.move(fp, dest_fp)
+            except Exception:
+                pass
 
             # 获取所有在 history 中被引用的文件名
             referenced_filenames = set()

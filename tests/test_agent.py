@@ -1501,6 +1501,62 @@ def test_context_budget_dynamic_configuration(temp_bot_manager, tmp_path):
     assert ctx_large.working_memory_turns > ctx_small.working_memory_turns
 
 
+def test_bot_file_rescue_and_listing(temp_bot_manager):
+    """验证智能体产出物管理与孤儿报表自动归集下载"""
+    bot = temp_bot_manager.get_bot("default_assistant")
+    assert bot is not None
+
+    bot_dir = temp_bot_manager._bot_dir("default_assistant")
+    uploads_dir = os.path.join(bot_dir, "uploads")
+    os.makedirs(uploads_dir, exist_ok=True)
+
+    # 1. 模拟在 uploads 目录下生成报表
+    test_excel = os.path.join(uploads_dir, "用户留存分析.xlsx")
+    with open(test_excel, "wb") as f:
+        f.write(b"fake excel content")
+
+    files = temp_bot_manager.list_bot_files("default_assistant")
+    assert any(f["name"] == "用户留存分析.xlsx" for f in files)
+    excel_file = next(f for f in files if f["name"] == "用户留存分析.xlsx")
+    assert excel_file["category"] == "table"
+    assert excel_file["type"] == "xlsx"
+    assert "/files/" in excel_file["url"]
+
+    # 2. 模拟直接在项目根目录意外生成的孤儿报表 (例如 pd.to_excel 直接写入相对路径)
+    root_stray_file = "temp_stray_test_report.csv"
+    with open(root_stray_file, "w", encoding="utf-8") as f:
+        f.write("col1,col2\n1,2\n")
+
+    try:
+        # 调用 list_bot_files 触发自动救援与归集
+        files_after_rescue = temp_bot_manager.list_bot_files("default_assistant")
+        assert not os.path.exists(root_stray_file)  # 根目录文件已被移动
+        assert any(f["name"] == root_stray_file for f in files_after_rescue)
+        csv_file = next(f for f in files_after_rescue if f["name"] == root_stray_file)
+        assert csv_file["category"] == "table"
+        assert csv_file["type"] == "csv"
+    finally:
+        # 清理残余
+        if os.path.exists(root_stray_file):
+            os.remove(root_stray_file)
+        rescued_fp = os.path.join(uploads_dir, root_stray_file)
+        if os.path.exists(rescued_fp):
+            os.remove(rescued_fp)
+        if os.path.exists(test_excel):
+            os.remove(test_excel)
+
+
+def test_api_file_download_endpoint():
+    """测试通过 API 端点直接下载智能体产出物文件"""
+    client = TestClient(app)
+    # default_assistant 下已有刚才迁移过来的 IM最近消息记录导出.xlsx
+    resp = client.get("/api/agent/bots/default_assistant/files/IM最近消息记录导出.xlsx")
+    assert resp.status_code == 200
+    assert "attachment" in resp.headers.get("content-disposition", "")
+    assert len(resp.content) > 0
+
+
+
 
 
 

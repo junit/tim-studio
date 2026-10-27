@@ -51,6 +51,19 @@ marked.use({
         </div>
       `
     },
+    link({ href, title, text }: { href: string; title?: string | null; text: string }) {
+      const isFileDownload =
+        Boolean(href && (
+          (href.includes('/api/agent/bots/') && href.includes('/files/')) ||
+          /\.(xlsx|xls|csv|zip|pdf|docx|parquet)(\?.*)?$/i.test(href) ||
+          href.includes('download=true')
+        ))
+      const titleAttr = title ? ` title="${title}"` : ''
+      if (isFileDownload) {
+        return `<a href="${href}" download target="_blank" rel="noopener noreferrer"${titleAttr} class="inline-flex items-center gap-1.5 px-2.5 py-1 my-1 rounded-lg font-medium text-xs text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 transition-colors shadow-2xs no-underline cursor-pointer"><svg class="w-3.5 h-3.5 shrink-0 inline-block text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg><span>${text}</span></a>`
+      }
+      return `<a href="${href}" target="_blank" rel="noopener noreferrer"${titleAttr} class="text-blue-600 dark:text-blue-400 hover:underline font-medium">${text}</a>`
+    },
   },
 })
 
