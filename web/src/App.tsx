@@ -21,10 +21,35 @@ import { DocsCenterPanel } from '@/components/panels/DocsCenterPanel'
 import { AgentPanel } from '@/components/panels/AgentPanel'
 import { useApiStore } from '@/stores/apiStore'
 
+export type MainNavTab = 'sandbox' | 'docs' | 'batch' | 'agent' | 'settings'
+
+const VALID_TABS: MainNavTab[] = ['sandbox', 'docs', 'batch', 'agent', 'settings']
+const NAV_STORAGE_KEY = 'tim_active_main_nav_tab'
+
+function getInitialNavTab(): MainNavTab {
+  if (typeof window === 'undefined') return 'sandbox'
+
+  // 1. 优先读取 URL hash (如 #docs, #batch, #agent, #settings, #sandbox)
+  const hash = window.location.hash.replace(/^#/, '').toLowerCase()
+  if (VALID_TABS.includes(hash as MainNavTab)) {
+    return hash as MainNavTab
+  }
+
+  // 2. 读取持久化缓存
+  try {
+    const saved = localStorage.getItem(NAV_STORAGE_KEY)
+    if (saved && VALID_TABS.includes(saved as MainNavTab)) {
+      return saved as MainNavTab
+    }
+  } catch (e) {
+    console.warn('Failed to read nav tab from localStorage', e)
+  }
+
+  return 'sandbox'
+}
+
 export function App() {
-  const [activeTab, setActiveTab] = useState<'sandbox' | 'docs' | 'batch' | 'agent' | 'settings'>(
-    'sandbox'
-  )
+  const [activeTab, setActiveTab] = useState<MainNavTab>(getInitialNavTab)
   const [isMobile, setIsMobile] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.innerWidth < 1024 : false
   )
@@ -60,6 +85,30 @@ export function App() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [toggleSidebar])
+
+  // 持久化当前激活的顶部主导航 Tab 并静默同步 URL hash
+  useEffect(() => {
+    try {
+      localStorage.setItem(NAV_STORAGE_KEY, activeTab)
+      if (typeof window !== 'undefined' && window.location.hash.replace(/^#/, '') !== activeTab) {
+        window.history.replaceState(null, '', `#${activeTab}`)
+      }
+    } catch (e) {
+      console.warn('Failed to persist nav tab to localStorage', e)
+    }
+  }, [activeTab])
+
+  // 监听浏览器 URL hash 变动（如前进/后退或外部跳转）
+  useEffect(() => {
+    const handleHashChange = () => {
+      const hash = window.location.hash.replace(/^#/, '').toLowerCase()
+      if (VALID_TABS.includes(hash as MainNavTab)) {
+        setActiveTab(hash as MainNavTab)
+      }
+    }
+    window.addEventListener('hashchange', handleHashChange)
+    return () => window.removeEventListener('hashchange', handleHashChange)
+  }, [])
 
   useEffect(() => {
     fetchApis()
