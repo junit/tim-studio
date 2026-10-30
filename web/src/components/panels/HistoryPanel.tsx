@@ -495,7 +495,7 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                 </p>
               </div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
                 {/* 载入到 Runner */}
                 <Button
                   size="sm"
@@ -504,7 +504,10 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   title="将本批次数据与接口直接装载到 Runner 中"
                 >
                   <RotateCcw className="h-3.5 w-3.5" />
-                  <span>载入至 Runner</span>
+                  <span>
+                    <span className="hidden sm:inline">载入至 Runner</span>
+                    <span className="sm:hidden">重跑</span>
+                  </span>
                 </Button>
 
                 {/* 导出全量 CSV */}
@@ -515,7 +518,10 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                   className="h-8 gap-1 text-xs text-slate-700 dark:text-slate-300 cursor-pointer"
                 >
                   <Download className="h-3.5 w-3.5" />
-                  <span>导出全部 CSV</span>
+                  <span>
+                    <span className="hidden sm:inline">导出全部 CSV</span>
+                    <span className="sm:hidden">全量 CSV</span>
+                  </span>
                 </Button>
 
                 {/* 导出失败项 CSV */}
@@ -527,7 +533,10 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                     className="h-8 gap-1 text-xs text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800 bg-rose-50/70 dark:bg-rose-950/30 hover:bg-rose-100 dark:hover:bg-rose-900/50 cursor-pointer"
                   >
                     <Download className="h-3.5 w-3.5" />
-                    <span>导出失败项 ({selectedTask.failed})</span>
+                    <span>
+                      <span className="hidden sm:inline">导出失败项 ({selectedTask.failed})</span>
+                      <span className="sm:hidden">失败项 ({selectedTask.failed})</span>
+                    </span>
                   </Button>
                 )}
 

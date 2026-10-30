@@ -418,7 +418,8 @@ export const BatchCenter: React.FC = () => {
                         title={`下载「${selectedPreset.title}」标准 CSV 模板`}
                       >
                         <Download className="h-3 w-3" />
-                        <span>下载「{selectedPreset.title.replace('云直播：', '').replace('批量', '')}」模板</span>
+                        <span className="hidden sm:inline">下载「{selectedPreset.title.replace('云直播：', '').replace('批量', '')}」模板</span>
+                        <span className="sm:hidden">下载模板</span>
                       </a>
                     )}
 

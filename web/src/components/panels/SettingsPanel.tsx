@@ -827,7 +827,7 @@ export const SettingsPanel: React.FC = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-4 px-5 pb-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                         <span>环境名称</span>
@@ -954,7 +954,7 @@ export const SettingsPanel: React.FC = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-4 px-5 pb-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                         <span>SDKAppID (应用编号)</span>
@@ -1083,7 +1083,7 @@ export const SettingsPanel: React.FC = () => {
                     </div>
 
                     {/* 下拉选择器与直接输入框组合 */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                       <select
                         value={formData.domain}
                         onChange={(e) => setFormData({ ...formData, domain: e.target.value })}
@@ -1196,7 +1196,7 @@ export const SettingsPanel: React.FC = () => {
                 </CardHeader>
 
                 <CardContent className="space-y-4 px-5 pb-5">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                     <div className="space-y-1.5">
                       <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
                         <span>SecretId (CAM 密钥标识)</span>
@@ -1262,8 +1262,8 @@ export const SettingsPanel: React.FC = () => {
                     </div>
 
                     {/* 下拉选择器与双输入框组合 */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                      <div className="md:col-span-3">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                      <div className="sm:col-span-2 lg:col-span-3">
                         <select
                           value={formData.tc_endpoint || 'live.tencentcloudapi.com'}
                           onChange={(e) => {
@@ -1367,7 +1367,7 @@ export const SettingsPanel: React.FC = () => {
                         <span className="text-[10px] font-normal text-slate-400">(用于一键生成防盗链推流/播放地址)</span>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[11px] text-slate-500 dark:text-slate-400">
                             推流域名 (Push Domain)
@@ -1397,7 +1397,7 @@ export const SettingsPanel: React.FC = () => {
                         </div>
                       </div>
 
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                         <div className="space-y-1.5">
                           <label className="text-[11px] text-slate-500 dark:text-slate-400">
                             推流防盗链 Key (txSecret 计算密钥)

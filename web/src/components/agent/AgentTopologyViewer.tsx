@@ -342,7 +342,7 @@ export const AgentTopologyViewer: React.FC<AgentTopologyViewerProps> = ({
       </div>
 
       {/* 主视图区：左侧 SVG 拓扑网络 + 右侧协同流向流水 */}
-      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-[460px]">
+      <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-[320px] md:min-h-[460px]">
         {/* 左侧拓扑画布 */}
         <div className="flex-1 relative flex items-center justify-center bg-radial from-slate-50 via-sky-50/30 to-indigo-50/20 dark:from-slate-900 dark:via-[#0a0f1d] dark:to-[#060a14] overflow-hidden select-none">
           {/* 背景高科技网格 */}
@@ -628,8 +628,8 @@ export const AgentTopologyViewer: React.FC<AgentTopologyViewerProps> = ({
   if (mode === 'modal') {
     if (!isOpen) return null
     return (
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
-        <div className="w-full max-w-4xl max-h-[85vh] h-[640px] shadow-2xl rounded-2xl overflow-hidden">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-2 sm:p-4 bg-black/40 dark:bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
+        <div className="w-full max-w-4xl max-h-[92vh] sm:max-h-[85vh] h-full sm:h-[640px] shadow-2xl rounded-2xl overflow-hidden flex flex-col">
           {content}
         </div>
       </div>

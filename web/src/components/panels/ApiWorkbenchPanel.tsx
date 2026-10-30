@@ -2451,7 +2451,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: -4, scale: 0.98 }}
                 transition={{ duration: 0.12 }}
-                className="absolute top-9 right-0 z-50 w-80 max-h-[460px] flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-slate-950/60 overflow-hidden"
+                className="absolute top-9 right-0 z-50 w-80 max-w-[calc(100vw-24px)] max-h-[460px] flex flex-col rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-slate-950/60 overflow-hidden"
               >
                 {/* 搜索框 */}
                 <div className="p-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-950/60 flex items-center gap-1.5">
@@ -3006,7 +3006,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                         <p className="text-[11px] text-slate-400 dark:text-slate-500">
                           Query 参数将在请求时由系统根据配置自动注入到 URL 后缀中：
                         </p>
-                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto bg-white dark:bg-slate-900 shadow-2xs">
                           <table className="w-full text-left text-xs">
                             <thead className="bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
                               <tr>
@@ -3281,7 +3281,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                         </a>
                       )}
                     </div>
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto bg-white dark:bg-slate-900 shadow-2xs">
                       <table className="w-full text-left text-xs">
                         <thead className="bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
                           <tr>
@@ -3513,7 +3513,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                     </div>
 
                     {/* Response Sub-views & Copy Actions */}
-                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 overflow-x-auto">
+                    <div className="flex items-center gap-1.5 sm:gap-2 shrink-0 overflow-x-auto w-full sm:w-auto justify-between sm:justify-end">
                       <div className="flex items-center rounded-lg bg-slate-100 dark:bg-slate-850 p-0.5 text-xs font-medium border border-slate-200 dark:border-slate-750">
                         <button
                           onClick={() => handleSetResponseTab('pretty')}
@@ -3881,7 +3881,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
 
       {/* 接口调试面板 - 沉浸式文档放大阅读弹窗 */}
       {isDocsModalOpen && activeApi && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-4 sm:p-6 animate-in fade-in duration-150">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/60 backdrop-blur-xs p-2 sm:p-6 animate-in fade-in duration-150">
           <div className="w-full max-w-6xl h-[92vh] bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col overflow-hidden animate-in zoom-in-95 duration-150">
             <div className="p-4 border-b border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-slate-950/80 flex items-center justify-between">
               <div className="flex items-center gap-2.5 min-w-0">

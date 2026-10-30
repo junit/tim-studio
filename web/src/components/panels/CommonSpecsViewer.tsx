@@ -157,11 +157,11 @@ export const CommonSpecsViewer: React.FC = () => {
   return (
     <div className="flex-1 flex flex-col min-h-0 bg-slate-50 dark:bg-slate-950 overflow-hidden">
       {/* 顶部二级导航：4大核心板块切换 */}
-      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-3 select-none">
-        <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold">
+      <div className="shrink-0 px-3 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2.5 select-none">
+        <div className="flex items-center gap-1.5 p-0.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200/80 dark:border-slate-700/80 text-xs font-semibold overflow-x-auto max-w-full scrollbar-none">
           <button
             onClick={() => setActiveTab('invocation')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'invocation'
                 ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -173,7 +173,7 @@ export const CommonSpecsViewer: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('structs')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'structs'
                 ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -188,7 +188,7 @@ export const CommonSpecsViewer: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('errors')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'errors'
                 ? 'bg-white dark:bg-slate-700 text-rose-600 dark:text-rose-400 shadow-2xs font-bold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -203,7 +203,7 @@ export const CommonSpecsViewer: React.FC = () => {
 
           <button
             onClick={() => setActiveTab('mappings')}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer ${
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all cursor-pointer whitespace-nowrap shrink-0 ${
               activeTab === 'mappings'
                 ? 'bg-white dark:bg-slate-700 text-purple-600 dark:text-purple-400 shadow-2xs font-bold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
@@ -236,7 +236,7 @@ export const CommonSpecsViewer: React.FC = () => {
       {activeTab === 'invocation' && (
         <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
           {/* 左侧子菜单 */}
-          <div className="w-full md:w-56 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-3 space-y-1.5 select-none overflow-y-auto">
+          <div className="w-full md:w-56 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-3 space-y-1.5 select-none overflow-y-auto max-h-48 md:max-h-none">
             <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider px-2 py-1">
               调用规范目录 (API 3.0)
             </div>
@@ -351,7 +351,7 @@ export const CommonSpecsViewer: React.FC = () => {
                 </div>
 
                 {/* 地域接入点列表 (通用地域) */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
                   <div className="px-4 py-3 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-800 dark:text-slate-200">
                       通用地域接入域名列表 ({specs?.invocation?.request_structure?.endpoints?.length || 0})
@@ -392,7 +392,7 @@ export const CommonSpecsViewer: React.FC = () => {
 
                 {/* 金融专区接入点列表 (若存在) */}
                 {specs?.invocation?.request_structure?.financial_endpoints?.length > 0 && (
-                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+                  <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
                     <div className="px-4 py-3 bg-amber-50/60 dark:bg-amber-950/30 border-b border-amber-200/60 dark:border-amber-900/40 flex items-center justify-between">
                       <span className="text-xs font-bold text-amber-900 dark:text-amber-200">
                         金融专区接入域名列表 ({specs.invocation.request_structure.financial_endpoints.length})
@@ -459,7 +459,7 @@ export const CommonSpecsViewer: React.FC = () => {
                   </a>
                 </div>
 
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
                   <table className="w-full text-left border-collapse text-xs">
                     <thead>
                       <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-500 text-[10px]">
@@ -499,7 +499,7 @@ export const CommonSpecsViewer: React.FC = () => {
                 </div>
 
                 {/* 地域列表对照表 */}
-                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-2xs">
+                <div className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
                   <div className="px-4 py-2.5 bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-xs font-bold text-slate-800 dark:text-slate-200">
                     支持地域列表 (X-TC-Region)
                   </div>
@@ -672,7 +672,7 @@ export const CommonSpecsViewer: React.FC = () => {
       {activeTab === 'structs' && (
         <div className="flex-1 flex flex-col md:flex-row min-h-0 overflow-hidden">
           {/* 左侧：结构体搜索与列表 */}
-          <div className="w-full md:w-80 shrink-0 border-r border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-3 flex flex-col min-h-0">
+          <div className="w-full md:w-80 shrink-0 border-b md:border-b-0 md:border-r border-slate-200 dark:border-slate-800 bg-white/70 dark:bg-slate-900/70 p-3 flex flex-col min-h-0 max-h-48 md:max-h-none">
             <div className="relative mb-2">
               <Search className="h-3.5 w-3.5 text-slate-400 absolute left-2.5 top-2.5" />
               <Input
@@ -793,10 +793,10 @@ export const CommonSpecsViewer: React.FC = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-1.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-850 text-xs">
+            <div className="flex items-center gap-1.5 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-850 text-xs overflow-x-auto max-w-full scrollbar-none">
               <button
                 onClick={() => setErrorScopeFilter('all')}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   errorScopeFilter === 'all'
                     ? 'bg-white dark:bg-slate-750 text-slate-900 dark:text-white shadow-2xs font-semibold'
                     : 'text-slate-600 dark:text-slate-400'
@@ -806,7 +806,7 @@ export const CommonSpecsViewer: React.FC = () => {
               </button>
               <button
                 onClick={() => setErrorScopeFilter('global')}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   errorScopeFilter === 'global'
                     ? 'bg-white dark:bg-slate-750 text-blue-600 dark:text-blue-400 shadow-2xs font-semibold'
                     : 'text-slate-600 dark:text-slate-400'
@@ -816,7 +816,7 @@ export const CommonSpecsViewer: React.FC = () => {
               </button>
               <button
                 onClick={() => setErrorScopeFilter('business')}
-                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer ${
+                className={`px-2.5 py-1 rounded text-[11px] font-medium transition-colors cursor-pointer whitespace-nowrap shrink-0 ${
                   errorScopeFilter === 'business'
                     ? 'bg-white dark:bg-slate-750 text-rose-600 dark:text-rose-400 shadow-2xs font-semibold'
                     : 'text-slate-600 dark:text-slate-400'
@@ -926,7 +926,7 @@ export const CommonSpecsViewer: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
+          <div className="flex-1 overflow-x-auto overflow-y-auto bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-2xs">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="border-b border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-850 text-slate-500 text-[10px]">

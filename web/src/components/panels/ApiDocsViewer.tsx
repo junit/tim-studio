@@ -925,7 +925,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
             </span>
           </div>
 
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50/90 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
                 <tr>
@@ -1029,7 +1029,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
         </div>
 
         {doc?.request_body_fields && doc.request_body_fields.length > 0 ? (
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50/90 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
                 <tr>
@@ -1155,7 +1155,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
             </span>
           </div>
 
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50/90 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
                 <tr>
@@ -1220,7 +1220,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
         </div>
 
         {filteredErrorCodes.length > 0 ? (
-          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-hidden">
+          <div className="rounded-lg border border-slate-200 dark:border-slate-800 overflow-x-auto shadow-2xs">
             <table className="w-full text-left text-xs border-collapse">
               <thead className="bg-slate-50/90 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-400 font-semibold">
                 <tr>
