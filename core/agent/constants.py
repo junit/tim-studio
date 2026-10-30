@@ -20,7 +20,6 @@ AUTHORIZED_IMPORTS: List[str] = [
     "csv",
     "PIL",
     "pypdf",
-    "os",
 ]
 
 # 沙箱执行输出与步骤限制

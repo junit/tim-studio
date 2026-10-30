@@ -915,7 +915,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                 : 'bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-750 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            全部 ({currentServiceApis.filter((a) => (getCleanPath(a)[0] || a.category) === selectedLevel1).length})
+            全部 ({currentServiceApis.filter((a) => (getCleanPath(a)[0] || a.category || '其它') === selectedLevel1).length})
           </button>
           {level2Categories.map((sub) => (
             <button

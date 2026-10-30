@@ -744,11 +744,19 @@ def export_all_bot_files(bot_id: str):
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        for fn in os.listdir(uploads_dir):
+        seen_names = {}
+        for fn in sorted(os.listdir(uploads_dir)):
             fp = os.path.join(uploads_dir, fn)
             if os.path.isfile(fp):
                 clean_name = re.sub(r"^f_\d+_", "", fn)
-                zf.write(fp, arcname=clean_name)
+                if clean_name in seen_names:
+                    seen_names[clean_name] += 1
+                    base, ext = os.path.splitext(clean_name)
+                    arc_name = f"{base} ({seen_names[clean_name]}){ext}"
+                else:
+                    seen_names[clean_name] = 0
+                    arc_name = clean_name
+                zf.write(fp, arcname=arc_name)
     buf.seek(0)
 
     import urllib.parse

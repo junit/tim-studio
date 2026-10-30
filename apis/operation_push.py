@@ -5,7 +5,7 @@
 """
 
 import random
-from .base import BaseTimApi, Field
+from .base import BaseTimApi, Field, safe_int
 
 
 # ---------------- 全局禁言管理 ----------------
@@ -140,7 +140,7 @@ class ImPushApi(BaseTimApi):
         if input_data.get("Text"):
             return {
                 "From_Account": input_data.get("From_Account") or "admin",
-                "MsgRandom": int(input_data.get("MsgRandom") or random.randint(100000, 999999)),
+                "MsgRandom": safe_int(input_data.get("MsgRandom")) or random.randint(100000, 999999),
                 "MsgBody": [{"MsgType": "TIMTextElem", "MsgContent": {"Text": input_data.get("Text", "")}}]
             }
         if "MsgBody" in input_data:

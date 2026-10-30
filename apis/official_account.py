@@ -5,7 +5,7 @@
 """
 
 import random
-from .base import BaseTimApi, Field
+from .base import BaseTimApi, Field, safe_int
 
 
 class CreateOfficialAccountApi(BaseTimApi):
@@ -76,7 +76,7 @@ class SendOfficialAccountMsgApi(BaseTimApi):
         if input_data.get("Text"):
             return {
                 "Official_Account": input_data.get("Official_Account"),
-                "Random": int(input_data.get("Random") or random.randint(100000, 999999)),
+                "Random": safe_int(input_data.get("Random")) or random.randint(100000, 999999),
                 "MsgBody": [{"MsgType": "TIMTextElem", "MsgContent": {"Text": input_data.get("Text", "")}}]
             }
         if "MsgBody" in input_data:

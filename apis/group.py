@@ -5,7 +5,7 @@
 """
 
 import random
-from .base import BaseTimApi, Field
+from .base import BaseTimApi, Field, safe_int
 
 
 # ---------------- 群基础资料 ----------------
@@ -200,7 +200,7 @@ class AddGroupMemberApi(BaseTimApi):
                 accs = [x.strip() for x in accs.split(",") if x.strip()]
             return {
                 "GroupId": input_data.get("GroupId"),
-                "Silence": int(input_data.get("Silence", 0)),
+                "Silence": safe_int(input_data.get("Silence"), 0),
                 "MemberList": [{"Member_Account": u} for u in accs]
             }
         if "MemberList" in input_data:
@@ -210,7 +210,7 @@ class AddGroupMemberApi(BaseTimApi):
             accs = [x.strip() for x in accs.split(",") if x.strip()]
         return {
             "GroupId": input_data.get("GroupId"),
-            "Silence": int(input_data.get("Silence", 0)),
+            "Silence": safe_int(input_data.get("Silence"), 0),
             "MemberList": [{"Member_Account": u} for u in accs]
         }
 
@@ -326,13 +326,13 @@ class GroupMsgRecallApi(BaseTimApi):
         if msg_seq is not None and group_id is not None:
             return {
                 "GroupId": str(group_id),
-                "MsgSeqList": [{"MsgSeq": int(msg_seq)}]
+                "MsgSeqList": [{"MsgSeq": safe_int(msg_seq, 0)}]
             }
         if "MsgSeqList" in input_data:
             return input_data
         return {
             "GroupId": str(group_id) if group_id is not None else "",
-            "MsgSeqList": [{"MsgSeq": int(msg_seq)}] if msg_seq is not None else []
+            "MsgSeqList": [{"MsgSeq": safe_int(msg_seq, 0)}] if msg_seq is not None else []
         }
 
 
@@ -362,7 +362,7 @@ class SendGroupMsgApi(BaseTimApi):
         if input_data.get("Text"):
             payload = {
                 "GroupId": input_data.get("GroupId"),
-                "Random": int(input_data.get("Random") or random.randint(100000, 999999)),
+                "Random": safe_int(input_data.get("Random")) or random.randint(100000, 999999),
                 "MsgBody": [{"MsgType": "TIMTextElem", "MsgContent": {"Text": input_data.get("Text", "")}}]
             }
             if input_data.get("From_Account"):

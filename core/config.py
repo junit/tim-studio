@@ -181,7 +181,7 @@ def save_environment(env_data: dict) -> dict:
         # 防覆盖逻辑：对所有已知及动态识别的敏感密钥字段进行保护
         all_sec_keys = {k for k in list(existing_env.keys()) + list(env_data.keys()) if is_field_sensitive(k)}
         for sec_field in all_sec_keys:
-            submitted_val = str(env_data.get(sec_field, "")).strip()
+            submitted_val = str(env_data.get(sec_field) or "").strip()
             if not submitted_val or is_secret_masked(submitted_val):
                 env_data[sec_field] = existing_env.get(sec_field, "")
             else:
@@ -195,7 +195,7 @@ def save_environment(env_data: dict) -> dict:
         # 新建环境：若前端提交脱敏占位符则置空
         for key in list(env_data.keys()):
             if is_field_sensitive(key):
-                submitted_val = str(env_data.get(key, "")).strip()
+                submitted_val = str(env_data.get(key) or "").strip()
                 if is_secret_masked(submitted_val):
                     env_data[key] = ""
         cfg["environments"].append(env_data)

@@ -596,21 +596,43 @@ def stream_batch_events(task_id: str):
     if not task:
         raise HTTPException(status_code=404, detail="Task not found")
 
+    sub_queue, history_events = task.register_subscriber()
+
     def event_generator():
-        while True:
-            try:
-                # 从事件队列获取
-                evt = task.event_queue.get(timeout=1.0)
+        try:
+            # 1. 先重放历史已发生事件，保证重连与刷新绝不丢失事件
+            has_finished = False
+            for evt in history_events:
                 yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n"
                 if evt.get("type") in ("complete", "error"):
+                    has_finished = True
                     break
-            except Exception:
-                # 队列为空时发送心跳保持连接
-                if task.status in ("COMPLETED", "CANCELLED", "FAILED"):
-                    break
-                yield ": keep-alive\n\n"
+            if has_finished or task.status in ("COMPLETED", "CANCELLED", "FAILED"):
+                return
 
-    return StreamingResponse(event_generator(), media_type="text/event-stream")
+            # 2. 持续等待新事件
+            while True:
+                try:
+                    evt = sub_queue.get(timeout=1.0)
+                    yield f"data: {json.dumps(evt, ensure_ascii=False)}\n\n"
+                    if evt.get("type") in ("complete", "error") or task.status in ("COMPLETED", "CANCELLED", "FAILED"):
+                        break
+                except Exception:
+                    if task.status in ("COMPLETED", "CANCELLED", "FAILED"):
+                        break
+                    yield ": keep-alive\n\n"
+        finally:
+            task.unregister_subscriber(sub_queue)
+
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no"
+        }
+    )
 
 
 @app.post("/api/batch/{task_id}/pause")

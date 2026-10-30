@@ -7,6 +7,23 @@ import json
 from typing import Any, Dict, List, Optional
 
 
+def safe_int(val: Any, default: int = 0) -> int:
+    """安全转换为整型，对 None、空字符串、非数字字符串平稳降级"""
+    if val is None:
+        return default
+    if isinstance(val, (int, float)):
+        return int(val)
+    if isinstance(val, str):
+        s = val.strip()
+        if not s:
+            return default
+        try:
+            return int(float(s))
+        except (ValueError, TypeError):
+            return default
+    return default
+
+
 class Field:
     def __init__(
         self,

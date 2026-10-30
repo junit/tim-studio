@@ -191,8 +191,12 @@ class AgentRun:
             self.stream_status = "answering"
             self.content = data.get("content", "") or self.content
         elif event_name == "done":
-            self.status = "done"
-            self.stream_status = "done"
+            if self.status != "error" and data.get("status") != "error":
+                self.status = "done"
+                self.stream_status = "done"
+            else:
+                self.status = "error"
+                self.stream_status = "error"
             self.end_time = time.time()
             if data.get("attachments"):
                 self.attachments = data.get("attachments")
@@ -200,7 +204,7 @@ class AgentRun:
                 self.attachments = data.get("files")
             for b in self.code_blocks:
                 if b.get("status") == "running":
-                    b["status"] = "success"
+                    b["status"] = "success" if self.status != "error" else "failed"
         elif event_name == "error":
             self.status = "error"
             self.stream_status = "error"

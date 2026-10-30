@@ -5,7 +5,7 @@
 """
 
 import random
-from .base import BaseTimApi, Field
+from .base import BaseTimApi, Field, safe_int
 
 
 class AdminMsgWithdrawApi(BaseTimApi):
@@ -61,10 +61,10 @@ class SendMsgApi(BaseTimApi):
             to_acc = input_data.get("To_Account", "")
             text = input_data.get("Text", "")
             return {
-                "SyncOtherMachine": int(input_data.get("SyncOtherMachine", 1)),
+                "SyncOtherMachine": safe_int(input_data.get("SyncOtherMachine"), 1),
                 "From_Account": str(from_acc),
                 "To_Account": str(to_acc),
-                "MsgRandom": int(input_data.get("MsgRandom") or random.randint(100000, 999999)),
+                "MsgRandom": safe_int(input_data.get("MsgRandom")) or random.randint(100000, 999999),
                 "MsgBody": [{"MsgType": "TIMTextElem", "MsgContent": {"Text": text}}]
             }
         if "MsgBody" in input_data:
@@ -110,9 +110,9 @@ class BatchSendMsgApi(BaseTimApi):
                 to_acc = [x.strip() for x in to_acc.split(",") if x.strip()]
             text = input_data.get("Text", "")
             return {
-                "SyncOtherMachine": int(input_data.get("SyncOtherMachine", 2)),
+                "SyncOtherMachine": safe_int(input_data.get("SyncOtherMachine"), 2),
                 "To_Account": to_acc,
-                "MsgRandom": int(input_data.get("MsgRandom") or random.randint(100000, 999999)),
+                "MsgRandom": safe_int(input_data.get("MsgRandom")) or random.randint(100000, 999999),
                 "MsgBody": [{"MsgType": "TIMTextElem", "MsgContent": {"Text": text}}]
             }
         if "MsgBody" in input_data:
@@ -159,11 +159,11 @@ class ImportMsgApi(BaseTimApi):
     def build_payload(self, input_data: dict) -> dict:
         if input_data.get("Text"):
             return {
-                "SyncFromOldSystem": int(input_data.get("SyncFromOldSystem", 1)),
+                "SyncFromOldSystem": safe_int(input_data.get("SyncFromOldSystem"), 1),
                 "From_Account": str(input_data.get("From_Account", "")),
                 "To_Account": str(input_data.get("To_Account", "")),
-                "MsgRandom": int(input_data.get("MsgRandom") or random.randint(100000, 999999)),
-                "MsgTimeStamp": int(input_data.get("MsgTimeStamp") or 1557387418),
+                "MsgRandom": safe_int(input_data.get("MsgRandom")) or random.randint(100000, 999999),
+                "MsgTimeStamp": safe_int(input_data.get("MsgTimeStamp"), 1557387418),
                 "MsgBody": [{"MsgType": "TIMTextElem", "MsgContent": {"Text": input_data.get("Text", "")}}]
             }
         if "MsgBody" in input_data:

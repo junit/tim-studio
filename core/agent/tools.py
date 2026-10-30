@@ -3,6 +3,7 @@
 智能体工具集定义：TIM 166 API 工具、提示词自我强化、记忆持久化、技能自沉淀与执行
 """
 
+import ast
 import json
 import os
 import re
@@ -63,7 +64,6 @@ class CloudCallTool(Tool):
                 clean_payload = json.loads(clean_payload.strip())
             except Exception:
                 try:
-                    import ast
                     parsed = ast.literal_eval(clean_payload.strip())
                     if isinstance(parsed, dict):
                         clean_payload = parsed
@@ -582,7 +582,6 @@ class RunSkillTool(Tool):
                 args = json.loads(args.strip())
             except Exception:
                 try:
-                    import ast
                     parsed = ast.literal_eval(args.strip())
                     if isinstance(parsed, dict):
                         args = parsed
@@ -590,6 +589,25 @@ class RunSkillTool(Tool):
                     args = {}
         if not isinstance(args, dict):
             args = args or {}
+
+        # 静态 AST 安全审计：拦截危险模块与沙箱逃逸属性
+        try:
+            parsed_ast = ast.parse(skill.code)
+            for node in ast.walk(parsed_ast):
+                if isinstance(node, ast.Import):
+                    for alias in node.names:
+                        mod = alias.name.split(".")[0]
+                        if mod in ("os", "subprocess", "sys", "shutil", "socket", "pty", "commands"):
+                            return {"success": False, "error": f"安全拦截：技能代码禁止导入高危系统模块 '{alias.name}'"}
+                elif isinstance(node, ast.ImportFrom):
+                    mod = (node.module or "").split(".")[0]
+                    if mod in ("os", "subprocess", "sys", "shutil", "socket", "pty", "commands"):
+                        return {"success": False, "error": f"安全拦截：技能代码禁止从高危系统模块 '{node.module}' 导入"}
+                elif isinstance(node, ast.Attribute):
+                    if node.attr in ("__subclasses__", "__globals__", "__builtins__", "__bases__"):
+                        return {"success": False, "error": f"安全拦截：技能代码禁止访问内省属性 '{node.attr}'"}
+        except Exception as parse_err:
+            return {"success": False, "error": f"技能代码语法解析失败: {str(parse_err)}"}
 
         # 构造带有风控审计的调用工具实例
         caller_tool = CloudCallTool(
@@ -625,15 +643,17 @@ class RunSkillTool(Tool):
                 return local_scope["execute"](**args)
             return local_scope.get("result", "Skill executed successfully")
 
+        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
         try:
-            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
-                future = executor.submit(_exec_target)
-                res = future.result(timeout=25.0)
-                return {"success": True, "result": res}
+            future = executor.submit(_exec_target)
+            res = future.result(timeout=25.0)
+            return {"success": True, "result": res}
         except concurrent.futures.TimeoutError:
             return {"success": False, "error": f"执行技能 {name} 超时（超过 25 秒限制）"}
         except Exception as e:
             return {"success": False, "error": f"执行技能 {name} 失败: {str(e)}"}
+        finally:
+            executor.shutdown(wait=False, cancel_futures=True)
 
 
 class CreateBotTool(Tool):
