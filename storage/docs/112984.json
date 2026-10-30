@@ -1,0 +1,161 @@
+{
+  "doc_id": 112984,
+  "api_id": "live_AddCasterInputInfo",
+  "title": "新增导播台输入源",
+  "doc_url": "https://cloud.tencent.com/document/api/267/112984",
+  "sync_time": "2026-10-29 19:32:08",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用来向导播台中添加一个输入源，该输入源可以是拉流地址、或是一个文件链接\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：AddCasterInputInfo。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "CasterId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "导播台ID。示例值：63501"
+    },
+    {
+      "name": "InputInfo",
+      "type": "CasterInputInfo",
+      "required": "必填",
+      "description": "导播台输入源详细信息。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: AddCasterInputInfo\n<公共请求参数>\n\n{\n    \"InputInfo\": {\n        \"Description\": \"for_example\",\n        \"InputIndex\": 1,\n        \"InputType\": 1,\n        \"InputUrl\": \"http://www.example.com/vod/example.mp4\"\n    },\n    \"CasterId\": 63501\n}",
+      "clean_json": "{\n  \"InputInfo\": {\n    \"Description\": \"for_example\",\n    \"InputIndex\": 1,\n    \"InputType\": 1,\n    \"InputUrl\": \"http://www.example.com/vod/example.mp4\"\n  },\n  \"CasterId\": 63501\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "InputPlayUrl",
+      "type": "String",
+      "description": "rtmp协议输入源播放地址。注：仅可作为预览使用，不可分发。示例值：rtmp://www.example.com/live/example"
+    },
+    {
+      "name": "InputWebRTCPlayUrl",
+      "type": "String",
+      "description": "webrtc协议播放地址。注：1. 需配合使用腾讯云快直播播放SDK使用才可正常播放。2. 仅作为预览使用，不可分发。示例值：webrtc://webrtc.example.com/live/example"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\",\n        \"InputPlayUrl\": \"rtmp://domain/live/input_play\",\n        \"InputWebRTCPlayUrl\": \"webrtc://webrtc.domain/live/input_play\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\",\n    \"InputPlayUrl\": \"rtmp://domain/live/input_play\",\n    \"InputWebRTCPlayUrl\": \"webrtc://webrtc.domain/live/input_play\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.CasterNotFound",
+      "description": "导播台不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.InputAlreadyExist",
+      "description": "输入已经存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.InputUsedInPgm",
+      "description": "输入源在节目 (pgm) 中正在使用。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.InputUsedInPvw",
+      "description": "输入源在预监 (pvw) 中正在使用。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.StartPullFailed",
+      "description": "启动拉流失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.StopPullFailed",
+      "description": "停止拉流失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.TooMuchInput",
+      "description": "输入条数超出限制。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    },
+    {
+      "code": "UnknownParameter",
+      "description": "未知参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

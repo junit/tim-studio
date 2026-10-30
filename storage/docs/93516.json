@@ -1,0 +1,228 @@
+{
+  "doc_id": 93516,
+  "api_id": "live_ModifyLiveStreamMonitor",
+  "title": "修改直播流监播任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/93516",
+  "sync_time": "2026-10-29 19:32:07",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用来修改直播流监播任务的配置。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ModifyLiveStreamMonitor。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，此参数为可选参数。"
+    },
+    {
+      "name": "MonitorId",
+      "type": "String",
+      "required": "必填",
+      "description": "监播任务ID。示例值：caster-124"
+    },
+    {
+      "name": "MonitorName",
+      "type": "String",
+      "required": "选填",
+      "description": "监播任务的名称。长度128字节以内（一个汉字两个字节）。示例值：ExampleStreamMonitor"
+    },
+    {
+      "name": "OutputInfo",
+      "type": "LiveStreamMonitorOutputInfo",
+      "required": "选填",
+      "description": "监播任务输出信息。示例值：{\"OutputDomain\":\"pull-live.jgangwang.cn\",\"OutputStreamHeight\":1080,\"OutputStreamWidth\":1920}"
+    },
+    {
+      "name": "InputList.N",
+      "type": "Array of LiveStreamMonitorInputInfo",
+      "required": "选填",
+      "description": "待监播的输入流信息。示例值：[{\"InputApp\":\"live\",\"InputDomain\":\"tpush.ztimelive.com\",\"InputStreamName\":\"nioday\"}]"
+    },
+    {
+      "name": "NotifyPolicy",
+      "type": "LiveStreamMonitorNotifyPolicy",
+      "required": "选填",
+      "description": "监播事件通知策略。示例值：{\"CallbackUrl\":\"\",\"NotifyPolicyType\":0}"
+    },
+    {
+      "name": "AsrLanguage",
+      "type": "Integer",
+      "required": "选填",
+      "description": "智能语音识别语种：0 关闭 1 中文 2 英文 3 日文 4 韩文。示例值：0"
+    },
+    {
+      "name": "OcrLanguage",
+      "type": "Integer",
+      "required": "选填",
+      "description": "智能文字识别语种：0 关闭 1 中、英文。示例值：0"
+    },
+    {
+      "name": "AiAsrInputIndexList.N",
+      "type": "Array of Integer",
+      "required": "选填",
+      "description": "语音识别输入流列表，1代表第一条输入流。示例值：[1, 2]"
+    },
+    {
+      "name": "AiOcrInputIndexList.N",
+      "type": "Array of Integer",
+      "required": "选填",
+      "description": "文字识别输入流列表，1代表第一条输入流。示例值：[1, 2]"
+    },
+    {
+      "name": "CheckStreamBroken",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否开启断流检测。示例值：0"
+    },
+    {
+      "name": "CheckStreamLowFrameRate",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否开启低帧率检测。示例值：0"
+    },
+    {
+      "name": "AllowMonitorReport",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否存储监播事件到监播报告，以及是否允许查询监播报告。示例值：0"
+    },
+    {
+      "name": "AiFormatDiagnose",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否开启格式诊断。示例值：0"
+    },
+    {
+      "name": "AiQualityControl",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否开启内容质检。示例值：0"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: ModifyLiveStreamMonitor\n<公共请求参数>\n\n{\n    \"MonitorId\": \"caster-124\",\n    \"MonitorName\": \"caster-124\",\n    \"OutputInfo\": {\n        \"OutputStreamName\": \"stream1\",\n        \"OutputStreamWidth\": 1,\n        \"OutputStreamHeight\": 1,\n        \"OutputDomain\": \"\",\n        \"OutputApp\": \"live\"\n    },\n    \"InputList\": [\n        {\n            \"InputStreamName\": \"stream2\",\n            \"InputDomain\": \"live.monitor.push.com\",\n            \"InputApp\": \"live\",\n            \"InputUrl\": \"rtmp://live.monitor.push.com/live/stream1\",\n            \"Description\": \"stream 1\"\n        }\n    ],\n    \"NotifyPolicy\": {\n        \"NotifyPolicyType\": 1,\n        \"CallbackUrl\": \"www.baidu.com\"\n    },\n    \"AsrLanguage\": 1,\n    \"OcrLanguage\": 1,\n    \"AiAsrInputIndexList\": [\n        1\n    ],\n    \"AiOcrInputIndexList\": [\n        1\n    ],\n    \"CheckStreamBroken\": 1,\n    \"CheckStreamLowFrameRate\": 1,\n    \"AllowMonitorReport\": 1\n}",
+      "clean_json": "{\n  \"MonitorId\": \"caster-124\",\n  \"MonitorName\": \"caster-124\",\n  \"OutputInfo\": {\n    \"OutputStreamName\": \"stream1\",\n    \"OutputStreamWidth\": 1,\n    \"OutputStreamHeight\": 1,\n    \"OutputDomain\": \"\",\n    \"OutputApp\": \"live\"\n  },\n  \"InputList\": [\n    {\n      \"InputStreamName\": \"stream2\",\n      \"InputDomain\": \"live.monitor.push.com\",\n      \"InputApp\": \"live\",\n      \"InputUrl\": \"rtmp://live.monitor.push.com/live/stream1\",\n      \"Description\": \"stream 1\"\n    }\n  ],\n  \"NotifyPolicy\": {\n    \"NotifyPolicyType\": 1,\n    \"CallbackUrl\": \"www.baidu.com\"\n  },\n  \"AsrLanguage\": 1,\n  \"OcrLanguage\": 1,\n  \"AiAsrInputIndexList\": [\n    1\n  ],\n  \"AiOcrInputIndexList\": [\n    1\n  ],\n  \"CheckStreamBroken\": 1,\n  \"CheckStreamLowFrameRate\": 1,\n  \"AllowMonitorReport\": 1\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"ff29075a-ef7a-4742-9268-f7a1980dafc5\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"ff29075a-ef7a-4742-9268-f7a1980dafc5\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "AuthFailure",
+      "description": "CAM签名/鉴权错误。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.ConflictAction",
+      "description": "任务接口执行冲突。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DatabaseNotAccessible",
+      "description": "数据库访问异常。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.InputStreamMixTypeNotAccessible",
+      "description": "禁止监播c流。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.MonitorIsActive",
+      "description": "监播任务处于启动状态。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.MonitorLimitExceeded",
+      "description": "监播任务超出限制。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.MonitorNotExist",
+      "description": "监播任务不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.RelatedRunningMonitorLimitExceeded",
+      "description": "输入关联的运行中的监播任务超出限制。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.StartTaskFailed",
+      "description": "启动监播任务失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.StopTaskFailed",
+      "description": "停止监播任务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.NotAllowUseLVB",
+      "description": "该APPID未开通LVB服务。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

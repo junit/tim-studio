@@ -1,0 +1,128 @@
+{
+  "doc_id": 90905,
+  "api_id": "live_DescribeLiveXP2PDetailInfoList",
+  "title": "P2P流数据查询",
+  "doc_url": "https://cloud.tencent.com/document/api/267/90905",
+  "sync_time": "2026-10-29 19:32:23",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\nP2P流数据查询接口，用来获取流量、卡播和起播信息。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveXP2PDetailInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "QueryTime",
+      "type": "String",
+      "required": "选填",
+      "description": "utc分钟粒度查询时间，查询某一分钟的用量数据，格式为：yyyy-mm-ddTHH:MM:00Z，参考https://cloud.tencent.com/document/product/266/11732#I，例如：北京时间2019-01-08 10:00:00，对应utc时间为：2019-01-08T10:00:00+08:00。支持最近六个月的查询。示例值：2006-01-02T15:02:00Z"
+    },
+    {
+      "name": "Type.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "类型数组，分直播live和点播vod，不传默认查全部。示例值：[\"live\",\"vod\"]"
+    },
+    {
+      "name": "StreamNames.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "查询流数组，不传默认查所有流。示例值：[\"streamname\"]"
+    },
+    {
+      "name": "Dimension.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "查询维度，不传该参数则默认查询流维度的数据，传递该参数则只查对应维度的数据，和返回值的字段相关，目前支持AppId维度查询。示例值：[\"AppId\"]"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeLiveXP2PDetailInfoList\n<公共请求参数>\n\n{}",
+      "clean_json": "{}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of XP2PDetailInfo",
+      "description": "P2P流统计信息。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"CdnBytes\": 0,\n                \"P2pBytes\": 0,\n                \"StuckPeople\": 0,\n                \"StuckTimes\": 0,\n                \"OnlinePeople\": 0,\n                \"Request\": 0,\n                \"RequestSuccess\": 0,\n                \"Time\": \"2022-02-23T23:32:00+08:00\",\n                \"Type\": \"live\",\n                \"StreamName\": \"stream1\",\n                \"AppId\": \"1393244\"\n            }\n        ],\n        \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"CdnBytes\": 0,\n        \"P2pBytes\": 0,\n        \"StuckPeople\": 0,\n        \"StuckTimes\": 0,\n        \"OnlinePeople\": 0,\n        \"Request\": 0,\n        \"RequestSuccess\": 0,\n        \"Time\": \"2022-02-23T23:32:00+08:00\",\n        \"Type\": \"live\",\n        \"StreamName\": \"stream1\",\n        \"AppId\": \"1393244\"\n      }\n    ],\n    \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.NotFound",
+      "description": "找不到记录。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

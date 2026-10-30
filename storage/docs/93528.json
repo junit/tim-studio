@@ -1,0 +1,173 @@
+{
+  "doc_id": 93528,
+  "api_id": "live_DeleteLivePadRule",
+  "title": "删除直播垫片规则",
+  "doc_url": "https://cloud.tencent.com/document/api/267/93528",
+  "sync_time": "2026-10-29 19:32:06",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n删除直播垫片规则。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DeleteLivePadRule。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "推流域名。域名+AppName+StreamName唯一标识单个转码规则，如需删除需要强匹配，例如AppName为空也需要传空字符串进行强匹配。示例值：yourdomain.test.com"
+    },
+    {
+      "name": "AppName",
+      "type": "String",
+      "required": "必填",
+      "description": "推流路径，与推流和播放地址中的AppName保持一致，默认为 live。域名+AppName+StreamName唯一标识单个转码规则，如需删除需要强匹配，例如AppName为空也需要传空字符串进行强匹配。示例值：live"
+    },
+    {
+      "name": "StreamName",
+      "type": "String",
+      "required": "必填",
+      "description": "流名称。域名+AppName+StreamName唯一标识单个转码规则，如需删除需要强匹配，例如AppName为空也需要传空字符串进行强匹配。示例值：stream"
+    },
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "直播垫片模板id。示例值：100"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DeleteLivePadRule\n<公共请求参数>\n\n{\n    \"TemplateId\": 1,\n    \"DomainName\": \"domain.com\",\n    \"StreamName\": \"streamname\",\n    \"AppName\": \"appname\"\n}",
+      "clean_json": "{\n  \"TemplateId\": 1,\n  \"DomainName\": \"domain.com\",\n  \"StreamName\": \"streamname\",\n  \"AppName\": \"appname\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.NotFound",
+      "description": "找不到记录。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ArgsNotMatch",
+      "description": "针对添加转码模版的接口。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfInUsed",
+      "description": "模版使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfNotFound",
+      "description": "模版不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotFound",
+      "description": "记录不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleAlreadyExist",
+      "description": "规则已经配置。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleInUsing",
+      "description": "规则使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleNotFound",
+      "description": "规则不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainFormatError",
+      "description": "域名格式错误，请输入合法格式域名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

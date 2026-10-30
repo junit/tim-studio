@@ -1,0 +1,166 @@
+{
+  "doc_id": 35971,
+  "api_id": "live_DescribeBillBandwidthAndFluxList",
+  "title": "直播播放带宽和流量数据查询",
+  "doc_url": "https://cloud.tencent.com/document/api/267/35971",
+  "sync_time": "2026-10-29 19:32:23",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n直播播放带宽和流量数据查询。\n默认接口请求频率限制：100次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeBillBandwidthAndFluxList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，接口查询支持两种时间格式：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。示例值：2019-02-01T00:00:00+08:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，接口查询支持两种时间格式：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。起始和结束时间跨度不支持超过31天。支持最近3年的数据查询示例值：2019-02-01T00:10:00+08:00"
+    },
+    {
+      "name": "PlayDomains.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "直播播放域名，若不填，表示总体数据。示例值：[\"5000.playdomain.com\\n\"]"
+    },
+    {
+      "name": "MainlandOrOversea",
+      "type": "String",
+      "required": "选填",
+      "description": "可选值：Mainland：查询国内数据，Oversea：则查询国外数据，默认：查询国内+国外的数据。示例值：Mainland"
+    },
+    {
+      "name": "Granularity",
+      "type": "Integer",
+      "required": "选填",
+      "description": "数据粒度，支持如下粒度：5：5分钟粒度，（跨度不支持超过1天），60：1小时粒度（跨度不支持超过一个月），1440：天粒度（跨度不支持超过一个月）。默认值：5。示例值：5"
+    },
+    {
+      "name": "ServiceName",
+      "type": "String",
+      "required": "选填",
+      "description": "服务名称，可选值包括LVB(标准直播)，LEB(快直播)，不填则查LVB+LEB总值。示例值：LEB"
+    },
+    {
+      "name": "RegionNames.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "大区，映射表如下：China Mainland 中国大陆Asia Pacific I 亚太一区Asia Pacific II 亚太二区Asia Pacific III 亚太三区Europe 欧洲North America 北美South America 南美Middle East 中东Africa 非洲。示例值：[\"China Mainland\"]"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeBillBandwidthAndFluxList\n<公共请求参数>\n\n{\n    \"EndTime\": \"2019-02-01T00:10:00+08:00\",\n    \"StartTime\": \"2019-02-01T00:00:00+08:00\",\n    \"PlayDomains\": [\n        \"5000.playdomain.com\"\n    ]\n}",
+      "clean_json": "{\n  \"EndTime\": \"2019-02-01T00:10:00+08:00\",\n  \"StartTime\": \"2019-02-01T00:00:00+08:00\",\n  \"PlayDomains\": [\n    \"5000.playdomain.com\"\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "PeakBandwidthTime",
+      "type": "String",
+      "description": "峰值带宽所在时间点，接口返回支持两种时间格式(与接口请求传递的时间格式一致)：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。示例值：2019-02-01T00:00:00+08:00"
+    },
+    {
+      "name": "PeakBandwidth",
+      "type": "Float",
+      "description": "峰值带宽，单位是Mbps。示例值：117042.495"
+    },
+    {
+      "name": "P95PeakBandwidthTime",
+      "type": "String",
+      "description": "95峰值带宽所在时间点，接口返回支持两种时间格式(与接口请求传递的时间格式一致)：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。示例值：2019-02-01T00:00:00+08:00"
+    },
+    {
+      "name": "P95PeakBandwidth",
+      "type": "Float",
+      "description": "95峰值带宽，单位是Mbps。示例值：117042.495"
+    },
+    {
+      "name": "SumFlux",
+      "type": "Float",
+      "description": "总流量，单位是MB。示例值：12254567.55"
+    },
+    {
+      "name": "DataInfoList",
+      "type": "Array of BillDataInfo",
+      "description": "明细数据信息。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"P95PeakBandwidth\": 117042.495,\n        \"P95PeakBandwidthTime\": \"2019-02-01T00:00:00+08:00\",\n        \"DataInfoList\": [\n            {\n                \"Bandwidth\": 117042.495,\n                \"Flux\": 4389093.551,\n                \"Time\": \"2019-02-01T00:00:00+08:00\",\n                \"PeakTime\": \"2019-02-01T00:00:00+08:00\"\n            },\n            {\n                \"Bandwidth\": 110364.995,\n                \"Flux\": 4138687.32,\n                \"Time\": \"2019-02-01T00:05:00+08:00\",\n                \"PeakTime\": \"2019-02-01T00:05:00+08:00\"\n            },\n            {\n                \"Bandwidth\": 99380.978,\n                \"Flux\": 3726786.679,\n                \"Time\": \"2019-02-01T00:10:00+08:00\",\n                \"PeakTime\": \"2019-02-01T00:10:00+08:00\"\n            }\n        ],\n        \"PeakBandwidth\": 117042.495,\n        \"PeakBandwidthTime\": \"2019-02-01 00:00:00+08:00\",\n        \"RequestId\": \"f54e3deb-f318-4148-8a68-3c959642f9ec\",\n        \"SumFlux\": 12254567.55\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"P95PeakBandwidth\": 117042.495,\n    \"P95PeakBandwidthTime\": \"2019-02-01T00:00:00+08:00\",\n    \"DataInfoList\": [\n      {\n        \"Bandwidth\": 117042.495,\n        \"Flux\": 4389093.551,\n        \"Time\": \"2019-02-01T00:00:00+08:00\",\n        \"PeakTime\": \"2019-02-01T00:00:00+08:00\"\n      },\n      {\n        \"Bandwidth\": 110364.995,\n        \"Flux\": 4138687.32,\n        \"Time\": \"2019-02-01T00:05:00+08:00\",\n        \"PeakTime\": \"2019-02-01T00:05:00+08:00\"\n      },\n      {\n        \"Bandwidth\": 99380.978,\n        \"Flux\": 3726786.679,\n        \"Time\": \"2019-02-01T00:10:00+08:00\",\n        \"PeakTime\": \"2019-02-01T00:10:00+08:00\"\n      }\n    ],\n    \"PeakBandwidth\": 117042.495,\n    \"PeakBandwidthTime\": \"2019-02-01 00:00:00+08:00\",\n    \"RequestId\": \"f54e3deb-f318-4148-8a68-3c959642f9ec\",\n    \"SumFlux\": 12254567.55\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

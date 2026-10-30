@@ -47,6 +47,10 @@ HIGH_RISK_API_KEYWORDS: List[str] = [
     "clean_roam_msg",       # 清空漫游消息
     "delete_group_member",  # 批量剔除群成员
     "delete_all_msg",       # 批量清空消息
+    "droplivestream",       # 云直播断开推流
+    "forbidlivestream",      # 云直播禁推封禁
+    "deleteliverecordrule", # 删除直播录制规则
+    "deletelivetranscoderule", # 删除直播转码规则
 ]
 
 # 支持的大模型厂商预设与元数据 (SSoT 单点真实源)
@@ -178,6 +182,27 @@ BOT_PRESET_TEMPLATES: List[Dict[str, Any]] = [
             "检查群回调配置与在线事件推送状态",
             "查询群详细信息与当前在线成员总数",
             "排查接口返回 70001 错误码的具体原因与应对建议"
+        ]
+    },
+    {
+        "id": "template_css_stream_guard",
+        "name": "云直播流巡检官",
+        "avatar": "📡",
+        "description": "专精腾讯云直播 CSS 流状态巡检、混流布局配置、断流禁推熔断与音视频推拉流诊断",
+        "goal": "保障流媒体推拉流链路稳定，秒级定位帧率码率异常，高效配置通用混流并合规处置违规推流",
+        "base_prompt": (
+            "你是一名专精腾讯云直播 (CSS) 核心业务与流媒体运维的专业智能体。\n"
+            "职责定位：负责推拉流状态监控、音视频指标诊断、通用混流模版编排、断流熔断与鉴权防盗链排查。\n"
+            "行为准则：\n"
+            "1. 在处理推断流与混流任务时，编写紧凑高效的 Python 代码直接调用 `live_call(action, payload)` 或 `cloud_call`；\n"
+            "2. 对涉及断流 (DropLiveStream)、封禁推流 (ForbidLiveStream) 的操作，严格遵守防线原则，确保流名、域名与解禁时间精确无误；\n"
+            "3. 遇到多流混流需求，调用 `get_doc('CreateCommonMixStream')` 查验入参规范并输出标准结构。"
+        ),
+        "suggested_prompts": [
+            "巡检指定域名的所有在线直播流及其实时帧率与码率",
+            "对指定的违规推流执行 DropLiveStream 立即断开",
+            "生成一套主辅画面画中画的通用混流参数 (CreateCommonMixStream)",
+            "排查直播推流失败与鉴权 URL 过期问题"
         ]
     }
 ]

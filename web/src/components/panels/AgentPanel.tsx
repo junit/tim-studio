@@ -195,6 +195,8 @@ const inferAvatarFromText = (text: string): string => {
 
 export const AgentPanel: React.FC = () => {
   const showToast = useApiStore((state) => state.showToast)
+  const apis = useApiStore((state) => state.apis)
+  const totalApisCount = apis.length || 427
 
   // BOT 列表与当前选中
   const [bots, setBots] = useState<BotSummary[]>([])
@@ -2394,7 +2396,7 @@ export const AgentPanel: React.FC = () => {
                     <span>支持自然语言协同</span>
                   </Badge>
                 </div>
-                <p className="text-[10px] text-slate-400 truncate max-w-xs sm:max-w-md">{activeBot?.description || '腾讯云 IM 全量 166 个 REST 接口代码编排'}</p>
+                <p className="text-[10px] text-slate-400 truncate max-w-xs sm:max-w-md">{activeBot?.description || '腾讯云多业务云架构与自动化运维代码编排'}</p>
               </div>
             </div>
           </div>
@@ -2499,10 +2501,10 @@ export const AgentPanel: React.FC = () => {
                 <Bot className="h-8 w-8" />
               </div>
               <h3 className="text-base font-bold text-slate-800 dark:text-slate-100 mb-1">
-                欢迎使用 {activeBot?.name || 'TIM 智能体'}
+                欢迎使用 {activeBot?.name || 'TC 架构智能体'}
               </h3>
               <p className="text-xs text-slate-500 dark:text-slate-400 mb-6 leading-relaxed">
-                我具备直接调用 166 个腾讯云 IM REST API、编写与执行 Python 脚本、以及根据您的要求<strong>自我沉淀技能</strong>和<strong>强化提示词</strong>的超能力。
+                我具备直接调度腾讯云多业务全量接口（动态挂载 {totalApisCount} 项官方接口）、编写与执行 Python 脚本、以及根据您的要求<strong>自我沉淀技能</strong>和<strong>强化提示词</strong>的超能力。
               </p>
 
               {/* 快捷指令引导 */}
@@ -2526,10 +2528,10 @@ export const AgentPanel: React.FC = () => {
                   {(activeBot?.suggested_prompts && activeBot.suggested_prompts.length > 0
                     ? activeBot.suggested_prompts
                     : [
-                        `结合 166 个 REST API，为我分析【${activeBot?.name || '当前智能体'}】的核心接口清单`,
-                        '编写 Python 脚本批量检查关键管理员账号的在线状态',
-                        '扫描当前系统中的全部群组并输出基础信息报表',
-                        '将我常用的排查参数与测试群 ID 记录在你的长期记忆中',
+                        `结合全量 ${totalApisCount} 项腾讯云接口，为我分析【${activeBot?.name || '当前智能体'}】的核心能力清单`,
+                        '编写 Python 脚本批量检查关键管理员账号或活跃直播流在线状态',
+                        '扫描当前系统中的全部群组与推流域名并输出基础信息报表',
+                        '将我常用的排查参数与测试流 ID/群 ID 记录在你的长期记忆中',
                       ]
                   ).map((prompt: string, idx: number) => (
                     <button
@@ -2996,7 +2998,7 @@ export const AgentPanel: React.FC = () => {
                 placeholder={
                   attachedFiles.length > 0
                     ? `已附加 ${attachedFiles.length} 个文件，可直接按 Enter 发送自动解析，或补充具体分析需求...`
-                    : `给 ${activeBot?.name || '智能体'} 发送指令，输入 @智能体 协同指挥、上传文件 (DOCX/XLSX/CSV/图片) 或调用 166 个 API... (Enter 发送)`
+                    : `给 ${activeBot?.name || '智能体'} 发送指令，输入 @智能体 协同指挥、上传文件 (DOCX/XLSX/CSV/图片) 或调度 ${totalApisCount} 项云接口... (Enter 发送)`
                 }
                 rows={2}
                 className="flex-1 bg-transparent resize-none border-0 focus:outline-hidden text-xs text-slate-800 dark:text-slate-100 placeholder-slate-400 p-1 leading-relaxed"
@@ -3482,10 +3484,10 @@ export const AgentPanel: React.FC = () => {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-xs font-semibold text-slate-800 dark:text-slate-200">
-                        腾讯云 IM 166 个 REST 接口权限绑定
+                        腾讯云多业务全量接口权限绑定 ({totalApisCount} APIs)
                       </p>
                       <p className="text-[11px] text-slate-400">
-                        {createProgressStage > 2 ? '接口调用链与沙箱权限映射完成' : '正在装配 REST API 工具链与调用准则...'}
+                        {createProgressStage > 2 ? '接口调用链与沙箱权限映射完成' : '正在装配多云 API 工具链与调用准则...'}
                       </p>
                     </div>
                   </div>
@@ -3673,7 +3675,7 @@ export const AgentPanel: React.FC = () => {
                     className="w-full px-3.5 py-2.5 rounded-xl bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 text-xs leading-relaxed focus:border-blue-500 focus:outline-hidden resize-none"
                   />
                   <p className="text-[11px] text-slate-400 dark:text-slate-500 pt-0.5">
-                    💡 系统将基于业务目标自动生成专业人设、分配英文唯一标识并打通腾讯云 166 个 REST 接口权限。
+                    💡 系统将基于业务目标自动生成专业人设、分配英文唯一标识并打通腾讯云多业务接口权限。
                   </p>
                 </div>
 

@@ -52,7 +52,7 @@ class BotConfig(BaseModel):
     avatar: str = Field(default="🤖", description="头像 Emoji")
     description: str = Field(default="", description="简短功能描述")
     base_prompt: str = Field(
-        default="你是一个专业的腾讯云 IM (Instant Messaging) 智能助手，具备调用全部 166 个 REST API、编写与执行 Python 脚本、自我沉淀技能以及长期记忆的能力。",
+        default="你是一个专业的腾讯云多业务智能架构管家，具备调度腾讯云各业务全量接口（云直播 API 3.0、即时通信 IM REST 等）、编写与执行 Python 脚本、自我沉淀技能以及长期记忆的能力。",
         description="基础人设提示词"
     )
     learned_guidelines: List[LearnedGuideline] = Field(default_factory=list, description="自主增强的提示词准则列表")

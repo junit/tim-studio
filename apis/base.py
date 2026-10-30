@@ -4,7 +4,7 @@
 """
 
 import json
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 
 class Field:
@@ -17,7 +17,10 @@ class Field:
         default: Any = None,
         placeholder: str = "",
         help_text: str = "",
-        aliases: List[str] = None  # 用于 Excel/CSV 自动列匹配
+        aliases: List[str] = None,  # 用于 Excel/CSV 自动列匹配
+        struct_name: Optional[str] = None,
+        sub_fields: Optional[List[dict]] = None,
+        item_schema: Optional[dict] = None
     ):
         self.name = name
         self.label = label
@@ -27,9 +30,12 @@ class Field:
         self.placeholder = placeholder
         self.help_text = help_text
         self.aliases = aliases or []
+        self.struct_name = struct_name
+        self.sub_fields = sub_fields
+        self.item_schema = item_schema
 
     def to_dict(self) -> dict:
-        return {
+        d = {
             "name": self.name,
             "label": self.label,
             "type": self.type,
@@ -39,17 +45,28 @@ class Field:
             "help_text": self.help_text,
             "aliases": self.aliases
         }
+        if self.struct_name:
+            d["struct_name"] = self.struct_name
+        if self.sub_fields:
+            d["sub_fields"] = self.sub_fields
+        if self.item_schema:
+            d["item_schema"] = self.item_schema
+        return d
 
 
 class BaseTimApi:
     api_id: str = ""
     name: str = ""
+    service_type: str = "im"  # "im" 或 "live" 等 API 3.0 云服务标识
     category: str = "通用"
     subcategory: str = ""
     path: List[str] = []
     doc_id: int = 0
     service_name: str = ""
     command: str = ""
+    action: str = ""
+    version: str = "2018-08-01"
+    endpoint: str = ""
     doc_url: str = ""
     description: str = ""
     fields: List[Field] = []
@@ -79,7 +96,8 @@ class BaseTimApi:
                         break
 
             if val is not None:
-                if f.type == "number":
+                f_type = (f.type or "").lower()
+                if f_type in ("number", "int", "integer", "float", "double"):
                     try:
                         if isinstance(val, (int, float)):
                             pass
@@ -87,12 +105,12 @@ class BaseTimApi:
                             val = int(val) if val.strip().lstrip("-").isdigit() else (float(val) if "." in val else int(val))
                     except (ValueError, TypeError):
                         pass
-                elif f.type == "boolean":
+                elif f_type in ("boolean", "bool"):
                     if isinstance(val, str):
                         val = val.lower() in ("true", "1", "yes")
                     else:
                         val = bool(val)
-                elif f.type == "list":
+                elif f_type in ("list", "array"):
                     if isinstance(val, str):
                         val_str = val.strip()
                         if val_str.startswith("[") and val_str.endswith("]"):
@@ -104,7 +122,7 @@ class BaseTimApi:
                             val = [x.strip() for x in val_str.split(",") if x.strip()]
                         else:
                             val = []
-                elif f.type == "json":
+                elif f_type in ("json", "object", "dict"):
                     if isinstance(val, str):
                         try:
                             val = json.loads(val)
@@ -121,13 +139,19 @@ class BaseTimApi:
         return payload
 
     def to_metadata(self) -> dict:
-        full_cmd = (
-            f"v4/{self.service_name}/{self.command}"
-            if self.service_name and not self.command.startswith("v4/")
-            else self.command
-        )
+        service_type = getattr(self, "service_type", "im") or "im"
+        if service_type == "im":
+            full_cmd = (
+                f"v4/{self.service_name}/{self.command}"
+                if self.service_name and not self.command.startswith("v4/")
+                else self.command
+            )
+        else:
+            full_cmd = self.command
+
         return {
             "api_id": self.api_id,
+            "service_type": service_type,
             "name": self.name,
             "category": self.category,
             "subcategory": self.subcategory or "常规",
@@ -136,6 +160,9 @@ class BaseTimApi:
             "service_name": self.service_name,
             "command": full_cmd,
             "raw_command": self.command,
+            "action": getattr(self, "action", "") or self.command,
+            "version": getattr(self, "version", "2018-08-01"),
+            "endpoint": getattr(self, "endpoint", "") or (f"{self.service_name or service_type}.tencentcloudapi.com" if service_type != "im" else ""),
             "doc_url": self.doc_url,
             "description": self.description,
             "fields": [f.to_dict() for f in self.fields],

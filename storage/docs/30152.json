@@ -1,0 +1,101 @@
+{
+  "doc_id": 30152,
+  "api_id": "live_DescribeLiveWatermarks",
+  "title": "查询水印列表",
+  "doc_url": "https://cloud.tencent.com/document/api/267/30152",
+  "sync_time": "2026-10-29 19:32:13",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询水印列表。\n默认接口请求频率限制：500次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DescribeLiveWatermarks\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveWatermarks。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "Name",
+      "type": "String",
+      "required": "选填",
+      "description": "水印名称示例值：watermaker"
+    },
+    {
+      "name": "PageNo",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分页的索引参数，从1开始示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分页的大小参数，默认值500示例值：10"
+    }
+  ],
+  "request_examples": [],
+  "response_body_fields": [
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "水印总个数。示例值：10"
+    },
+    {
+      "name": "WatermarkList",
+      "type": "Array of WatermarkInfo",
+      "description": "水印信息列表。示例值：水印信息列表"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"TotalNum\": 1,\n        \"WatermarkList\": [\n            {\n                \"WatermarkId\": 0,\n                \"PictureUrl\": \"http://wechatapppro.file.myqcloud.com/app1vg363qr9722/image/2024-12-05/app1vg363qr9722_watermark.png\",\n                \"XPosition\": 0,\n                \"YPosition\": 0,\n                \"WatermarkName\": \"wechatapppro\",\n                \"Status\": 0,\n                \"CreateTime\": \"2024-12-05\",\n                \"Width\": 0,\n                \"Height\": 0,\n                \"BackgroundWidth\": 0,\n                \"BackgroundHeight\": 0\n            }\n        ],\n        \"RequestId\": \"98ceb7f4-61bd-473c-9381-59a0ed0c25b7\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"TotalNum\": 1,\n    \"WatermarkList\": [\n      {\n        \"WatermarkId\": 0,\n        \"PictureUrl\": \"http://wechatapppro.file.myqcloud.com/app1vg363qr9722/image/2024-12-05/app1vg363qr9722_watermark.png\",\n        \"XPosition\": 0,\n        \"YPosition\": 0,\n        \"WatermarkName\": \"wechatapppro\",\n        \"Status\": 0,\n        \"CreateTime\": \"2024-12-05\",\n        \"Width\": 0,\n        \"Height\": 0,\n        \"BackgroundWidth\": 0,\n        \"BackgroundHeight\": 0\n      }\n    ],\n    \"RequestId\": \"98ceb7f4-61bd-473c-9381-59a0ed0c25b7\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

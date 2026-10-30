@@ -1,0 +1,165 @@
+{
+  "doc_id": 30159,
+  "api_id": "live_CreatePullStreamConfig",
+  "title": "添加拉流配置(该接口已下线,请使用新接口 CreateLivePullStreamTask)",
+  "doc_url": "https://cloud.tencent.com/document/api/267/30159",
+  "sync_time": "2026-10-29 19:32:14",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n创建临时拉流转推任务，目前限制添加10条任务。\n该接口已下线,请使用新接口 CreateLivePullStreamTask。\n注意：该接口用于创建临时拉流转推任务，\n拉流源地址即 FromUrl 可以是腾讯或非腾讯数据源，\n但转推目标地址即 ToUrl 目前限制为已注册的腾讯直播域名。\n默认接口请求频率限制：100次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreatePullStreamConfig。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "FromUrl",
+      "type": "String",
+      "required": "必填",
+      "description": "源 Url ，用于拉流的地址。目前可支持直播流及点播文件。注意：1. 多个点播url之间使用空格拼接。2. 目前上限支持10个url。3. 目前不支持https协议。4. 支持拉流文件格式：flv，rtmp，hls，mp4。示例值：rtmp://5000.liveplay.myqcloud.com/live/stream1"
+    },
+    {
+      "name": "ToUrl",
+      "type": "String",
+      "required": "必填",
+      "description": "目的 Url ，用于推流的地址，目前限制该目标地址为腾讯域名。仅支持：rtmp 协议。示例值：rtmp://5000.livepush.myqcloud.com/live/stream2"
+    },
+    {
+      "name": "AreaId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "选择完成转拉推的服务所在区域:1-深圳，2-上海，3-天津，4-中国香港。示例值：1"
+    },
+    {
+      "name": "IspId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "选择完成转拉推服务使用的运营商网络：1-电信，2-移动，3-联通，4-其他。注：AreaId 为4的时候，IspId 只能为其他。示例值：1"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "开始时间。使用 UTC 格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。示例值：2018-12-31T11:02:00Z"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间，注意：1. 结束时间必须大于开始时间；2. 结束时间和开始时间必须大于当前时间；3. 结束时间 和 开始时间 间隔必须小于七天。使用 UTC 格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。示例值：2018-12-31T12:02:00Z"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreatePullStreamConfig\n<公共请求参数>\n\n{\n    \"AreaId\": \"1\",\n    \"ToUrl\": \"rtmp://5000.livepush.myqcloud.com/live/stream2\",\n    \"FromUrl\": \"rtmp://5000.liveplay.myqcloud.com/live/stream1\",\n    \"IspId\": \"1\",\n    \"StartTime\": \"2018-12-31T11:02:00Z\",\n    \"EndTime\": \"2018-12-31T12:02:00Z\"\n}",
+      "clean_json": "{\n  \"AreaId\": \"1\",\n  \"ToUrl\": \"rtmp://5000.livepush.myqcloud.com/live/stream2\",\n  \"FromUrl\": \"rtmp://5000.liveplay.myqcloud.com/live/stream1\",\n  \"IspId\": \"1\",\n  \"StartTime\": \"2018-12-31T11:02:00Z\",\n  \"EndTime\": \"2018-12-31T12:02:00Z\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ConfigId",
+      "type": "String",
+      "description": "配置成功后的 ID。示例值：965231"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"ConfigId\": \"9564424\",\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"ConfigId\": \"9564424\",\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CallOtherSvrError",
+      "description": "调用内部服务错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetBizidError",
+      "description": "获取用户账号错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

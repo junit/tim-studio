@@ -1,0 +1,133 @@
+{
+  "doc_id": 104324,
+  "api_id": "live_DescribePullTransformPushInfo",
+  "title": "查询拉流转推任务的时长信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/104324",
+  "sync_time": "2026-10-29 19:32:22",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询拉流转推任务的时长信息。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribePullTransformPushInfo。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，接口查询支持两种时间格式：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。示例值：2021-05-21T00:00:00+08:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，接口查询支持两种时间格式：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。支持最近三年的查询，查询开始和结束时间跨度不支持超过31天。示例值：2021-05-21T00:00:00+08:00"
+    },
+    {
+      "name": "MainlandOrOversea",
+      "type": "String",
+      "required": "选填",
+      "description": "可选值：Mainland：查询国内数据，Oversea：则查询国外数据，默认：查询国内+国外的数据。示例值：Mainland"
+    },
+    {
+      "name": "SourceType",
+      "type": "String",
+      "required": "选填",
+      "description": "可选值：  PullLivePushLive：拉流源类型为直播  PullVodPushLive：拉流源类型为点播  PullPicPushLive：拉流源类型为图片  默认：查询全部拉流源类型示例值：PullLivePushLive"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribePullTransformPushInfo\n<公共请求参数>\n\n{\n    \"StartTime\": \"2019-02-01T00:00:00+08:00\",\n    \"EndTime\": \"2019-02-03T00:00:00+08:00\",\n    \"MainlandOrOversea\": \"Mainland\"\n}",
+      "clean_json": "{\n  \"StartTime\": \"2019-02-01T00:00:00+08:00\",\n  \"EndTime\": \"2019-02-03T00:00:00+08:00\",\n  \"MainlandOrOversea\": \"Mainland\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of TaskDurationInfo",
+      "description": "时长统计数据列表"
+    },
+    {
+      "name": "TotalDuration",
+      "type": "Integer",
+      "description": "拉流转推得总时长示例值：1000"
+    },
+    {
+      "name": "TotalDurationSecond",
+      "type": "Integer",
+      "description": "拉流转推得总时长（秒）示例值：1000"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"Time\": \"2019-03-01T00:00:00+08:00\",\n                \"Duration\": 100,\n                \"DurationSecond\": 6000\n            }\n        ],\n        \"TotalDuration\": 2000,\n        \"TotalDurationSecond\": 120000,\n        \"RequestId\": \"c8465603-c3a6-44bc-8354-a9b67bf44301\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"Time\": \"2019-03-01T00:00:00+08:00\",\n        \"Duration\": 100,\n        \"DurationSecond\": 6000\n      }\n    ],\n    \"TotalDuration\": 2000,\n    \"TotalDurationSecond\": 120000,\n    \"RequestId\": \"c8465603-c3a6-44bc-8354-a9b67bf44301\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

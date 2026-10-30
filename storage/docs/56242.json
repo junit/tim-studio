@@ -1,0 +1,270 @@
+{
+  "doc_id": 56242,
+  "api_id": "live_ModifyLivePullStreamTask",
+  "title": "更新直播拉流任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/56242",
+  "sync_time": "2026-10-29 19:32:15",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n更新直播拉流任务。\n不支持修改拉流源类型，如需更换，请创建新任务。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ModifyLivePullStreamTask。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-bangkok, ap-beijing, ap-chongqing, ap-guangzhou, ap-hongkong, ap-seoul, ap-shanghai, ap-singapore, ap-tokyo, eu-frankfurt, na-ashburn, na-siliconvalley 。"
+    },
+    {
+      "name": "TaskId",
+      "type": "String",
+      "required": "必填",
+      "description": "任务Id。示例值：965454"
+    },
+    {
+      "name": "Operator",
+      "type": "String",
+      "required": "必填",
+      "description": "操作人姓名。示例值：yourname"
+    },
+    {
+      "name": "SourceUrls.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "拉流源url列表。SourceType为直播（PullLivePushLive）只可以填1个，SourceType为点播（PullVodPushLive）可以填多个，上限30个。示例值：[\"rtmp://your.domainname.com/live/stream1\\n\"]"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "选填",
+      "description": "开始时间。使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。示例值：2020-04-16T11:02:00Z"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "选填",
+      "description": "结束时间，注意：1. 结束时间必须大于开始时间；2. 结束时间和开始时间必须大于当前时间；3. 结束时间 和 开始时间 间隔必须小于30天。使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。4. 只修改EndTime进行续期， 不会影响正在进行中的任务。示例值：2020-04-17T12:02:00Z"
+    },
+    {
+      "name": "VodLoopTimes",
+      "type": "Integer",
+      "required": "选填",
+      "description": "点播拉流转推循环次数。-1：无限循环，直到任务结束。0：不循环。>0：具体循环次数。次数和时间以先结束的为准。注意：拉流源为点播，该配置生效。示例值：-1"
+    },
+    {
+      "name": "VodRefreshType",
+      "type": "String",
+      "required": "选填",
+      "description": "点播更新SourceUrls后的播放方式：ImmediateNewSource：立即从更新的拉流源开始播放；ContinueBreakPoint：从上次断流url源的断点处继续，结束后再使用新的拉流源。注意：拉流源为点播，该配置生效。示例值：ImmediateNewSource"
+    },
+    {
+      "name": "Status",
+      "type": "String",
+      "required": "选填",
+      "description": "任务状态：enable - 启用，pause - 暂停。示例值：enable"
+    },
+    {
+      "name": "CallbackEvents.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "选择需要回调的事件（不填则回调全部）：TaskStart：任务启动回调，TaskExit：任务停止回调，VodSourceFileStart：从点播源文件开始拉流回调，VodSourceFileFinish：从点播源文件拉流结束回调，ResetTaskConfig：任务更新回调。示例值：[\"TaskStart\"]"
+    },
+    {
+      "name": "CallbackUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "自定义回调地址。相关事件会回调到该地址。示例值：http://callback.com/interface"
+    },
+    {
+      "name": "FileIndex",
+      "type": "Integer",
+      "required": "选填",
+      "description": "指定播放文件索引。注意： 从1开始，不大于SourceUrls中文件个数。示例值：0"
+    },
+    {
+      "name": "OffsetTime",
+      "type": "Integer",
+      "required": "选填",
+      "description": "指定播放文件偏移。注意：1. 单位：秒，配合FileIndex使用。示例值：0"
+    },
+    {
+      "name": "SpecifyTaskId",
+      "type": "String",
+      "required": "选填",
+      "description": "指定任务 ID 修改任务。注意：该自定义任务 ID 只有在创建任务时指定了，才可在此处修改时使用。否则请使用系统返回的任务 ID。示例值：mytaskid"
+    },
+    {
+      "name": "ToUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "目标 Url。换目标地址，会断流重推到新地址。示例值：rtmp://5000.livepush.myqcloud.com/live/vin1333?txSecret=6e9797ce"
+    },
+    {
+      "name": "Comment",
+      "type": "String",
+      "required": "选填",
+      "description": "任务备注。示例值：备注"
+    },
+    {
+      "name": "BackupSourceType",
+      "type": "String",
+      "required": "选填",
+      "description": "备源的类型：PullLivePushLive -直播，PullVodPushLive -点播。注意：1. 仅当主源类型为直播源时，备源才会生效。2. 将该参数置为空，则可将任务去除备源信息。3. 主直播源拉流中断时，自动使用备源进行拉流。4. 如果备源为点播文件时，则每次轮播完点播文件就检查主源是否恢复，如果主源恢复则自动切回到主源，否则继续拉备源。示例值：PullLivePushLive"
+    },
+    {
+      "name": "BackupSourceUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "备源 URL。只允许填一个备源 URL示例值：http://5000.liveplay.myqcloud.com/live/backup.flv?txSecret=4d8e"
+    },
+    {
+      "name": "WatermarkList.N",
+      "type": "Array of PullPushWatermarkInfo",
+      "required": "选填",
+      "description": "水印信息列表。注意：1. 最多支持4个不同位置的水印。2. 水印图片 URL 请使用合法外网可访问地址。3. 支持的水印图片格式：png，jpg等。4. 轮播任务修改水印后，轮播到下一个文件时新水印生效。5. 直播源任务修改水印后，水印立即生效。6. 清除水印时，需携带该水印列表参数，内容为空数组。7. 暂不支持动图水印。"
+    },
+    {
+      "name": "VodLocalMode",
+      "type": "Integer",
+      "required": "选填",
+      "description": "点播源是否启用本地推流模式，默认0，不启用。0 - 不启用。1 - 启用。注意：启用本地模式后，会将源列表中的 MP4 文件进行本地下载，优先使用本地已下载文件进行推流，提高点播源推流稳定性。使用本地下载文件推流时，会产生增值费用。示例值：0"
+    },
+    {
+      "name": "BackupToUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "新的目标地址。传空值，则取消该地址的推流。传入新值，则替换原有地址。示例值：rtmp://5000.livepush.myqcloud.com/live/mybackroom?txSecret=58deaf30f95a7a134c7f0d8512e90b45&txTime=687bfb2d"
+    },
+    {
+      "name": "BackupVodUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "点播垫片文件地址。注意：用于在主源拉不到时自动兜底到垫片文件，切到垫片文件后，每次播完垫片会尝试拉主源，如果主源恢复则自动切回主源。可根据需要的轮询检查时长来传入对应时长的垫片文件。示例值：http://vod.com/file/pad.mp4"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: ModifyLivePullStreamTask\n<公共请求参数>\n\n{\n    \"Operator\": \"yourname\",\n    \"EndTime\": \"2020-04-17T12:02:00Z\",\n    \"StartTime\": \"2020-04-16T11:02:00Z\",\n    \"TaskId\": \"985452\",\n    \"SourceUrls\": [\n        \"rtmp://your.domainname.com/live/stream1\"\n    ]\n}",
+      "clean_json": "{\n  \"Operator\": \"yourname\",\n  \"EndTime\": \"2020-04-17T12:02:00Z\",\n  \"StartTime\": \"2020-04-16T11:02:00Z\",\n  \"TaskId\": \"985452\",\n  \"SourceUrls\": [\n    \"rtmp://your.domainname.com/live/stream1\"\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidBackupToUrl",
+      "description": "无效的备用推流地址。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidCallbackUrl",
+      "description": "回调地址不规范。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidSourceUrl",
+      "description": "源地址不规范。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidTaskTime",
+      "description": "任务时间超出限制。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidToUrl",
+      "description": "目标地址不规范。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidWatermark",
+      "description": "水印参数有误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.TaskNotExist",
+      "description": "任务不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.ToUrlNoPermission",
+      "description": "外部地址无权限。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

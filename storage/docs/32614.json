@@ -1,0 +1,246 @@
+{
+  "doc_id": 32614,
+  "api_id": "live_CreateLiveRecordTemplate",
+  "title": "直播创建录制模板",
+  "doc_url": "https://cloud.tencent.com/document/api/267/32614",
+  "sync_time": "2026-10-29 19:32:17",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n创建录制模板，数量上限：50，成功返回模板id后，需要调用 CreateLiveRecordRule 接口，将模板id绑定到流进行使用。\n录制相关文档： 直播录制 。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=CreateLiveRecordTemplate\n&TemplateName=templat\n&Description=录制规则\n&FlvParam.Enable=0\n&FlvParam.RecordInterval=1800\n&FlvParam.StorageTime=600\n&HlsParam.Enable=1\n&HlsParam.RecordInterval=1800\n&HlsParam.StorageTime=600\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateLiveRecordTemplate。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "TemplateName",
+      "type": "String",
+      "required": "必填",
+      "description": "模板名。仅支持中文、英文、数字、_、-。示例值：templat"
+    },
+    {
+      "name": "Description",
+      "type": "String",
+      "required": "选填",
+      "description": "描述信息。示例值：录制规则"
+    },
+    {
+      "name": "FlvParam",
+      "type": "RecordParam",
+      "required": "选填",
+      "description": "Flv录制参数，开启Flv录制时设置。"
+    },
+    {
+      "name": "HlsParam",
+      "type": "RecordParam",
+      "required": "选填",
+      "description": "Hls录制参数，开启hls录制时设置。"
+    },
+    {
+      "name": "Mp4Param",
+      "type": "RecordParam",
+      "required": "选填",
+      "description": "Mp4录制参数，开启Mp4录制时设置。"
+    },
+    {
+      "name": "AacParam",
+      "type": "RecordParam",
+      "required": "选填",
+      "description": "Aac录制参数，开启Aac录制时设置。"
+    },
+    {
+      "name": "IsDelayLive",
+      "type": "Integer",
+      "required": "选填",
+      "description": "直播类型，默认 0。0：普通直播，1：慢直播。示例值：12"
+    },
+    {
+      "name": "HlsSpecialParam",
+      "type": "HlsSpecialParam",
+      "required": "选填",
+      "description": "HLS专属录制参数。"
+    },
+    {
+      "name": "Mp3Param",
+      "type": "RecordParam",
+      "required": "选填",
+      "description": "Mp3录制参数，开启Mp3录制时设置。"
+    },
+    {
+      "name": "CosStore",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否存储至 cos，值为 1 时表示存储至 cos。示例值：1"
+    },
+    {
+      "name": "RemoveWatermark",
+      "type": "Boolean",
+      "required": "选填",
+      "description": "是否去除水印，类型为慢直播时此参数无效。如果为false，则录制水印流或转码流；如果为true，则录制原始流。示例值：false"
+    },
+    {
+      "name": "FlvSpecialParam",
+      "type": "FlvSpecialParam",
+      "required": "选填",
+      "description": "FLV 录制特殊参数。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateLiveRecordTemplate\n<公共请求参数>\n\n{\n    \"RemoveWatermark\": \"false\",\n    \"FlvParam\": {\n        \"StorageTime\": \"2\",\n        \"VodSubAppId\": \"251195406\",\n        \"Enable\": \"1\",\n        \"RecordInterval\": \"2222\"\n    },\n    \"IsDelayLive\": \"0\",\n    \"Description\": \"字符串\",\n    \"TemplateName\": \"字符串\"\n}",
+      "clean_json": "{\n  \"RemoveWatermark\": \"false\",\n  \"FlvParam\": {\n    \"StorageTime\": \"2\",\n    \"VodSubAppId\": \"251195406\",\n    \"Enable\": \"1\",\n    \"RecordInterval\": \"2222\"\n  },\n  \"IsDelayLive\": \"0\",\n  \"Description\": \"字符串\",\n  \"TemplateName\": \"字符串\"\n}"
+    },
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=CreateLiveRecordTemplate\n&TemplateName=templat\n&Description=录制规则\n&FlvParam.Enable=0\n&FlvParam.RecordInterval=1800\n&FlvParam.StorageTime=600\n&HlsParam.Enable=1\n&HlsParam.RecordInterval=1800\n&HlsParam.StorageTime=600\n&<公共请求参数>",
+      "clean_json": "{\n  \"TemplateName\": \"templat\",\n  \"Description\": \"录制规则\",\n  \"FlvParam.Enable\": 0,\n  \"FlvParam.RecordInterval\": 1800,\n  \"FlvParam.StorageTime\": 600,\n  \"HlsParam.Enable\": 1,\n  \"HlsParam.RecordInterval\": 1800,\n  \"HlsParam.StorageTime\": 600\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "description": "模板Id。示例值：1000"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"74ed2203-278d-4ec8-8c67-65626a94daef\",\n        \"TemplateId\": 362894\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"74ed2203-278d-4ec8-8c67-65626a94daef\",\n    \"TemplateId\": 362894\n  }\n}"
+    },
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"TemplateId\": 1000,\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"TemplateId\": 1000,\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.NotFound",
+      "description": "找不到记录。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ArgsNotMatch",
+      "description": "针对添加转码模版的接口。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfInUsed",
+      "description": "模版使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfNotFound",
+      "description": "模版不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfOutLimit",
+      "description": "模版数量超过限制。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotFound",
+      "description": "记录不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleAlreadyExist",
+      "description": "规则已经配置。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleInUsing",
+      "description": "规则使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleNotFound",
+      "description": "规则不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidVodFileName",
+      "description": "错误的VodFileName。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation.NotLVBCodeMode",
+      "description": "非直播码/新版控制台模式。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

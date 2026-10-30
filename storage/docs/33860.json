@@ -1,0 +1,156 @@
+{
+  "doc_id": 33860,
+  "api_id": "live_DeleteLiveDomain",
+  "title": "删除域名",
+  "doc_url": "https://cloud.tencent.com/document/api/267/33860",
+  "sync_time": "2026-10-29 19:32:11",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n删除已添加的直播域名\n默认接口请求频率限制：100次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DeleteLiveDomain\n&DomainName=www.test.com\n&DomainType=0\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DeleteLiveDomain。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "要删除的域名示例值：www.test.com"
+    },
+    {
+      "name": "DomainType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "类型。0-推流，1-播放示例值：0"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=DeleteLiveDomain\n&DomainName=www.test.com\n&DomainType=0\n&<公共请求参数>",
+      "clean_json": "{\n  \"DomainName\": \"www.test.com\",\n  \"DomainType\": 0\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DeleteDomainInLockedTime",
+      "description": "2天内有产生流量，域名处于锁定期间，2天内无流量产生才允许删除域名。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.JiFeiNoEnoughFund",
+      "description": "计费平台返回余额不足。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.NotFound",
+      "description": "找不到记录。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.TagUnbindError",
+      "description": "解绑Tag失败，请尝试手动解绑。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConnectDbError",
+      "description": "DB 连接错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NetworkError",
+      "description": "内部网络错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainAlreadyExist",
+      "description": "域名已经存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainFormatError",
+      "description": "域名格式错误，请输入合法格式域名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainIsLimited",
+      "description": "域名受限，请提交工单，申请解除限制。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.DomainNotExist",
+      "description": "域名不存在或不匹配。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,89 @@
+{
+  "doc_id": 131413,
+  "api_id": "live_DescribeSceneVideoTask",
+  "title": "查询场景化生视频任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/131413",
+  "sync_time": "2026-10-29 19:32:27",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用于查询场景化视频任务进展及结果。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeSceneVideoTask。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，此参数为可选参数。"
+    },
+    {
+      "name": "TaskId",
+      "type": "String",
+      "required": "必填",
+      "description": "任务ID。示例值：2*278-*Video-721d18cefa094ba4a6***cbbacab"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeSceneVideoTask\n<公共请求参数>\n\n{\n    \"TaskId\": \"2*****278-*********Video-721d18cefa094ba4a6*******cbbacab\"\n}",
+      "clean_json": "{\n  \"TaskId\": \"2*****278-*********Video-721d18cefa094ba4a6*******cbbacab\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "InfoList",
+      "type": "Array of SceneVideoOutputInfo",
+      "description": "一些特殊场景的返回信息。"
+    },
+    {
+      "name": "Status",
+      "type": "String",
+      "description": "任务状态。枚举值：DONE： 任务结束。RUN： 任务运行中。WAIT： 任务准备中。FAIL： 任务失败。示例值：DONE"
+    },
+    {
+      "name": "Resolution",
+      "type": "String",
+      "description": "输出视频的分辨率。示例：720x1280。示例值：1920x1080"
+    },
+    {
+      "name": "Message",
+      "type": "String",
+      "description": "错误信息。示例值：role not exist"
+    },
+    {
+      "name": "VideoUrls",
+      "type": "Array of String",
+      "description": "输出的视频Url。默认过期时间:12小时，请尽快拉取并转存。也可以使用私有Cos桶长期存储。示例值：[\"https://a*****u**ut-video-file-1326893053.cos.ap-guangzhou.myqcloud.com/251006278/251006278-live-AigcVideo-721d18cefa094ba4****6****cbbacab_0.mp4\"]"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"Message\": \"role not exist\",\n        \"Resolution\": \"1920x1080\",\n        \"Status\": \"DONE\",\n        \"VideoUrls\": [\n            \"https://a*****u**ut-video-file-1326893053.cos.ap-guangzhou.myqcloud.com/251006278/251006278-live-AigcVideo-721d18cefa094ba4****6****cbbacab_0.mp4?q-sign-algorithm=sha1&q-ak=AKIDLm***5**********k04*****keLrAG9C&q-sign-time=1778220128;1778**********ey-time=1778220128;1778263338&q-h**de*-list=ho***q-url-param-list=&q-signature=*f0133***fdf5d****f6366c98b95736b7293d8c\"\n        ],\n        \"RequestId\": \"e76ec0ff-6faa-4f16-8e81-d7c160457496\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"Message\": \"role not exist\",\n    \"Resolution\": \"1920x1080\",\n    \"Status\": \"DONE\",\n    \"VideoUrls\": [\n      \"https://a*****u**ut-video-file-1326893053.cos.ap-guangzhou.myqcloud.com/251006278/251006278-live-AigcVideo-721d18cefa094ba4****6****cbbacab_0.mp4?q-sign-algorithm=sha1&q-ak=AKIDLm***5**********k04*****keLrAG9C&q-sign-time=1778220128;1778**********ey-time=1778220128;1778263338&q-h**de*-list=ho***q-url-param-list=&q-signature=*f0133***fdf5d****f6366c98b95736b7293d8c\"\n    ],\n    \"RequestId\": \"e76ec0ff-6faa-4f16-8e81-d7c160457496\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

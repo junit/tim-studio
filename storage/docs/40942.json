@@ -1,0 +1,168 @@
+{
+  "doc_id": 40942,
+  "api_id": "live_DescribeLivePackageInfo",
+  "title": "查询直播套餐包信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/40942",
+  "sync_time": "2026-10-29 19:32:23",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询用户套餐包总量、使用量、剩余量、包状态、购买时间和过期时间等。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DescribeLivePackageInfo\n&PackageType=0\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLivePackageInfo。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "PackageType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "包类型，可选值：0：流量包1：转码包2: 连麦包。示例值：1"
+    },
+    {
+      "name": "OrderBy",
+      "type": "String",
+      "required": "选填",
+      "description": "排序规则:1. BuyTimeDesc： 最新购买的排在最前面2. BuyTimeAsc： 最老购买的排在最前面3. ExpireTimeDesc： 最后过期的排在最前面4. ExpireTimeAsc：最先过期的排在最前面。注意：1. PackageType 为 2（连麦包） 的时候，不支持 3、4 排序。示例值：BuyTime desc"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "取得第几页的数据，和 PageSize 同时传递才会生效。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分页大小，和 PageNum 同时传递才会生效。取值：10 ～ 100 之间的任意整数。示例值：10"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=DescribeLivePackageInfo\n&PackageType=0\n&<公共请求参数>",
+      "clean_json": "{\n  \"PackageType\": 0\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "LivePackageInfoList",
+      "type": "Array of LivePackageInfo",
+      "description": "套餐包信息。"
+    },
+    {
+      "name": "PackageBillMode",
+      "type": "Integer",
+      "description": "套餐包当前计费方式:-1: 无计费方式或获取失败0: 无计费方式201: 月结带宽202: 月结流量203: 日结带宽204: 日结流量205: 日结时长206: 月结时长304: 日结流量。示例值：201"
+    },
+    {
+      "name": "TotalPage",
+      "type": "Integer",
+      "description": "总页数。注意：此字段可能返回 null，表示取不到有效值。示例值：10"
+    },
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "数据总条数。注意：此字段可能返回 null，表示取不到有效值。示例值：95"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "description": "当前页数。注意：此字段可能返回 null，表示取不到有效值。示例值：2"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "description": "当前每页数量。注意：此字段可能返回 null，表示取不到有效值。示例值：10"
+    },
+    {
+      "name": "FluxPackageBillMode",
+      "type": "String",
+      "description": "当请求参数 PackageType = 0 时生效，逗号分隔，从第一个到最后一个分别表示：标准直播，中国大陆（境内全地区）计费方式。标准直播，国际/港澳台（境外多地区）计费方式。快直播，中国大陆（境内全地区）计费方式。快直播，国际/港澳台（境外多地区）计费方式。示例值：201,201,204,204"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"53fc3618-4152-4e12-a1e6-3805e647a602\",\n        \"LivePackageInfoList\": [\n            {\n                \"Id\": \"281975\",\n                \"Type\": 0,\n                \"Status\": 1,\n                \"Total\": 500000000000,\n                \"Used\": 2365271265,\n                \"Left\": 497634728735,\n                \"BuyTime\": \"2024-07-16 18:46:08\",\n                \"ExpireTime\": \"2025-07-16 18:46:08\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"272177\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 500000000000,\n                \"Used\": 500000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2023-12-05 10:17:04\",\n                \"ExpireTime\": \"2024-12-05 10:17:04\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"265480\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 100000000000,\n                \"Used\": 100000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2023-07-14 14:14:30\",\n                \"ExpireTime\": \"2024-07-14 14:14:30\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"242917\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 1000000000000,\n                \"Used\": 1000000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2022-09-30 10:01:19\",\n                \"ExpireTime\": \"2023-09-30 10:01:19\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"224805\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 100000000000,\n                \"Used\": 100000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2022-04-01 10:13:27\",\n                \"ExpireTime\": \"2023-04-01 10:13:27\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"224804\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 100000000000,\n                \"Used\": 100000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2022-04-01 10:13:27\",\n                \"ExpireTime\": \"2023-04-01 10:13:27\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"210034\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 100000000000,\n                \"Used\": 100000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2021-11-16 16:48:39\",\n                \"ExpireTime\": \"2022-11-16 16:48:39\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"174007\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 100000000000,\n                \"Used\": 100000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2021-03-19 16:21:52\",\n                \"ExpireTime\": \"2022-03-19 16:21:52\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            },\n            {\n                \"Id\": \"138556\",\n                \"Type\": 0,\n                \"Status\": 4,\n                \"Total\": 20000000000,\n                \"Used\": 20000000000,\n                \"Left\": 0,\n                \"BuyTime\": \"2020-09-09 12:45:48\",\n                \"ExpireTime\": \"2021-09-09 12:45:48\",\n                \"WillRenew\": 0,\n                \"RenewalResult\": 0\n            }\n        ],\n        \"PackageBillMode\": 204,\n        \"FluxPackageBillMode\": \"204,204,204,204,-1,-1\",\n        \"TotalPage\": 1,\n        \"TotalNum\": 9,\n        \"PageNum\": 1,\n        \"PageSize\": 100\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"53fc3618-4152-4e12-a1e6-3805e647a602\",\n    \"LivePackageInfoList\": [\n      {\n        \"Id\": \"281975\",\n        \"Type\": 0,\n        \"Status\": 1,\n        \"Total\": 500000000000,\n        \"Used\": 2365271265,\n        \"Left\": 497634728735,\n        \"BuyTime\": \"2024-07-16 18:46:08\",\n        \"ExpireTime\": \"2025-07-16 18:46:08\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"272177\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 500000000000,\n        \"Used\": 500000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2023-12-05 10:17:04\",\n        \"ExpireTime\": \"2024-12-05 10:17:04\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"265480\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 100000000000,\n        \"Used\": 100000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2023-07-14 14:14:30\",\n        \"ExpireTime\": \"2024-07-14 14:14:30\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"242917\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 1000000000000,\n        \"Used\": 1000000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2022-09-30 10:01:19\",\n        \"ExpireTime\": \"2023-09-30 10:01:19\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"224805\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 100000000000,\n        \"Used\": 100000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2022-04-01 10:13:27\",\n        \"ExpireTime\": \"2023-04-01 10:13:27\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"224804\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 100000000000,\n        \"Used\": 100000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2022-04-01 10:13:27\",\n        \"ExpireTime\": \"2023-04-01 10:13:27\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"210034\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 100000000000,\n        \"Used\": 100000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2021-11-16 16:48:39\",\n        \"ExpireTime\": \"2022-11-16 16:48:39\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"174007\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 100000000000,\n        \"Used\": 100000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2021-03-19 16:21:52\",\n        \"ExpireTime\": \"2022-03-19 16:21:52\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      },\n      {\n        \"Id\": \"138556\",\n        \"Type\": 0,\n        \"Status\": 4,\n        \"Total\": 20000000000,\n        \"Used\": 20000000000,\n        \"Left\": 0,\n        \"BuyTime\": \"2020-09-09 12:45:48\",\n        \"ExpireTime\": \"2021-09-09 12:45:48\",\n        \"WillRenew\": 0,\n        \"RenewalResult\": 0\n      }\n    ],\n    \"PackageBillMode\": 204,\n    \"FluxPackageBillMode\": \"204,204,204,204,-1,-1\",\n    \"TotalPage\": 1,\n    \"TotalNum\": 9,\n    \"PageNum\": 1,\n    \"PageSize\": 100\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

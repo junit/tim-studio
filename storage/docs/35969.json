@@ -1,0 +1,117 @@
+{
+  "doc_id": 35969,
+  "api_id": "live_DescribeHttpStatusInfoList",
+  "title": "查询播放http状态码明细数据",
+  "doc_url": "https://cloud.tencent.com/document/api/267/35969",
+  "sync_time": "2026-10-29 19:32:21",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口为监控数据接口，数据采集及统计方式与计费数据不同，仅供运营分析使用，不能用于计费对账参考。\n查询某段时间内5分钟粒度的各播放http状态码的个数。\n备注：数据延迟1小时，如10:00-10:59点的数据12点才能查到。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeHttpStatusInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间，使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。示例值：2019-03-01T00:00:00+08:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间，使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。示例值：2019-03-01T00:00:00+08:00"
+    },
+    {
+      "name": "PlayDomains.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "播放域名列表。示例值：[\"5000.liveplay.com\\n\"]"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeHttpStatusInfoList\n<公共请求参数>\n\n{\n    \"EndTime\": \"2019-03-01T00:01:00+08:00\",\n    \"StartTime\": \"2019-03-01T00:00:00+08:00\",\n    \"PlayDomains\": [\n        \"5000.liveplay.com\"\n    ]\n}",
+      "clean_json": "{\n  \"EndTime\": \"2019-03-01T00:01:00+08:00\",\n  \"StartTime\": \"2019-03-01T00:00:00+08:00\",\n  \"PlayDomains\": [\n    \"5000.liveplay.com\"\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of HttpStatusData",
+      "description": "播放状态码列表。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"Time\": \"2019-03-01T00:00:00+08:00\",\n                \"HttpStatusInfoList\": [\n                    {\n                        \"HttpStatus\": \"200\",\n                        \"Num\": 100\n                    }\n                ]\n            }\n        ],\n        \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"Time\": \"2019-03-01T00:00:00+08:00\",\n        \"HttpStatusInfoList\": [\n          {\n            \"HttpStatus\": \"200\",\n            \"Num\": 100\n          }\n        ]\n      }\n    ],\n    \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

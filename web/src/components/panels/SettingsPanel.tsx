@@ -22,13 +22,16 @@ import {
   ExternalLink,
   Globe,
   X,
+  Video,
+  MessageSquare,
+  Cloud,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import { useConfigStore, Environment } from '@/stores/configStore'
-import { useApiStore } from '@/stores/apiStore'
+import { useApiStore, CLOUD_SERVICES } from '@/stores/apiStore'
 import { getTagBadgeStyle } from '@/components/common/Header'
 
 const PRESET_TAGS = ['PROD', 'DEV', 'TEST', 'STAGE', 'PRE']
@@ -91,6 +94,120 @@ export const OFFICIAL_REGIONS: RegionDomainConfig[] = [
   },
 ]
 
+export interface LiveRegionConfig {
+  region: string
+  name: string
+  shortName: string
+  endpoint: string
+  isRecommended?: boolean
+}
+
+export const OFFICIAL_LIVE_REGIONS: LiveRegionConfig[] = [
+  {
+    region: 'ap-guangzhou',
+    name: '就近地域接入（推荐，只支持非金融区）',
+    shortName: '就近推荐',
+    endpoint: 'live.tencentcloudapi.com',
+    isRecommended: true,
+  },
+  {
+    region: 'ap-guangzhou',
+    name: '华南地区（广州）',
+    shortName: '广州',
+    endpoint: 'live.ap-guangzhou.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-shanghai',
+    name: '华东地区（上海）',
+    shortName: '上海',
+    endpoint: 'live.ap-shanghai.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-nanjing',
+    name: '华东地区（南京）',
+    shortName: '南京',
+    endpoint: 'live.ap-nanjing.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-beijing',
+    name: '华北地区（北京）',
+    shortName: '北京',
+    endpoint: 'live.ap-beijing.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-chengdu',
+    name: '西南地区（成都）',
+    shortName: '成都',
+    endpoint: 'live.ap-chengdu.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-chongqing',
+    name: '西南地区（重庆）',
+    shortName: '重庆',
+    endpoint: 'live.ap-chongqing.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-hongkong',
+    name: '港澳台地区（中国香港）',
+    shortName: '中国香港',
+    endpoint: 'live.ap-hongkong.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-singapore',
+    name: '亚太东南（新加坡）',
+    shortName: '新加坡',
+    endpoint: 'live.ap-singapore.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-jakarta',
+    name: '亚太东南（雅加达）',
+    shortName: '雅加达',
+    endpoint: 'live.ap-jakarta.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-bangkok',
+    name: '亚太东南（曼谷）',
+    shortName: '曼谷',
+    endpoint: 'live.ap-bangkok.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-seoul',
+    name: '亚太东北（首尔）',
+    shortName: '首尔',
+    endpoint: 'live.ap-seoul.tencentcloudapi.com',
+  },
+  {
+    region: 'ap-tokyo',
+    name: '亚太东北（东京）',
+    shortName: '东京',
+    endpoint: 'live.ap-tokyo.tencentcloudapi.com',
+  },
+  {
+    region: 'na-ashburn',
+    name: '美国东部（弗吉尼亚）',
+    shortName: '弗吉尼亚',
+    endpoint: 'live.na-ashburn.tencentcloudapi.com',
+  },
+  {
+    region: 'na-siliconvalley',
+    name: '美国西部（硅谷）',
+    shortName: '硅谷',
+    endpoint: 'live.na-siliconvalley.tencentcloudapi.com',
+  },
+  {
+    region: 'sa-saopaulo',
+    name: '南美地区（圣保罗）',
+    shortName: '圣保罗',
+    endpoint: 'live.sa-saopaulo.tencentcloudapi.com',
+  },
+  {
+    region: 'eu-frankfurt',
+    name: '欧洲地区（法兰克福）',
+    shortName: '法兰克福',
+    endpoint: 'live.eu-frankfurt.tencentcloudapi.com',
+  },
+]
+
 export const SettingsPanel: React.FC = () => {
   const {
     environments,
@@ -107,12 +224,31 @@ export const SettingsPanel: React.FC = () => {
     testConnection,
   } = useConfigStore()
 
-  const showToast = useApiStore((state) => state.showToast)
+  const { showToast, activeServiceId, setActiveServiceId, cloudServices } = useApiStore()
+  const availableServices = (cloudServices && cloudServices.length > 0) ? cloudServices : CLOUD_SERVICES
 
   const [selectedEnvId, setSelectedEnvId] = useState<string>('')
   const [formData, setFormData] = useState<Environment | null>(null)
+  // 当前正在配置的服务选项卡（默认与全局顶部选中的服务严格联动）
+  const [activeServiceTab, setActiveServiceTab] = useState<string>(activeServiceId || 'im')
+  const currentTabService = availableServices.find((s) => s.id === activeServiceTab) || availableServices[0]
+
+  // 当全局服务切换时，配置面板自动同步切换对应视图
+  useEffect(() => {
+    if (activeServiceId) {
+      setActiveServiceTab(activeServiceId)
+    }
+  }, [activeServiceId])
+
+  const handleSwitchServiceTab = (serviceId: string) => {
+    setActiveServiceTab(serviceId)
+    setActiveServiceId(serviceId)
+  }
+
   // 密钥默认直接显示掩码（type="text"），如需隐藏为圆点才切为 password 模式
   const [isPasswordMode, setIsPasswordMode] = useState(false)
+  const [isTcPasswordMode, setIsTcPasswordMode] = useState(false)
+  const [isLivePasswordMode, setIsLivePasswordMode] = useState(false)
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
@@ -197,6 +333,14 @@ export const SettingsPanel: React.FC = () => {
       secret_key: '',
       admin_user: 'administrator',
       domain: 'console.tim.qq.com',
+      tc_secret_id: '',
+      tc_secret_key: '',
+      tc_region: 'ap-guangzhou',
+      tc_endpoint: 'live.tencentcloudapi.com',
+      live_push_domain: '',
+      live_play_domain: '',
+      live_push_key: '',
+      live_play_key: '',
       delay_sec: 0.05,
     })
     setIsPasswordMode(false)
@@ -272,6 +416,9 @@ export const SettingsPanel: React.FC = () => {
 
   const isCurrentActive = formData?.id === activeEnvId
   const isMaskedSecret = formData?.secret_key && (formData.secret_key.includes('*') || formData.secret_key.includes('•'))
+  const isMaskedTcSecret = formData?.tc_secret_key && (formData.tc_secret_key.includes('*') || formData.tc_secret_key.includes('•'))
+  const isMaskedPushKey = formData?.live_push_key && (formData.live_push_key.includes('*') || formData.live_push_key.includes('•'))
+  const isMaskedPlayKey = formData?.live_play_key && (formData.live_play_key.includes('*') || formData.live_play_key.includes('•'))
 
   // 当前域名匹配的官方地域标签
   const getMatchedRegionLabel = (domain: string) => {
@@ -284,81 +431,23 @@ export const SettingsPanel: React.FC = () => {
 
   const matchedRegion = formData?.domain ? getMatchedRegionLabel(formData.domain) : null
 
+  // 当前云直播接入地域与域名匹配的官方地域标签
+  const getMatchedLiveRegionLabel = (endpoint?: string, region?: string) => {
+    if (endpoint) {
+      const foundByEndpoint = OFFICIAL_LIVE_REGIONS.find((r) => r.endpoint === endpoint)
+      if (foundByEndpoint) return foundByEndpoint.name
+    }
+    if (region) {
+      const foundByRegion = OFFICIAL_LIVE_REGIONS.find((r) => r.region === region && !r.isRecommended)
+      if (foundByRegion) return foundByRegion.name
+    }
+    return null
+  }
+
+  const matchedLiveRegion = getMatchedLiveRegionLabel(formData?.tc_endpoint, formData?.tc_region)
+
   return (
     <div className="flex h-full flex-col bg-slate-50/60 dark:bg-slate-950 overflow-hidden">
-      {/* 统一环境配置头部栏 (与批量调用、AI智能体高度/样式对齐: 标称 min-h-[56px] py-2.5 px-4 sm:px-6) */}
-      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4 select-none min-h-[56px]">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
-            <Settings className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                多环境配置与密钥安全管理
-              </h2>
-              <Badge
-                variant="outline"
-                className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[9px] py-0 px-1.5 shrink-0"
-              >
-                Config
-              </Badge>
-              {activeEnv && (
-                <span className={`text-[9px] font-mono font-bold px-1.5 py-0.2 rounded-md border ${getTagBadgeStyle(activeEnv.tag || '')}`}>
-                  当前: {activeEnv.name}
-                </span>
-              )}
-            </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-              支持针对开发、测试、正式等多套腾讯云 IM 凭据配置，全链路自动脱敏防覆盖
-            </p>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-2">
-          {formData && formData.id && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => testConnection(formData.id)}
-              disabled={isTesting}
-              className="h-8 gap-1.5 text-xs text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-750 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer shadow-2xs"
-            >
-              <RefreshCw className={`h-3.5 w-3.5 ${isTesting ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
-              <span>{isTesting ? '测速联调中...' : '测试当前环境连通性'}</span>
-            </Button>
-          )}
-
-          <Button
-            size="sm"
-            onClick={handleSave}
-            disabled={isSaving || !formData}
-            className={`h-8 gap-1.5 text-xs transition-all cursor-pointer font-semibold shadow-xs ${
-              justSaved
-                ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
-                : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
-            }`}
-          >
-            {isSaving ? (
-              <>
-                <RefreshCw className="h-3.5 w-3.5 animate-spin" />
-                <span>正在保存...</span>
-              </>
-            ) : justSaved ? (
-              <>
-                <CheckCircle2 className="h-3.5 w-3.5 text-white" />
-                <span>已保存成功！</span>
-              </>
-            ) : (
-              <>
-                <Save className="h-3.5 w-3.5" />
-                <span>保存环境配置</span>
-              </>
-            )}
-          </Button>
-        </div>
-      </div>
-
       {/* Prominent Global Top Feedback Banner */}
       {feedback && (
         <div
@@ -463,10 +552,23 @@ export const SettingsPanel: React.FC = () => {
                   </div>
 
                   <div className="text-[11px] font-mono text-slate-500 dark:text-slate-400 flex items-center justify-between">
-                    <span>AppID: {env.sdkappid || '未设'}</span>
-                    <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans">
-                      Admin: {env.admin_user}
-                    </span>
+                    {activeServiceTab === 'live' ? (
+                      <>
+                        <span className="truncate max-w-[125px]">
+                          SecretId: {env.tc_secret_id ? `${env.tc_secret_id.slice(0, 8)}...` : '未配置'}
+                        </span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans shrink-0">
+                          {env.tc_region || 'ap-guangzhou'}
+                        </span>
+                      </>
+                    ) : (
+                      <>
+                        <span>AppID: {env.sdkappid || '未设'}</span>
+                        <span className="text-[10px] text-slate-400 dark:text-slate-500 font-sans">
+                          Admin: {env.admin_user || 'administrator'}
+                        </span>
+                      </>
+                    )}
                   </div>
 
                   {env.remark && (
@@ -488,7 +590,71 @@ export const SettingsPanel: React.FC = () => {
         </div>
 
         {/* Right Column: Edit Environment Form */}
-        <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
+        <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
+          {/* Form Header Toolbar (紧凑表单工具条，与左侧环境清单栏顶对齐) */}
+          <div className="shrink-0 px-4 sm:px-6 py-2.5 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex items-center justify-between gap-3 min-h-[48px]">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
+                {isCreatingNew ? '新建运行环境草稿' : `配置环境: ${formData?.name || '未命名'}`}
+              </span>
+              {formData?.tag && (
+                <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${getTagBadgeStyle(formData.tag)}`}>
+                  {formData.tag}
+                </span>
+              )}
+              {formData?.id === activeEnvId && !isCreatingNew && (
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                  当前生效
+                </span>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2 shrink-0">
+              {formData && formData.id && !isCreatingNew && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => testConnection(formData.id, activeServiceTab)}
+                  disabled={isTesting}
+                  className="h-8 gap-1.5 text-xs text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-750 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer shadow-2xs"
+                >
+                  <RefreshCw className={`h-3.5 w-3.5 ${isTesting ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
+                  <span>{isTesting ? '测速联调中...' : `测试「${currentTabService?.name || (activeServiceTab === 'live' ? '云直播' : 'IM')}」连通性`}</span>
+                </Button>
+              )}
+
+              <Button
+                size="sm"
+                onClick={handleSave}
+                disabled={isSaving || !formData}
+                className={`h-8 gap-1.5 text-xs transition-all cursor-pointer font-semibold shadow-xs ${
+                  justSaved
+                    ? 'bg-emerald-600 hover:bg-emerald-700 text-white shadow-emerald-500/20'
+                    : 'bg-blue-600 hover:bg-blue-700 text-white shadow-blue-500/20'
+                }`}
+              >
+                {isSaving ? (
+                  <>
+                    <RefreshCw className="h-3.5 w-3.5 animate-spin" />
+                    <span>正在保存...</span>
+                  </>
+                ) : justSaved ? (
+                  <>
+                    <CheckCircle2 className="h-3.5 w-3.5 text-white" />
+                    <span>已保存成功！</span>
+                  </>
+                ) : (
+                  <>
+                    <Save className="h-3.5 w-3.5" />
+                    <span>保存环境配置</span>
+                  </>
+                )}
+              </Button>
+            </div>
+          </div>
+
+          <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5">
           {/* Test Result Banner */}
           {testResult && (
             <div
@@ -615,7 +781,62 @@ export const SettingsPanel: React.FC = () => {
                 </CardContent>
               </Card>
 
-              {/* Tencent Cloud IM Credentials */}
+              {/* 服务凭据专属切换栏 (动态由 SSoT 云服务清单驱动，支持多业务自由扩展) */}
+              <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+                <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-750 shadow-2xs">
+                  {availableServices.map((srv) => {
+                    const isTabActive = activeServiceTab === srv.id
+                    const isConfigured = srv.id === 'im'
+                      ? Boolean(formData.sdkappid && formData.secret_key)
+                      : Boolean(formData.tc_secret_id && formData.tc_secret_key)
+
+                    return (
+                      <button
+                        key={srv.id}
+                        type="button"
+                        onClick={() => handleSwitchServiceTab(srv.id)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                          isTabActive
+                            ? srv.id === 'live'
+                              ? 'bg-emerald-600 text-white shadow-2xs'
+                              : 'bg-blue-600 text-white shadow-2xs'
+                            : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                        }`}
+                      >
+                        {srv.id === 'live' ? (
+                          <Video className="h-3.5 w-3.5" />
+                        ) : srv.id === 'im' ? (
+                          <MessageSquare className="h-3.5 w-3.5" />
+                        ) : (
+                          <Cloud className="h-3.5 w-3.5" />
+                        )}
+                        <span>{srv.name} 凭据</span>
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${
+                            isConfigured
+                              ? 'bg-emerald-400 ring-2 ring-emerald-400/30'
+                              : 'bg-slate-300 dark:bg-slate-500'
+                          }`}
+                        />
+                      </button>
+                    )
+                  })}
+                </div>
+
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                  <span className={`h-2 w-2 rounded-full ${activeServiceTab === 'live' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                  <span>当前处于：</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                    {currentTabService?.name || (activeServiceTab === 'live' ? '云直播 (CSS)' : '即时通信 IM')} 独立配置
+                  </span>
+                  <span className="text-[10px] text-slate-400">（其余服务配置已按需收纳）</span>
+                </div>
+              </div>
+
+              {/* 当处于 IM 服务时：仅渲染 IM 基础鉴权与网关域名配置 */}
+              {activeServiceTab === 'im' && (
+                <>
+                  {/* Tencent Cloud IM Credentials */}
               <Card className="border-slate-200/90 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
                 <CardHeader className="pb-3 pt-4 px-5">
                   <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
@@ -840,8 +1061,276 @@ export const SettingsPanel: React.FC = () => {
                   </div>
                 </CardContent>
               </Card>
+            </>
+          )}
 
-              {/* Bottom Actions */}
+          {/* 当处于非 IM 服务（如云直播 CSS、TRTC、VOD 等）时：渲染 API 3.0 通用凭证与业务专属配置 */}
+          {activeServiceTab !== 'im' && (
+            <>
+              {/* 腾讯云 API 3.0 通用凭据与当前云产品配置 */}
+              <Card className="border-slate-200/90 dark:border-slate-800 dark:bg-slate-900 shadow-2xs">
+                <CardHeader className="pb-3 pt-4 px-5">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-sm font-bold text-slate-800 dark:text-slate-100 flex items-center gap-2">
+                      <Video className="h-4 w-4 text-emerald-600 dark:text-emerald-400" />
+                      <span>腾讯云 API 3.0 通用凭据 & {currentTabService?.name || '云产品配置'}</span>
+                    </CardTitle>
+                    {matchedLiveRegion ? (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-medium">
+                        当前节点: {matchedLiveRegion}
+                      </Badge>
+                    ) : (
+                      <Badge variant="outline" className="text-[10px] bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-medium">
+                        通用扩展
+                      </Badge>
+                    )}
+                  </div>
+                  <CardDescription className="text-xs text-slate-400">
+                    配置腾讯云 CAM 访问密钥 (SecretId / SecretKey) 与 API 接入地域，即可调度云直播 (CSS) 等全量 API 3.0 云服务。
+                  </CardDescription>
+                </CardHeader>
+
+                <CardContent className="space-y-4 px-5 pb-5">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-1.5">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                        <span>SecretId (CAM 密钥标识)</span>
+                        <span className="text-rose-500">*</span>
+                      </label>
+                      <Input
+                        value={formData.tc_secret_id || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, tc_secret_id: e.target.value.trim() })
+                        }
+                        placeholder="例如: AKIDxxxxxxxxxxxxxxxxxxxxxxxx"
+                        className="font-mono bg-white dark:bg-slate-800 text-xs"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <div className="flex items-center justify-between">
+                        <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-2">
+                          <Key className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                          <span>SecretKey (API 3.0 访问密钥)</span>
+                          <span className="text-rose-500">*</span>
+                          {isMaskedTcSecret && (
+                            <Badge variant="outline" className="text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border-emerald-200 dark:border-emerald-800 font-mono py-0">
+                              脱敏掩码保护中
+                            </Badge>
+                          )}
+                        </label>
+
+                        <div className="flex items-center gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setIsTcPasswordMode(!isTcPasswordMode)}
+                            className="text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-200 flex items-center gap-1 text-[11px] font-normal cursor-pointer"
+                          >
+                            {isTcPasswordMode ? <Eye className="h-3 w-3" /> : <EyeOff className="h-3 w-3" />}
+                            {isTcPasswordMode ? '显示脱敏掩码' : '隐藏密文'}
+                          </button>
+                        </div>
+                      </div>
+
+                      <Input
+                        type={isTcPasswordMode ? 'password' : 'text'}
+                        value={formData.tc_secret_key || ''}
+                        onChange={(e) =>
+                          setFormData({ ...formData, tc_secret_key: e.target.value.trim() })
+                        }
+                        placeholder={isMaskedTcSecret ? formData.tc_secret_key : "粘贴腾讯云 API 访问密钥 SecretKey"}
+                        className="font-mono bg-white dark:bg-slate-800 text-xs tracking-wider"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 云直播 API 3.0 接入地域与专属域名 (官方 17 地域下拉选择与快速填选) */}
+                  <div className="space-y-2 pt-1 border-t border-slate-100 dark:border-slate-800">
+                    <div className="flex items-center justify-between pt-1">
+                      <label className="text-xs font-semibold text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
+                        <Globe className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                        <span>云直播 API 3.0 接入地域与域名 (Region & Endpoint)</span>
+                      </label>
+                      <span className="text-[11px] text-slate-400">
+                        支持就近接入或定向调度全球 17 个官方节点
+                      </span>
+                    </div>
+
+                    {/* 下拉选择器与双输入框组合 */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                      <div className="md:col-span-3">
+                        <select
+                          value={formData.tc_endpoint || 'live.tencentcloudapi.com'}
+                          onChange={(e) => {
+                            const selectedEndpoint = e.target.value
+                            const matched = OFFICIAL_LIVE_REGIONS.find((r) => r.endpoint === selectedEndpoint)
+                            setFormData({
+                              ...formData,
+                              tc_endpoint: selectedEndpoint,
+                              ...(matched ? { tc_region: matched.region } : {}),
+                            })
+                          }}
+                          className="w-full h-9 rounded-lg border border-slate-200 bg-white px-3 text-xs font-mono text-slate-800 shadow-2xs hover:border-slate-300 focus:outline-none focus:ring-2 focus:ring-emerald-500 cursor-pointer dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        >
+                          <option value="" disabled>-- 快速选择腾讯云官方接入地域与域名 --</option>
+                          {OFFICIAL_LIVE_REGIONS.map((r) => (
+                            <option key={r.endpoint} value={r.endpoint}>
+                              {r.name}（{r.endpoint}）
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-[11px] text-slate-400">地域标识 (Region)</label>
+                        <Input
+                          value={formData.tc_region || 'ap-guangzhou'}
+                          onChange={(e) => setFormData({ ...formData, tc_region: e.target.value.trim() })}
+                          placeholder="ap-guangzhou"
+                          className="font-mono bg-white dark:bg-slate-800 text-xs"
+                        />
+                      </div>
+
+                      <div className="md:col-span-2 space-y-1">
+                        <label className="text-[11px] text-slate-400">API 接入域名 (Endpoint)</label>
+                        <Input
+                          value={formData.tc_endpoint || 'live.tencentcloudapi.com'}
+                          onChange={(e) => setFormData({ ...formData, tc_endpoint: e.target.value.trim() })}
+                          placeholder="live.tencentcloudapi.com"
+                          className="font-mono bg-white dark:bg-slate-800 text-xs"
+                        />
+                      </div>
+                    </div>
+
+                    {/* 常用地域快速标签 */}
+                    <div className="flex flex-wrap items-center gap-1.5 pt-1">
+                      <span className="text-[11px] text-slate-400 mr-0.5">常用地域快捷填选:</span>
+                      {OFFICIAL_LIVE_REGIONS.slice(0, 10).map((r) => {
+                        const isSelected = (formData.tc_endpoint === r.endpoint) || (!formData.tc_endpoint && r.isRecommended)
+                        return (
+                          <button
+                            key={r.endpoint}
+                            type="button"
+                            onClick={() =>
+                              setFormData({
+                                ...formData,
+                                tc_region: r.region,
+                                tc_endpoint: r.endpoint,
+                              })
+                            }
+                            className={`px-2 py-0.5 rounded text-[11px] font-medium transition-colors cursor-pointer border ${
+                              isSelected
+                                ? 'bg-emerald-600 text-white font-semibold border-emerald-600 shadow-2xs'
+                                : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-750 hover:bg-slate-100 dark:hover:bg-slate-700'
+                            }`}
+                            title={`${r.name} · ${r.endpoint}`}
+                          >
+                            {r.shortName}
+                          </button>
+                        )
+                      })}
+                    </div>
+
+                    {/* 官方地域与接入点使用指南提示条 */}
+                    <div className="rounded-lg bg-slate-50 dark:bg-slate-800/60 border border-slate-200/60 dark:border-slate-750 p-2.5 text-[11px] text-slate-500 dark:text-slate-400 space-y-1 mt-2">
+                      <div className="flex items-center gap-1.5 font-semibold text-slate-700 dark:text-slate-300">
+                        <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+                        <span>腾讯云官方服务地址接入规则：</span>
+                      </div>
+                      <ul className="list-disc list-inside space-y-0.5 text-[10px] pl-1 leading-relaxed">
+                        <li>
+                          <strong className="text-slate-600 dark:text-slate-300">就近地域接入（推荐）：</strong>
+                          默认域名 <code className="font-mono text-emerald-600 dark:text-emerald-400">live.tencentcloudapi.com</code> 会根据客户端位置自动解析到最近的服务器（只支持非金融区）。
+                        </li>
+                        <li>
+                          <strong className="text-slate-600 dark:text-slate-300">时延敏感业务：</strong>
+                          建议直接指定带地域的域名（如华南广州 <code className="font-mono text-emerald-600 dark:text-emerald-400">live.ap-guangzhou.tencentcloudapi.com</code>），消除自动解析调度的网络开销。
+                        </li>
+                        <li>
+                          <strong className="text-slate-600 dark:text-slate-300">接入点 vs 业务地域：</strong>
+                          域名是 API 接入网关，并不代表产品或接口实际提供服务的地域。业务支持的地域请查阅各接口入参要求。
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+
+                  {/* 云直播专属防盗链 Key 与推拉流域名 (仅在云直播选项卡下展开) */}
+                  {activeServiceTab === 'live' && (
+                    <div className="border-t border-slate-200/80 dark:border-slate-800 pt-3 space-y-3">
+                      <div className="text-xs font-semibold text-slate-700 dark:text-slate-200 flex items-center gap-1.5">
+                        <span>云直播 (CSS) 推拉流域名与防盗链鉴权 Key</span>
+                        <span className="text-[10px] font-normal text-slate-400">(用于一键生成防盗链推流/播放地址)</span>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                            推流域名 (Push Domain)
+                          </label>
+                          <Input
+                            value={formData.live_push_domain || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, live_push_domain: e.target.value.trim() })
+                            }
+                            placeholder="例如: push.yourdomain.com"
+                            className="font-mono bg-white dark:bg-slate-800 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                            播放域名 (Play Domain)
+                          </label>
+                          <Input
+                            value={formData.live_play_domain || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, live_play_domain: e.target.value.trim() })
+                            }
+                            placeholder="例如: play.yourdomain.com"
+                            className="font-mono bg-white dark:bg-slate-800 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                            推流防盗链 Key (txSecret 计算密钥)
+                          </label>
+                          <Input
+                            type={isLivePasswordMode ? 'password' : 'text'}
+                            value={formData.live_push_key || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, live_push_key: e.target.value.trim() })
+                            }
+                            placeholder={isMaskedPushKey ? formData.live_push_key : "腾讯云直播控制台获取的推流防盗链 Key"}
+                            className="font-mono bg-white dark:bg-slate-800 text-xs"
+                          />
+                        </div>
+
+                        <div className="space-y-1.5">
+                          <label className="text-[11px] text-slate-500 dark:text-slate-400">
+                            播放防盗链 Key (可选)
+                          </label>
+                          <Input
+                            type={isLivePasswordMode ? 'password' : 'text'}
+                            value={formData.live_play_key || ''}
+                            onChange={(e) =>
+                              setFormData({ ...formData, live_play_key: e.target.value.trim() })
+                            }
+                            placeholder={isMaskedPlayKey ? formData.live_play_key : "可选，播放防盗链 Key"}
+                            className="font-mono bg-white dark:bg-slate-800 text-xs"
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </>
+          )}
+
+          {/* Bottom Actions */}
               <div className="flex items-center justify-between pt-2">
                 <div>
                   {formData.id && (
@@ -894,6 +1383,7 @@ export const SettingsPanel: React.FC = () => {
               <p className="text-xs">请在左侧选择或新建一个运行环境</p>
             </div>
           )}
+          </div>
         </div>
       </div>
     </div>

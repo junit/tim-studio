@@ -1,0 +1,108 @@
+{
+  "doc_id": 35976,
+  "api_id": "live_DescribeLiveDelayInfoList",
+  "title": "获取直播延播列表",
+  "doc_url": "https://cloud.tencent.com/document/api/267/35976",
+  "sync_time": "2026-10-29 19:32:11",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n获取直播延播列表。\n默认接口请求频率限制：10次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DescribeLiveDelayInfoList\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveDelayInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    }
+  ],
+  "request_examples": [],
+  "response_body_fields": [
+    {
+      "name": "DelayInfoList",
+      "type": "Array of DelayInfo",
+      "description": "延播信息列表。示例值：空"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DelayInfoList\": [\n            {\n                \"DomainName\": \"5000.pushdomain.com\",\n                \"AppName\": \"live\",\n                \"StreamName\": \"testStream\",\n                \"DelayInterval\": 60,\n                \"CreateTime\": \"2019-06-14T00:00:00Z\",\n                \"ExpireTime\": \"2019-06-15T00:00:00Z\",\n                \"Status\": 1\n            }\n        ],\n        \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DelayInfoList\": [\n      {\n        \"DomainName\": \"5000.pushdomain.com\",\n        \"AppName\": \"live\",\n        \"StreamName\": \"testStream\",\n        \"DelayInterval\": 60,\n        \"CreateTime\": \"2019-06-14T00:00:00Z\",\n        \"ExpireTime\": \"2019-06-15T00:00:00Z\",\n        \"Status\": 1\n      }\n    ],\n    \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

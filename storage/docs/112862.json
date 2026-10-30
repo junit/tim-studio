@@ -1,0 +1,181 @@
+{
+  "doc_id": 112862,
+  "api_id": "live_CreateCaster",
+  "title": "创建导播台",
+  "doc_url": "https://cloud.tencent.com/document/api/267/112862",
+  "sync_time": "2026-10-29 19:32:08",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用来创建新的导播台\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateCaster。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "CasterName",
+      "type": "String",
+      "required": "选填",
+      "description": "导播台名称示例值：example"
+    },
+    {
+      "name": "Description",
+      "type": "String",
+      "required": "选填",
+      "description": "导播台的描述最大允许长度256示例值：example_caster"
+    },
+    {
+      "name": "ExpireTime",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台的过期时间戳。值为-1或unix时间戳。默认值为-1。当值为-1时，表示该导播台永不过期。当值为正常unix时间戳时，导播台将在该时间过期。导播台过期后，预监与主监画面将自动停止，转推自动停止。点播、直播url将停止转拉，推流url需自行停止推流。示例值：-1"
+    },
+    {
+      "name": "DelayTime",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台延时播放时间，单位为秒。默认为0，最大支持300秒示例值：0"
+    },
+    {
+      "name": "TransitionType",
+      "type": "String",
+      "required": "选填",
+      "description": "导播台转场类型。默认为空。允许使用通过DescribeCasterTransitionTypes接口中查询到的转场类型。示例值：heart"
+    },
+    {
+      "name": "PgmWidth",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台主监输出的宽度，单位为像素。默认为1280，最大允许4096。示例值：1280"
+    },
+    {
+      "name": "PgmHeight",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台主监输出的高度，单位为像素。默认为720，最大允许2160。示例值：720"
+    },
+    {
+      "name": "PgmFps",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台主监输出的帧率。默认为0，表示随源输出。最大支持60。示例值：25"
+    },
+    {
+      "name": "PgmBitRate",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台主监输出的码率，单位为kbps。默认为0，表示随源的码率输出。最大允许10000kbps。示例值：1500"
+    },
+    {
+      "name": "FeeType",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台的计费类型。0 通用型1 播单型。注： 本参数暂无作用。示例值：0"
+    },
+    {
+      "name": "PgmAudioBitRate",
+      "type": "Integer",
+      "required": "选填",
+      "description": "导播台主监输出的音频码率，单位为kbps。可选项：[0, 128, 192, 256]默认值为0，表示随源的音频码率输出。示例值：128"
+    },
+    {
+      "name": "PgmVcodec",
+      "type": "String",
+      "required": "选填",
+      "description": "导播台主监输出的编码方式枚举值：h264： h264编码h265： h265编码默认值：h264示例值：h264"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateCaster\n<公共请求参数>\n\n{\n    \"CasterName\": \"example\"\n}",
+      "clean_json": "{\n  \"CasterName\": \"example\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "CasterId",
+      "type": "Integer",
+      "description": "导播台ID示例值：63501"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\",\n        \"CasterId\": 63501\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\",\n    \"CasterId\": 63501\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    },
+    {
+      "code": "UnknownParameter",
+      "description": "未知参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

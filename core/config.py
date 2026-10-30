@@ -14,13 +14,32 @@ DEFAULT_ENV = {
     "id": "env_default",
     "name": "示例开发环境",
     "tag": "DEV",
-    "remark": "请在「环境配置」中填入腾讯云控制台对应的 SDKAppID 和 SecretKey",
+    "remark": "请在「环境配置」中填入腾讯云控制台对应的 SDKAppID 和 SecretKey，或腾讯云 API 3.0 密钥",
     "sdkappid": 1400000000,
     "secret_key": "YOUR_SECRET_KEY_HERE",
     "admin_user": "administrator",
     "domain": "console.tim.qq.com",
+    "tc_secret_id": "",
+    "tc_secret_key": "",
+    "tc_region": "ap-guangzhou",
+    "tc_endpoint": "live.tencentcloudapi.com",
+    "live_push_domain": "",
+    "live_play_domain": "",
+    "live_push_key": "",
+    "live_play_key": "",
     "delay_sec": 0.05,
 }
+
+
+SECRET_FIELDS = ["secret_key", "tc_secret_key", "live_push_key", "live_play_key"]
+
+
+def is_field_sensitive(field_name: str) -> bool:
+    """按命名语义动态识别敏感字段，自动施加脱敏与防覆盖保护"""
+    name = str(field_name).lower()
+    if name in SECRET_FIELDS:
+        return True
+    return any(name.endswith(suffix) for suffix in ["_key", "_secret", "_token", "_password", "secretkey"])
 
 
 def mask_secret(secret: str) -> str:
@@ -77,16 +96,15 @@ def load_config() -> dict:
         active_env = environments[0]
         active_id = active_env.get("id", "env_default")
 
-    # 构建并同步根配置
-    cfg = {
-        "active_env_id": active_id,
-        "environments": environments,
-        "sdkappid": active_env.get("sdkappid", 0),
-        "secret_key": active_env.get("secret_key", ""),
-        "admin_user": active_env.get("admin_user", "administrator"),
-        "domain": active_env.get("domain", "console.tim.qq.com"),
-        "delay_sec": active_env.get("delay_sec", 0.05),
-    }
+    # 构建并同步根配置 (动态继承当前环境全部专有配置，无损透传新业务属性)
+    cfg = dict(active_env)
+    cfg["active_env_id"] = active_id
+    cfg["environments"] = environments
+
+    # 兜底注入默认基础字段，确保老业务与测试套件完全向后兼容
+    for k, v in DEFAULT_ENV.items():
+        if k not in cfg:
+            cfg[k] = v
     return cfg
 
 
@@ -102,15 +120,23 @@ def save_config(new_config: dict) -> dict:
 
 
 def get_environments_payload(mask: bool = True) -> dict:
-    """获取所有环境列表与当前活动环境（支持密钥脱敏）"""
+    """获取所有环境列表与当前活动环境（支持密钥脱敏与泛化安全检查）"""
     cfg = load_config()
     envs = []
     for e in cfg["environments"]:
         item = dict(e)
-        real_key = item.get("secret_key", "")
-        item["has_secret"] = bool(real_key)
-        if mask:
-            item["secret_key"] = mask_secret(real_key)
+        # 兼容老版固定字段布尔标识
+        item["has_secret"] = bool(item.get("secret_key"))
+        item["has_tc_secret"] = bool(item.get("tc_secret_key"))
+        item["has_live_push_key"] = bool(item.get("live_push_key"))
+        item["has_live_play_key"] = bool(item.get("live_play_key"))
+
+        # 动态对所有敏感字段进行脱敏
+        for k, v in list(item.items()):
+            if is_field_sensitive(k) and isinstance(v, str):
+                item[f"has_{k}"] = bool(v)
+                if mask and v:
+                    item[k] = mask_secret(v)
         envs.append(item)
 
     active_env = next((e for e in envs if e.get("id") == cfg["active_env_id"]), envs[0] if envs else None)
@@ -136,7 +162,8 @@ def switch_environment(env_id: str) -> dict:
 def save_environment(env_data: dict) -> dict:
     """
     新建或更新单项环境配置
-    关键安全特性：如果提交的 secret_key 为空或为脱敏掩码（包含星号），则保留原真实密钥不变！
+    关键安全特性：如果提交的敏感密钥为空或为脱敏掩码（包含星号），则保留原真实密钥不变！
+    全面支持动态扩展属性，杜绝新业务字段被覆盖或丢弃。
     """
     cfg = load_config()
     env_id = env_data.get("id")
@@ -149,24 +176,28 @@ def save_environment(env_data: dict) -> dict:
 
     existing_idx = next((i for i, e in enumerate(cfg["environments"]) if e.get("id") == env_id), -1)
 
-    submitted_key = str(env_data.get("secret_key", "")).strip()
-
     if existing_idx >= 0:
         existing_env = cfg["environments"][existing_idx]
-        # 防覆盖逻辑：未变更密钥时（为空或含星号掩码），保留数据库中的真实密钥
-        if not submitted_key or is_secret_masked(submitted_key):
-            env_data["secret_key"] = existing_env.get("secret_key", "")
-        else:
-            env_data["secret_key"] = submitted_key
+        # 防覆盖逻辑：对所有已知及动态识别的敏感密钥字段进行保护
+        all_sec_keys = {k for k in list(existing_env.keys()) + list(env_data.keys()) if is_field_sensitive(k)}
+        for sec_field in all_sec_keys:
+            submitted_val = str(env_data.get(sec_field, "")).strip()
+            if not submitted_val or is_secret_masked(submitted_val):
+                env_data[sec_field] = existing_env.get(sec_field, "")
+            else:
+                env_data[sec_field] = submitted_val
 
         cfg["environments"][existing_idx] = {
             **existing_env,
             **env_data,
         }
     else:
-        # 新建环境
-        if is_secret_masked(submitted_key):
-            env_data["secret_key"] = ""
+        # 新建环境：若前端提交脱敏占位符则置空
+        for key in list(env_data.keys()):
+            if is_field_sensitive(key):
+                submitted_val = str(env_data.get(key, "")).strip()
+                if is_secret_masked(submitted_val):
+                    env_data[key] = ""
         cfg["environments"].append(env_data)
 
     # 如果当前创建的是第一个环境，自动设为活动环境

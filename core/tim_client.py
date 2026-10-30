@@ -15,7 +15,13 @@ from .sig_util import gen_user_sig
 
 class TimClient:
     def __init__(self, config=None):
-        self.config = config or load_config()
+        self._custom_config = config
+
+    @property
+    def config(self) -> dict:
+        if self._custom_config is not None:
+            return self._custom_config
+        return load_config()
 
     def get_usersig(self) -> str:
         sdkappid = self.config.get("sdkappid")

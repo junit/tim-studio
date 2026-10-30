@@ -1,0 +1,249 @@
+{
+  "doc_id": 43404,
+  "api_id": "live_CreateCommonMixStream",
+  "title": "创建通用混流",
+  "doc_url": "https://cloud.tencent.com/document/api/267/43404",
+  "sync_time": "2026-10-29 19:32:14",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用来创建通用混流。用法与旧接口 mix_streamv2.start_mix_stream_advanced 基本一致。\n注意：当前最多支持16路混流。\n最佳实践：https://cloud.tencent.com/document/product/267/45566\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateCommonMixStream。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "MixStreamSessionId",
+      "type": "String",
+      "required": "必填",
+      "description": "混流会话（申请混流开始到取消混流结束）标识 ID。80字节以内，仅含字母、数字以及下划线的字符串。示例值：test_room"
+    },
+    {
+      "name": "InputStreamList.N",
+      "type": "Array of CommonMixInputParam",
+      "required": "必填",
+      "description": "混流输入流列表。"
+    },
+    {
+      "name": "OutputParams",
+      "type": "CommonMixOutputParams",
+      "required": "必填",
+      "description": "混流输出流参数。"
+    },
+    {
+      "name": "MixStreamTemplateId",
+      "type": "Integer",
+      "required": "选填",
+      "description": "输入模板 ID，若设置该参数，将按默认模板布局输出，无需填入自定义位置参数。不填默认为0。两输入源支持10，20，30，40，50。三输入源支持310，390，391。四输入源支持410。五输入源支持510，590。六输入源支持610。示例值：40"
+    },
+    {
+      "name": "ControlParams",
+      "type": "CommonMixControlParams",
+      "required": "选填",
+      "description": "混流的特殊控制参数。如无特殊需求，无需填写。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateCommonMixStream\n<公共请求参数>\n\n{\n    \"MixStreamTemplateId\": 40,\n    \"MixStreamSessionId\": \"test_room\",\n    \"InputStreamList\": [\n        {\n            \"LayoutParams\": {\n                \"ImageLayer\": 1\n            },\n            \"InputStreamName\": \"test_stream1\"\n        },\n        {\n            \"LayoutParams\": {\n                \"ImageLayer\": 2\n            },\n            \"InputStreamName\": \"test_stream2\"\n        }\n    ],\n    \"OutputParams\": {\n        \"OutputStreamName\": \"test_stream1\"\n    }\n}",
+      "clean_json": "{\n  \"MixStreamTemplateId\": 40,\n  \"MixStreamSessionId\": \"test_room\",\n  \"InputStreamList\": [\n    {\n      \"LayoutParams\": {\n        \"ImageLayer\": 1\n      },\n      \"InputStreamName\": \"test_stream1\"\n    },\n    {\n      \"LayoutParams\": {\n        \"ImageLayer\": 2\n      },\n      \"InputStreamName\": \"test_stream2\"\n    }\n  ],\n  \"OutputParams\": {\n    \"OutputStreamName\": \"test_stream1\"\n  }\n}"
+    },
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateCommonMixStream\n<公共请求参数>\n\n{\n    \"InputStreamList\": [\n        {\n            \"LayoutParams\": {\n                \"ImageLayer\": 1,\n                \"ImageHeight\": 720,\n                \"ImageWidth\": 1280\n            },\n            \"InputStreamName\": \"test_stream1\"\n        },\n        {\n            \"LayoutParams\": {\n                \"ImageLayer\": 2,\n                \"ImageHeight\": 320,\n                \"ImageWidth\": 240,\n                \"LocationX\": 100,\n                \"LocationY\": 100\n            },\n            \"InputStreamName\": \"test_stream2\",\n            \"CropParams\": {\n                \"CropWidth\": 240,\n                \"CropHeight\": 320,\n                \"CropStartLocationX\": 100,\n                \"CropStartLocationY\": 100\n            }\n        }\n    ],\n    \"OutputParams\": {\n        \"OutputStreamName\": \"test_stream1\"\n    },\n    \"MixStreamSessionId\": \"test_room\"\n}",
+      "clean_json": "{\n  \"InputStreamList\": [\n    {\n      \"LayoutParams\": {\n        \"ImageLayer\": 1,\n        \"ImageHeight\": 720,\n        \"ImageWidth\": 1280\n      },\n      \"InputStreamName\": \"test_stream1\"\n    },\n    {\n      \"LayoutParams\": {\n        \"ImageLayer\": 2,\n        \"ImageHeight\": 320,\n        \"ImageWidth\": 240,\n        \"LocationX\": 100,\n        \"LocationY\": 100\n      },\n      \"InputStreamName\": \"test_stream2\",\n      \"CropParams\": {\n        \"CropWidth\": 240,\n        \"CropHeight\": 320,\n        \"CropStartLocationX\": 100,\n        \"CropStartLocationY\": 100\n      }\n    }\n  ],\n  \"OutputParams\": {\n    \"OutputStreamName\": \"test_stream1\"\n  },\n  \"MixStreamSessionId\": \"test_room\"\n}"
+    },
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateCommonMixStream\n<公共请求参数>\n\n{\n    \"InputStreamList\": [\n        {\n            \"LayoutParams\": {\n                \"ImageLayer\": 1,\n                \"ImageHeight\": 720,\n                \"ImageWidth\": 1280\n            },\n            \"InputStreamName\": \"test_stream1\"\n        },\n        {\n            \"LayoutParams\": {\n                \"ImageLayer\": 2,\n                \"ImageHeight\": 320,\n                \"ImageWidth\": 240,\n                \"LocationX\": 100,\n                \"LocationY\": 100\n            },\n            \"InputStreamName\": \"test_stream2\"\n        }\n    ],\n    \"OutputParams\": {\n        \"OutputStreamName\": \"test_stream1\"\n    },\n    \"MixStreamSessionId\": \"test_room\"\n}",
+      "clean_json": "{\n  \"InputStreamList\": [\n    {\n      \"LayoutParams\": {\n        \"ImageLayer\": 1,\n        \"ImageHeight\": 720,\n        \"ImageWidth\": 1280\n      },\n      \"InputStreamName\": \"test_stream1\"\n    },\n    {\n      \"LayoutParams\": {\n        \"ImageLayer\": 2,\n        \"ImageHeight\": 320,\n        \"ImageWidth\": 240,\n        \"LocationX\": 100,\n        \"LocationY\": 100\n      },\n      \"InputStreamName\": \"test_stream2\"\n    }\n  ],\n  \"OutputParams\": {\n    \"OutputStreamName\": \"test_stream1\"\n  },\n  \"MixStreamSessionId\": \"test_room\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    },
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    },
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrError",
+      "description": "调用第三方服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CancelSessionNotExist",
+      "description": "取消的混流 session 不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.GetPictureUrlError",
+      "description": "无法获取水印 url。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.GetStreamResolutionError",
+      "description": "获取输入流长宽失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.ProcessMixError",
+      "description": "启动混流失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.StreamNotExist",
+      "description": "流不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.JiFeiOtherError",
+      "description": "计费平台返回其他错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CancelSessionNotExist",
+      "description": "取消不存在的会话。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InputNumLimitExceeded",
+      "description": "输入数目超出限制。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidBackgroudResolution",
+      "description": "非法的背景长宽。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidBitrate",
+      "description": "非法的输出码率。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidCropParam",
+      "description": "裁剪区域溢出原始图片。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidLayerParam",
+      "description": "图层参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidOutputStreamID",
+      "description": "输出流 ID 被占用。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidOutputType",
+      "description": "非法输出类型，检查 OutputPram-StreamId 与 OutputType 是否匹配。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidPictureID",
+      "description": "水印 ID 未设置。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidRoundRectRadius",
+      "description": "非法的圆角矩形圆角半径。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.OtherError",
+      "description": "其他错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.SessionOutputStreamChanged",
+      "description": "同一会话输出流发生变化。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.TemplateNotMatchInputNum",
+      "description": "模板与输入流条数不匹配。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

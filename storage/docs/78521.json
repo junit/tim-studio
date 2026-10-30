@@ -1,0 +1,19 @@
+{
+  "doc_id": 78521,
+  "api_id": "common_78521",
+  "title": "参数类型",
+  "doc_url": "https://cloud.tencent.com/document/api/267/78521",
+  "sync_time": "2026-10-30 01:18:30",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "api",
+  "overview": "本文列出了腾讯云 API 3.0 支持的九种参数数据类型，包括String、Integer、Boolean、Float、Double、Date、Timestamp、Timestamp ISO8601和Binary，并对每种格式给出了简要说明或示例。 Integer：无符号64位整型，具体支持范围依编程语言而定。 Timestamp ISO8601：遵循ISO 8601国际标准，建议使用编程语言标准库解析。 Binary：二进制内容，需通过特定协议请求和解析。",
+  "raw_body": "<p>目前腾讯云 API 3.0 输入参数和输出参数支持如下几种数据格式：</p>\n<ul>\n<li>String: 字符串。</li>\n<li>Integer：整型，上限为无符号64位整数。SDK 3.0 不同编程语言支持的类型有所差异，建议以所使用编程语言的最大整型定义，例如 <code>Golang</code> 的 <code>uint64</code>。</li>\n<li>Boolean：布尔型。</li>\n<li>Float：浮点型。</li>\n<li>Double：双精度浮点型。</li>\n<li>Date：字符串，日期格式。例如：2022-01-01。</li>\n<li>Timestamp：字符串，时间格式。例如：2022-01-01 00:00:00。</li>\n<li>Timestamp ISO8601：ISO 8601 是由国际标准化组织（International Organization for Standardization，ISO）发布的关于日期和时间格式的国际标准，对应国标 <a href=\"https://std.samr.gov.cn/gb/search/gbDetailed?id=71F772D77FD1D3A7E05397BE0A0AB82A\">《GB/T 7408-2005数据元和交换格式信息交换日期和时间表示法》</a>。建议以所使用编程语言的标准库进行格式解析。例如：2022-01-01T00:00:00+08:00。</li>\n<li>Binary：二进制内容，需要以特定协议请求和解析。</li>\n</ul>\n",
+  "rate_limit": "20 QPS (API 3.0 默认)",
+  "url_params": [],
+  "request_body_fields": [],
+  "request_examples": [],
+  "response_body_fields": [],
+  "response_examples": [],
+  "error_codes": []
+}

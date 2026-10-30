@@ -16,7 +16,7 @@ import {
 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
-import { useApiStore, smartMatchApi, ApiMeta } from '@/stores/apiStore'
+import { useApiStore, smartMatchApi, ApiMeta, CLOUD_SERVICES, getCleanApiName } from '@/stores/apiStore'
 import { useBatchStore } from '@/stores/batchStore'
 
 export interface TreeNode {
@@ -44,6 +44,8 @@ const ApiItem: React.FC<ApiItemProps> = ({
   onSelect,
   onSetBatchTarget,
 }) => {
+  const displayName = getCleanApiName(api.name, api.command, api.action)
+
   return (
     <div
       onClick={() => onSelect(api)}
@@ -64,7 +66,7 @@ const ApiItem: React.FC<ApiItemProps> = ({
           >
             POST
           </span>
-          <span className="text-xs truncate leading-snug">{api.name}</span>
+          <span className="text-xs truncate leading-snug">{displayName}</span>
         </div>
         <p className="font-mono text-[10px] text-slate-400 dark:text-slate-500 truncate pl-0.5">
           {api.command}
@@ -229,23 +231,37 @@ export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, o
     activeApi,
     searchQuery,
     openCategories,
+    activeServiceId,
+    setActiveServiceId,
     openTab,
     showToast,
     setSearchQuery,
     toggleCategory,
     expandAll,
     collapseAll,
+    cloudServices,
   } = useApiStore()
+
+  const availableServices = (cloudServices && cloudServices.length > 0) ? cloudServices : CLOUD_SERVICES
 
   const { setApiId, apiId: batchApiId } = useBatchStore()
 
+  // 严格按当前选中的腾讯云服务隔离展示 (根据 SSoT 动态服务集自适应)
+  const currentService = useMemo(() => {
+    return availableServices.find((s) => s.id === activeServiceId) || availableServices[0]
+  }, [availableServices, activeServiceId])
+
+  const currentServiceApis = useMemo(() => {
+    return apis.filter((api) => (api.service_type || 'im') === activeServiceId)
+  }, [apis, activeServiceId])
+
   // 自动智能多维匹配（全词精确、连续子串、分词交集、拼音/首字母缩写一站式支持）
   const filteredApis = useMemo(() => {
-    return apis.filter((api) => {
+    return currentServiceApis.filter((api) => {
       if (!searchQuery.trim()) return true
       return smartMatchApi(api, searchQuery)
     })
-  }, [apis, searchQuery])
+  }, [currentServiceApis, searchQuery])
 
   // 递归组织任意多级树型结构 (基于 api.path)
   const treeRoots = useMemo<TreeNode[]>(() => {
@@ -261,12 +277,17 @@ export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, o
     const rootMap = new Map<string, InternalNode>()
 
     filteredApis.forEach((api) => {
-      const segments = (api.path && api.path.length > 0)
-        ? api.path
+      let segments = (api.path && api.path.length > 0)
+        ? [...api.path]
         : [api.category || '其它分类', api.subcategory].filter(Boolean) as string[]
 
       if (segments.length === 0) {
         segments.push('其它分类')
+      }
+
+      // 剥除顶层冗余的业务全称根节点，将具体子业务模块提升为一级分类树
+      if (segments.length > 1 && (segments[0] === currentService.name || segments[0] === currentService.shortName || segments[0] === '云直播 (CSS)' || segments[0] === '云直播')) {
+        segments = segments.slice(1)
       }
 
       let currentMap = rootMap
@@ -312,29 +333,46 @@ export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, o
     }
 
     return Array.from(rootMap.values()).map(convert)
-  }, [filteredApis])
+  }, [filteredApis, activeServiceId])
 
   // 判断当前是否已处于全展开状态
   const isAllExpanded = useMemo(() => {
-    if (apis.length === 0) return false
-    return apis.every((a) => {
-      const parts = (a.path && a.path.length > 0)
-        ? a.path
-        : [a.category, a.subcategory].filter(Boolean) as string[]
-      let cur = ''
-      for (const p of parts) {
-        cur = cur ? `${cur}:::${p}` : p
-        if (!openCategories[cur]) return false
+    if (treeRoots.length === 0) return false
+    const checkNode = (n: TreeNode): boolean => {
+      if (!openCategories[n.pathKey]) return false
+      if (n.subNodes && n.subNodes.length > 0) {
+        return n.subNodes.every(checkNode)
       }
       return true
-    })
-  }, [apis, openCategories])
+    }
+    return treeRoots.every(checkNode)
+  }, [treeRoots, openCategories])
 
   const handleToggleAll = () => {
     if (isAllExpanded) {
-      collapseAll()
+      const nextOpen = { ...openCategories }
+      const removeKeys = (nodes: TreeNode[]) => {
+        nodes.forEach((n) => {
+          delete nextOpen[n.pathKey]
+          if (n.subNodes && n.subNodes.length > 0) {
+            removeKeys(n.subNodes)
+          }
+        })
+      }
+      removeKeys(treeRoots)
+      useApiStore.setState({ openCategories: nextOpen })
     } else {
-      expandAll()
+      const nextOpen = { ...openCategories }
+      const collectKeys = (nodes: TreeNode[]) => {
+        nodes.forEach((n) => {
+          nextOpen[n.pathKey] = true
+          if (n.subNodes && n.subNodes.length > 0) {
+            collectKeys(n.subNodes)
+          }
+        })
+      }
+      collectKeys(treeRoots)
+      useApiStore.setState({ openCategories: nextOpen })
     }
   }
 
@@ -414,12 +452,15 @@ export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, o
           )}
         </div>
 
-        {/* 仅在有搜索内容时展示结果数提示 */}
-        {searchQuery && (
-          <div className="pt-1.5 px-1 text-[11px] font-mono text-slate-400 dark:text-slate-500">
-            匹配到 {filteredApis.length} 个结果
-          </div>
-        )}
+        {/* 接口统计与过滤结果 */}
+        <div className="flex items-center justify-between pt-2 px-1 text-[11px] font-mono text-slate-400 dark:text-slate-500">
+          <span>共 {currentServiceApis.length} 项接口</span>
+          {searchQuery && (
+            <span className="text-blue-600 dark:text-blue-400 font-sans">
+              已过滤 {filteredApis.length} 项
+            </span>
+          )}
+        </div>
       </div>
 
       {/* 多级树型结构主体 */}
@@ -427,7 +468,9 @@ export const ApiTreePanel: React.FC<ApiTreePanelProps> = ({ onNavigateToBatch, o
         {treeRoots.length === 0 ? (
           <div className="flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-500">
             <Code2 className="h-8 w-8 mb-2 stroke-1 text-slate-300 dark:text-slate-700" />
-            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">未找到匹配的 REST API</p>
+            <p className="text-xs font-semibold text-slate-600 dark:text-slate-400">
+              未找到匹配的 {currentService.name} 接口
+            </p>
             <p className="text-[11px] mt-1 text-slate-400 dark:text-slate-500">
               已自动进行全词、子串及拼音缩写检索，无符合项
             </p>

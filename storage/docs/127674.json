@@ -1,0 +1,164 @@
+{
+  "doc_id": 127674,
+  "api_id": "live_DescribeLiveCloudEffectConfig",
+  "title": "查询直播云端特效配置信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/127674",
+  "sync_time": "2026-10-29 19:32:25",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n使用该接口查询云端特效配置信息。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveCloudEffectConfig。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost:live.tencentcloudapi.com\nContent-Type:application/json\nX-TC-Action: DescribeLiveCloudEffectConfig\n<公共请求参数>\n\n{}",
+      "clean_json": "{}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "EffectTemplateList",
+      "type": "Array of CloudEffectTemplateInfo",
+      "description": "模板生礼物的模板信息列表。"
+    },
+    {
+      "name": "PunishmentEffectTemplateList",
+      "type": "Array of CloudEffectTemplateInfo",
+      "description": "惩罚特效模板信息列表。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"EffectTemplateList\": [\n            {\n                \"TemplateId\": \"queen_accession\",\n                \"TemplateName\": \"女王登基\",\n                \"VideoUrl\": \"https://system-live-cloud-effect-1311402212.cos.ap-guangzhou.myqcloud.com/template/queen_accession_template.mp4\"\n            },\n            {\n                \"TemplateId\": \"wizard_of_oz\",\n                \"TemplateName\": \"绿野仙踪\",\n                \"VideoUrl\": \"https://system-live-cloud-effect-1311402212.cos.ap-guangzhou.myqcloud.com/template/wizard_of_oz_template.mp4\"\n            }\n        ],\n        \"RequestId\": \"711361074864703498\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"EffectTemplateList\": [\n      {\n        \"TemplateId\": \"queen_accession\",\n        \"TemplateName\": \"女王登基\",\n        \"VideoUrl\": \"https://system-live-cloud-effect-1311402212.cos.ap-guangzhou.myqcloud.com/template/queen_accession_template.mp4\"\n      },\n      {\n        \"TemplateId\": \"wizard_of_oz\",\n        \"TemplateName\": \"绿野仙踪\",\n        \"VideoUrl\": \"https://system-live-cloud-effect-1311402212.cos.ap-guangzhou.myqcloud.com/template/wizard_of_oz_template.mp4\"\n      }\n    ],\n    \"RequestId\": \"711361074864703498\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CallOtherSvrError",
+      "description": "调用内部服务错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfigNotExist",
+      "description": "配置不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetBizidError",
+      "description": "获取用户账号错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetStreamInfoError",
+      "description": "获取流信息失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetUpstreamInfoError",
+      "description": "获取直播源信息错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotPermmitOperat",
+      "description": "无权限操作。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.StreamStatusError",
+      "description": "流状态异常。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.UpdateDataError",
+      "description": "更新数据失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -24,6 +24,7 @@ import {
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { MarkdownView } from '@/components/common/MarkdownView'
+import { useApiStore } from '@/stores/apiStore'
 import { LLMConfigData } from './types'
 
 interface AgentPromptTabProps {
@@ -58,6 +59,8 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
   const [promptViewMode, setPromptViewMode] = useState<'assembled' | 'base'>('assembled')
   const [blueprintViewMode, setBlueprintViewMode] = useState<'cards' | 'raw'>('cards')
   const [rawSubMode, setRawSubMode] = useState<'task' | 'system'>('task')
+  const apis = useApiStore((state) => state.apis)
+  const totalApisCount = apis.length || 427
   const [expandedBlueprintCards, setExpandedBlueprintCards] = useState<Record<string, boolean>>({
     mod1: true,
     mod2: false,
@@ -454,7 +457,7 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
                   )}
                 </div>
 
-                {/* 模块 2: 平台底座契约与 166 REST 规范 */}
+                {/* 模块 2: 平台底座契约与全量云 API 调度规范 */}
                 <div className="rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/90 shadow-2xs overflow-hidden transition-all">
                   <div
                     onClick={() => toggleBlueprintCard('mod2')}
@@ -465,13 +468,13 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
                         📋
                       </div>
                       <div className="font-bold text-slate-800 dark:text-slate-100 text-xs flex items-center gap-2">
-                        <span>模块 2：腾讯云 IM 166 REST API 调度原则</span>
+                        <span>模块 2：腾讯云多业务云架构与 API 调度原则</span>
                         <Badge variant="outline" className="text-[10px] py-0 px-1.5 border-emerald-300 dark:border-emerald-700 text-emerald-600 font-normal">底座契约</Badge>
                       </div>
                     </div>
 
                     <div className="flex items-center gap-2 shrink-0">
-                      <span className="text-xs text-slate-400">166 REST API</span>
+                      <span className="text-xs text-slate-400">{totalApisCount}+ Cloud APIs</span>
                       {expandedBlueprintCards.mod2 ? (
                         <ChevronDown className="h-4 w-4 text-slate-400" />
                       ) : (
@@ -486,7 +489,7 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
                         <div className="flex items-start gap-2">
                           <span className="text-emerald-500 font-bold shrink-0">1.</span>
                           <div>
-                            <strong>接口调度与检索全权限</strong>：拥有直接调用腾讯云 IM 166 个 REST 接口的最高权限（<code>tim_call</code>），以及接口语义检索（<code>tim_search_apis</code>）和官方文档查阅（<code>tim_get_doc</code>）能力。
+                            <strong>全量接口调度与检索权限</strong>：拥有直接调用腾讯云多业务全量接口（涵盖云直播 API 3.0、即时通信 IM REST 及任意已注册云服务）的最高权限（<code>cloud_call</code>、<code>live_call</code>、<code>im_call</code>、<code>tim_call</code>），以及接口语义检索（<code>cloud_search_apis</code>）和官方文档查阅（<code>cloud_get_doc</code>）能力。
                           </div>
                         </div>
                         <div className="flex items-start gap-2">
@@ -1094,7 +1097,7 @@ export const AgentPromptTab: React.FC<AgentPromptTabProps> = ({
                       <span>官方核心内置设定（系统保护 · 只读）</span>
                     </div>
                     <p className="text-[10px] text-slate-600 dark:text-slate-400 leading-normal">
-                      该智能体预装了腾讯云 IM 全量 166 个 REST 接口最高调度权限与标准流转机制。其人设基底由平台统一维护，防止破坏底座契约。您可以在交流中使其进化准则、记忆与技能，或点击「+」新建专属智能体自定义任意人设。
+                      该智能体预装了腾讯云多业务全量接口（涵盖云直播 API 3.0 与即时通信 IM REST 等）最高调度权限与标准流转机制。其人设基底由平台统一维护，防止破坏底座契约。您可以在交流中使其进化准则、记忆与技能，或点击「+」新建专属智能体自定义任意人设。
                     </p>
                   </div>
                 </div>

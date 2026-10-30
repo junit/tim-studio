@@ -1,0 +1,258 @@
+{
+  "doc_id": 32631,
+  "api_id": "live_ModifyLiveCallbackTemplate",
+  "title": "修改回调模板",
+  "doc_url": "https://cloud.tencent.com/document/api/267/32631",
+  "sync_time": "2026-10-29 19:32:19",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n修改回调模板。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ModifyLiveCallbackTemplate。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "DescribeLiveCallbackTemplates接口返回的模板 ID。示例值：1000"
+    },
+    {
+      "name": "TemplateName",
+      "type": "String",
+      "required": "选填",
+      "description": "模板名称。示例值：testName"
+    },
+    {
+      "name": "Description",
+      "type": "String",
+      "required": "选填",
+      "description": "描述信息。示例值：callback"
+    },
+    {
+      "name": "StreamBeginNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "开播回调 URL。示例值：http://domain.com/path"
+    },
+    {
+      "name": "StreamEndNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "断流回调 URL。示例值：http://domain.com/path"
+    },
+    {
+      "name": "RecordNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "录制文件回调 URL。示例值：http://domain.com/path"
+    },
+    {
+      "name": "RecordStatusNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "录制状态回调 URL 。示例值：http://domain.com/path"
+    },
+    {
+      "name": "SnapshotNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "截图回调 URL。示例值：http://domain.com/path"
+    },
+    {
+      "name": "PornCensorshipNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "鉴黄回调 URL。示例值：http://domain.com/path"
+    },
+    {
+      "name": "CallbackKey",
+      "type": "String",
+      "required": "选填",
+      "description": "回调 Key，回调 URL 公用，回调签名详见事件消息通知文档。事件消息通知。示例值：ajdjfladla"
+    },
+    {
+      "name": "PushExceptionNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "推流异常回调 URL。示例值：http://abc.com/abc"
+    },
+    {
+      "name": "AudioAuditNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "音频审核回调 URL。示例值：http://domain.com/path"
+    },
+    {
+      "name": "RecordExceptionNotifyUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "录制异常回调 URL。    示例值：http://domain.com/path"
+    },
+    {
+      "name": "RecordExceptionLevels.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "录制异常回调级别，可选择：error、warning、info。示例值：[\"error\"]"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: ModifyLiveCallbackTemplate\n<公共请求参数>\n\n{\n    \"StreamBeginNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=streamBegin\",\n    \"StreamEndNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=streamEnd\",\n    \"TemplateName\": \"testName\",\n    \"RecordNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=record\",\n    \"SnapshotNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=snapshot\",\n    \"TemplateId\": \"1000\",\n    \"PornCensorshipNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=porn\",\n    \"CallbackKey\": \"adasdas23432423\",\n    \"Description\": \"回调模板\"\n}",
+      "clean_json": "{\n  \"StreamBeginNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=streamBegin\",\n  \"StreamEndNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=streamEnd\",\n  \"TemplateName\": \"testName\",\n  \"RecordNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=record\",\n  \"SnapshotNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=snapshot\",\n  \"TemplateId\": \"1000\",\n  \"PornCensorshipNotifyUrl\": \"http://www.yourdomain.com/api/notify?action=porn\",\n  \"CallbackKey\": \"adasdas23432423\",\n  \"Description\": \"回调模板\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.ConfInUsed",
+      "description": "模版使用中。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.NotFound",
+      "description": "找不到记录。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ArgsNotMatch",
+      "description": "针对添加转码模版的接口。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfInUsed",
+      "description": "模版使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfNotFound",
+      "description": "模版不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotFound",
+      "description": "记录不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleAlreadyExist",
+      "description": "规则已经配置。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleInUsing",
+      "description": "规则使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleNotFound",
+      "description": "规则不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.ArgsNotMatch",
+      "description": "错误的模板名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.COSCustomFileNameError",
+      "description": "Cos自定义文件名错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidVodFileName",
+      "description": "错误的VodFileName。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.UrlNotSafe",
+      "description": "域名解析不正确。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation.NotLVBCodeMode",
+      "description": "非直播码/新版控制台模式。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

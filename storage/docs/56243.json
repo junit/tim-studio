@@ -1,0 +1,153 @@
+{
+  "doc_id": 56243,
+  "api_id": "live_DescribeLivePullStreamTasks",
+  "title": "查询直播拉流任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/56243",
+  "sync_time": "2026-10-29 19:32:14",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询使用 CreateLivePullStreamTask 接口创建的直播拉流任务。\n排序方式：默认按更新时间 倒序排列。\n默认接口请求频率限制：30次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLivePullStreamTasks。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-bangkok, ap-beijing, ap-chongqing, ap-guangzhou, ap-hongkong, ap-seoul, ap-shanghai, ap-singapore, ap-tokyo, eu-frankfurt, na-ashburn, na-siliconvalley 。"
+    },
+    {
+      "name": "TaskId",
+      "type": "String",
+      "required": "选填",
+      "description": "任务 ID。 来源：调用 CreateLivePullStreamTask 接口时返回。不填默认查询所有任务，按更新时间倒序排序。示例值：956321"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "取得第几页，默认值：1。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分页大小，默认值：10。取值范围：1~20 之前的任意整数。示例值：10"
+    },
+    {
+      "name": "SpecifyTaskId",
+      "type": "String",
+      "required": "选填",
+      "description": "使用指定任务 ID 查询任务信息。注意：仅供使用指定 ID 创建的任务查询。示例值：myspecifytaskid"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeLivePullStreamTasks\n<公共请求参数>\n\n{\n    \"TaskId\": \"9654231\"\n}",
+      "clean_json": "{\n  \"TaskId\": \"9654231\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TaskInfos",
+      "type": "Array of PullStreamTaskInfo",
+      "description": "直播拉流任务信息列表。"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "description": "分页的页码。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "description": "每页大小。示例值：10"
+    },
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "符合条件的总个数。示例值：1"
+    },
+    {
+      "name": "TotalPage",
+      "type": "Integer",
+      "description": "总页数。示例值：1"
+    },
+    {
+      "name": "LimitTaskNum",
+      "type": "Integer",
+      "description": "限制可创建的最大任务数。示例值：20"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"TaskInfos\": [\n            {\n                \"AppName\": \"live\",\n                \"Region\": \"ap-beijing\",\n                \"CallbackInfo\": \"\",\n                \"CallbackEvents\": [\n                    \"TaskStart\",\n                    \"TaskExit\"\n                ],\n                \"CallbackUrl\": \"\",\n                \"CreateBy\": \"yourname\",\n                \"DomainName\": \"yourdomain.com\",\n                \"EndTime\": \"2020-04-25T00:30:00Z\",\n                \"ErrorInfo\": \"\",\n                \"BackupToUrl\": \"\",\n                \"RecordTemplateId\": \"\",\n                \"PushArgs\": \"txsecret=7cbb8f382a21e8d2f6cd8098100d3b8e&txtime=5ea0450d\",\n                \"SourceType\": \"PullLivePushLive\",\n                \"SourceUrls\": [\n                    \"http://yourdomain/live/test.flv\"\n                ],\n                \"StartTime\": \"2020-04-20T00:30:00Z\",\n                \"Status\": \"enable\",\n                \"StreamName\": \"teststream\",\n                \"Comment\": \"重要活动\",\n                \"TaskId\": \"10054\",\n                \"UpdateBy\": \"\",\n                \"UpdateTime\": \"2020-04-23T05:07:43Z\",\n                \"CreateTime\": \"2020-04-20T05:07:43Z\",\n                \"VodLoopTimes\": -1,\n                \"VodRefreshType\": \"ImmediateNewSource\",\n                \"VodLocalMode\": 0,\n                \"BackupSourceType\": \"\",\n                \"BackupSourceUrl\": \"\",\n                \"WatermarkList\": [],\n                \"RecentPullInfo\": {\n                    \"FileUrl\": \"http://yourdomain/live/test.flv\",\n                    \"OffsetTime\": 95,\n                    \"LoopedTimes\": 0,\n                    \"ReportTime\": \"2020-04-23T08:20:39Z\"\n                }\n            }\n        ],\n        \"PageNum\": 1,\n        \"PageSize\": 10,\n        \"TotalNum\": 1,\n        \"TotalPage\": 1,\n        \"LimitTaskNum\": 20,\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"TaskInfos\": [\n      {\n        \"AppName\": \"live\",\n        \"Region\": \"ap-beijing\",\n        \"CallbackInfo\": \"\",\n        \"CallbackEvents\": [\n          \"TaskStart\",\n          \"TaskExit\"\n        ],\n        \"CallbackUrl\": \"\",\n        \"CreateBy\": \"yourname\",\n        \"DomainName\": \"yourdomain.com\",\n        \"EndTime\": \"2020-04-25T00:30:00Z\",\n        \"ErrorInfo\": \"\",\n        \"BackupToUrl\": \"\",\n        \"RecordTemplateId\": \"\",\n        \"PushArgs\": \"txsecret=7cbb8f382a21e8d2f6cd8098100d3b8e&txtime=5ea0450d\",\n        \"SourceType\": \"PullLivePushLive\",\n        \"SourceUrls\": [\n          \"http://yourdomain/live/test.flv\"\n        ],\n        \"StartTime\": \"2020-04-20T00:30:00Z\",\n        \"Status\": \"enable\",\n        \"StreamName\": \"teststream\",\n        \"Comment\": \"重要活动\",\n        \"TaskId\": \"10054\",\n        \"UpdateBy\": \"\",\n        \"UpdateTime\": \"2020-04-23T05:07:43Z\",\n        \"CreateTime\": \"2020-04-20T05:07:43Z\",\n        \"VodLoopTimes\": -1,\n        \"VodRefreshType\": \"ImmediateNewSource\",\n        \"VodLocalMode\": 0,\n        \"BackupSourceType\": \"\",\n        \"BackupSourceUrl\": \"\",\n        \"WatermarkList\": [],\n        \"RecentPullInfo\": {\n          \"FileUrl\": \"http://yourdomain/live/test.flv\",\n          \"OffsetTime\": 95,\n          \"LoopedTimes\": 0,\n          \"ReportTime\": \"2020-04-23T08:20:39Z\"\n        }\n      }\n    ],\n    \"PageNum\": 1,\n    \"PageSize\": 10,\n    \"TotalNum\": 1,\n    \"TotalPage\": 1,\n    \"LimitTaskNum\": 20,\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

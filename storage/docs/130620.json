@@ -1,0 +1,296 @@
+{
+  "doc_id": 130620,
+  "api_id": "live_ModifyOriginStreamInfo",
+  "title": "变更直播源站配置",
+  "doc_url": "https://cloud.tencent.com/document/api/267/130620",
+  "sync_time": "2026-10-29 19:32:12",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n变更直播源站配置，支持直播源站格式。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ModifyOriginStreamInfo。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "域名。示例值：www.playtest.com"
+    },
+    {
+      "name": "OriginStreamPlayType",
+      "type": "String",
+      "required": "必填",
+      "description": "源站播放协议，可取值：rtmp、flv、hls、dash、hls|dash、customization。示例值：hls"
+    },
+    {
+      "name": "CdnStreamPlayType.N",
+      "type": "Array of String",
+      "required": "必填",
+      "description": "播放协议，可取值：rtmp、flv、hls、dash、hls|dash、customization。自定义回源协议填写 customization。示例值：[\"customization\"]"
+    },
+    {
+      "name": "OriginStreamType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "原站类型：1 => 直播原站。2 => mediaPackage。示例值：1"
+    },
+    {
+      "name": "OriginAddress.N",
+      "type": "Array of String",
+      "required": "必填",
+      "description": "原站地址信息，每项用冒号分割域名（ip）、端口信息。端口为空也要带上分号，表示取默认端口。自定义回源协议填写 customization。示例值：[\"1.2.3.4:80\"]"
+    },
+    {
+      "name": "OriginAddressType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "原站地址类型：1 => IP 类型。2 => 域名类型。示例值：1"
+    },
+    {
+      "name": "CustomerName",
+      "type": "String",
+      "required": "选填",
+      "description": "自定义名称示例值：customer1"
+    },
+    {
+      "name": "OriginHost",
+      "type": "String",
+      "required": "选填",
+      "description": "原站 host。当原站播放协议为 hls 时，传递该字段才会生效。示例值：www.test.host.com"
+    },
+    {
+      "name": "OriginTimeout",
+      "type": "Integer",
+      "required": "选填",
+      "description": "超时时间，单位 ms，取值范围：1 ～ 60000，默认值：10000。示例值：10000"
+    },
+    {
+      "name": "OriginRetryTimes",
+      "type": "Integer",
+      "required": "选填",
+      "description": "重试次数，单位 次，取值范围：1 ～ 10，默认值：10。示例值：10"
+    },
+    {
+      "name": "PassThroughHttpHeader",
+      "type": "String",
+      "required": "选填",
+      "description": "是否透传 http 头信息，可取值：on、off。当原站播放协议为 hls 时，传递该字段才会生效。示例值：off"
+    },
+    {
+      "name": "PassThroughResponse",
+      "type": "String",
+      "required": "选填",
+      "description": "是否透传相应，可取值：on、off。当原站播放协议为 hls 时，传递该字段才会生效。示例值：off"
+    },
+    {
+      "name": "PassThroughParam",
+      "type": "String",
+      "required": "选填",
+      "description": "是否透传参数，可取值：on、off。当原站播放协议为 hls 时，传递该字段才会生效。示例值：off"
+    },
+    {
+      "name": "IndexerCache",
+      "type": "Integer",
+      "required": "选填",
+      "description": "索引缓存，单位 ms，取值范围：1 ～ 60000，默认值：10000。当原站播放协议为 hls 时，传递该字段才会生效。示例值：10000"
+    },
+    {
+      "name": "FragmentCache",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分片缓存，单位 ms，取值范围：1 ～ 60000，默认值：10000。当原站播放协议为 hls 时，传递该字段才会生效。示例值：10000"
+    },
+    {
+      "name": "HlsPlayFragmentCount",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分片数，单位 个，取值范围：1 ～ 10，默认值：3。示例值：3"
+    },
+    {
+      "name": "HlsPlayFragmentDuration",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分片时长，单位 ms，取值范围：1 ～ 10000，默认值：3000。示例值：3000"
+    },
+    {
+      "name": "TimeJitter",
+      "type": "String",
+      "required": "选填",
+      "description": "时间戳修正，可取值：on、off，默认值：off。当原站播放协议为 rtmp、flv 时，传递该字段才会生效。示例值：off"
+    },
+    {
+      "name": "UsingHttps",
+      "type": "String",
+      "required": "选填",
+      "description": "https 回源，可取值：on、off，默认值：off。当原站播放协议为flv、hls时，传递此字段才会生效。示例值：off"
+    },
+    {
+      "name": "CacheFollowOrigin",
+      "type": "String",
+      "required": "选填",
+      "description": "遵循原站，可取值：on、off，默认值：off。当原站播放协议为hls时，传递此字段才会生效。示例值：off"
+    },
+    {
+      "name": "CacheStatusCode.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "状态码缓存，数组元素格式：cacheKey:intervalcacheKey 可取值：cache_400_sec、cache_403_sec、cache_404_sec、cache_405_sec、cache_500_sec、cache_503_sec、cache_504_sec。interval 单位 ms。当原站播放协议为hls时，传递此字段才会生效。示例值：[\"cache_400_sec:1\"]"
+    },
+    {
+      "name": "UrlReplaceRules.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "url改写， 格式为： url1<|>url2; 其中，<|> 为分隔符。url1、url2 长度限制100，不可包含特殊字符。当原站播放协议为hls时，传递此字段才会生效。示例值：[\"/live<|>/live2\"]"
+    },
+    {
+      "name": "OptionsRequest",
+      "type": "String",
+      "required": "选填",
+      "description": "options 支持，可取值：on、off，默认值：off。当原站播放协议为hls时，传递此字段才会生效。示例值：off"
+    },
+    {
+      "name": "FollowRedirect",
+      "type": "String",
+      "required": "选填",
+      "description": "follow 301/302，可取值：on、off，默认值：off。当原站播放协议为hls时，传递此字段才会生效。示例值：off"
+    },
+    {
+      "name": "IndexerKeepParam.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "当 OriginStreamPlayType 为 hls 时生效，设置索引缓存保留指定参数列表，最多支持 30 组，每个参数小于等于 20 字符。示例值：[\"key1\",\"key2\"]"
+    },
+    {
+      "name": "FragmentKeepParam.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "当 OriginStreamPlayType 为 hls 时生效，设置分片缓存保留指定参数列表，最多支持 30 组，每个参数小于等于 20 字符。示例值：[\"key1\",\"key2\"]"
+    },
+    {
+      "name": "MediaPackageType",
+      "type": "String",
+      "required": "选填",
+      "description": "当 OriginStreamType = 2 时有效，表示 mediapackage 具体类型：media_package => 仅配置普通频道。media_package_pure_ad => 仅配置广告。media_package_mix_ad => 同时配置普通频道和广告。注意：配置时候，优先使用 media_package。和 MediaPackageChannelTypes 字段配合使用。示例值：media_package_pure_ad"
+    },
+    {
+      "name": "MediaPackageChannelTypes.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "当 OriginStreamType = 2 且 MediaPackageType = media_package 时有效，表示 mediapackage 频道类型，可组合如下值：normal（频道）、ssai（广告）、linear_assembly（线性组装）。示例值：[\"normal\"]"
+    },
+    {
+      "name": "IndexerHeader.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "当 OriginStreamPlayType 为 hls 时生效，设置索引自定义 header，最大支持 10 组，每一组参数、取值用空格分开，允许字符规则如下：头部参数：由大小写字母、数字及-组成，长度支持1 ～100个字符，黑名单：Host、Connection、Content-Length、Range。头部取值：不支持中文、不支持以$开头，长度支持1 ～ 100个字符，不允许有空格。示例值：[\"k1:v1\",\"k2:v2\"]"
+    },
+    {
+      "name": "FragmentHeader.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "当 OriginStreamPlayType 为 hls 时生效，设置分片自定义 header，最大支持 10 组，每一组参数、取值用空格分开，允许字符规则如下：头部参数：由大小写字母、数字及-组成，长度支持1 ～100个字符，黑名单：Host、Connection、Content-Length、Range。头部取值：不支持中文、不支持以$开头，长度支持1 ～ 100个字符，不允许有空格。示例值：[\"k1:v1\",\"k2:v2\"]"
+    },
+    {
+      "name": "CustomizationRules.N",
+      "type": "Array of OriginStreamCustomizationRule",
+      "required": "选填",
+      "description": "自定义回源规则列表，当 OriginStreamPlayType 为 customization 时候生效。"
+    },
+    {
+      "name": "CacheFormatRule",
+      "type": "Integer",
+      "required": "选填",
+      "description": "缓存格式规则。0：默认格式。1：云直播源站格式。当 OriginStreamPlayType 为 customization 时候生效。示例值：1"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: ModifyOriginStreamInfo\n<公共请求参数>\n\n{\n    \"DomainName\": \"www.test.live\",\n    \"OriginStreamPlayType\": \"hls\",\n    \"CdnStreamPlayType\": [\n        \"hls\"\n    ],\n    \"OriginStreamType\": 1,\n    \"OriginAddress\": [\n        \"81.68.241.194:8082\"\n    ],\n    \"OriginAddressType\": 1\n}",
+      "clean_json": "{\n  \"DomainName\": \"www.test.live\",\n  \"OriginStreamPlayType\": \"hls\",\n  \"CdnStreamPlayType\": [\n    \"hls\"\n  ],\n  \"OriginStreamType\": 1,\n  \"OriginAddress\": [\n    \"81.68.241.194:8082\"\n  ],\n  \"OriginAddressType\": 1\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"2b73d79c-2726-4906-810c-7ad2f2c6f76e\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"2b73d79c-2726-4906-810c-7ad2f2c6f76e\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.MatchRuleOnlySupportNormalSuffix",
+      "description": "匹配规则仅支持音视频格式后缀。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.InvalidUser",
+      "description": "用户不支持此接口。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

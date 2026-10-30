@@ -267,13 +267,14 @@ export const JsonCodeEditor: React.FC<JsonCodeEditorProps> = ({
       )}
 
       {/* CodeMirror 编辑器核心区域 */}
-      <div className="flex-1 overflow-hidden relative">
+      <div className="flex-1 min-h-0 overflow-hidden relative h-full">
         <CodeMirror
           value={value}
           theme={isDark ? 'dark' : 'light'}
-          height={height}
+          height={height || '100%'}
           minHeight={minHeight}
           maxHeight={maxHeight}
+          className="h-full [&_.cm-theme]:h-full [&_.cm-editor]:h-full [&_.cm-scroller]:h-full"
           placeholder={placeholder}
           extensions={extensions}
           onChange={handleChange}

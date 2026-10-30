@@ -1,0 +1,101 @@
+{
+  "doc_id": 80524,
+  "api_id": "live_AuthenticateDomainOwner",
+  "title": "验证直播域名所有权",
+  "doc_url": "https://cloud.tencent.com/document/api/267/80524",
+  "sync_time": "2026-10-29 19:32:11",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n验证用户是否拥有特定直播域名。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：AuthenticateDomainOwner。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "要验证的域名。示例值：foodscloud.com"
+    },
+    {
+      "name": "VerifyType",
+      "type": "String",
+      "required": "必填",
+      "description": "验证类型。可取值：dnsCheck ：立即验证配置 dns 的解析记录是否与待验证内容一致，成功则保存记录。fileCheck ：立即验证 web 文件是否与待验证内容一致，成功则保存记录。dbCheck :  检查是否已经验证成功过。示例值：dnsCheck"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: AuthenticateDomainOwner\n<公共请求参数>\n\n{\n    \"VerifyType\": \"dnsCheck\",\n    \"DomainName\": \"akxynt.cn\"\n}",
+      "clean_json": "{\n  \"VerifyType\": \"dnsCheck\",\n  \"DomainName\": \"akxynt.cn\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "Content",
+      "type": "String",
+      "description": "验证内容。VerifyType 传 dnsCheck 时，为要配的 TXT 记录值。VerifyType 传 fileCheck 时，为文件内容。示例值：cssauth_b2fe08b85b975844fd7ff34"
+    },
+    {
+      "name": "Status",
+      "type": "Integer",
+      "description": "域名验证状态。>=0 为已验证归属。<0 未验证归属权。示例值：4"
+    },
+    {
+      "name": "MainDomain",
+      "type": "String",
+      "description": "DomainName 对应的主域名。同一主域名下的所有域名只需成功验证一次，后续均无需再验证。示例值：foodscloud.com"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"Content\": \"cssauth_da06159efa92c365182ba5d453a7b65b\",\n        \"MainDomain\": \"akxynt.cn\",\n        \"RequestId\": \"20a9d1c1-7b2a-48b5-9a78-c0bccab3dfb6\",\n        \"Status\": 0\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"Content\": \"cssauth_da06159efa92c365182ba5d453a7b65b\",\n    \"MainDomain\": \"akxynt.cn\",\n    \"RequestId\": \"20a9d1c1-7b2a-48b5-9a78-c0bccab3dfb6\",\n    \"Status\": 0\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainFormatError",
+      "description": "域名格式错误，请输入合法格式域名。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

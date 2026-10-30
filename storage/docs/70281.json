@@ -1,0 +1,162 @@
+{
+  "doc_id": 70281,
+  "api_id": "live_CreateScreenshotTask",
+  "title": "创建截图任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/70281",
+  "sync_time": "2026-10-29 19:32:20",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n创建一个在指定时间启动、结束的截图任务，并使用指定截图模板ID对应的配置进行截图。\n注意事项\n断流会结束当前截图。在结束时间到达之前任务仍然有效，期间只要正常推流都会正常截图，与是否多次推、断流无关。\n使用上避免创建时间段相互重叠的截图任务。若同一条流当前存在多个时段重叠的任务，为避免重复系统将启动最多3个截图任务。\n创建的截图任务记录在平台侧只保留3个月。\n当前截图任务管理API（CreateScreenshotTask/StopScreenshotTask/DeleteScreenshotTask）与旧API（CreateLiveInstantSnapshot/StopLiveInstantSnapshot）不兼容，两套接口不能混用。\n避免 创建截图任务 与 推流 操作同时进行，可能导致因截图任务未生效而引起任务延迟启动问题，两者操作间隔建议大于3秒。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=CreateScreenshotTask\n&AppName=live\n&DomainName=5000.live.push.com\n&StreamName=livetest\n&StartTime=1589889600\n&EndTime=1589904000\n&TemplateId=0\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateScreenshotTask。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-guangzhou 。"
+    },
+    {
+      "name": "StreamName",
+      "type": "String",
+      "required": "必填",
+      "description": "流名称。示例值：livetest"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "推流域名。示例值：5000.live.push.com"
+    },
+    {
+      "name": "AppName",
+      "type": "String",
+      "required": "必填",
+      "description": "推流路径。示例值：live"
+    },
+    {
+      "name": "EndTime",
+      "type": "Integer",
+      "required": "必填",
+      "description": "截图任务结束时间，Unix时间戳。设置时间必须大于StartTime及当前时间，且小于当前时间+7天。示例值：1589904000"
+    },
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "截图模板ID，CreateLiveSnapshotTemplate 返回值。如果传入错误ID，则不拉起截图。示例值：0"
+    },
+    {
+      "name": "StartTime",
+      "type": "Integer",
+      "required": "选填",
+      "description": "截图任务开始时间，Unix时间戳。如果不填表示立即启动截图。EndTime - StartTime不能超过24小时。示例值：1589889600"
+    },
+    {
+      "name": "StreamType",
+      "type": "Integer",
+      "required": "选填",
+      "description": "推流类型，默认0。取值：0-直播推流。1-合成流，即 A+B=C 类型混流。示例值：0"
+    },
+    {
+      "name": "Extension",
+      "type": "String",
+      "required": "选填",
+      "description": "扩展字段，暂无定义。默认为空。示例值：extension"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=CreateScreenshotTask\n&AppName=live\n&DomainName=5000.live.push.com\n&StreamName=livetest\n&StartTime=1589889600\n&EndTime=1589904000\n&TemplateId=0\n&<公共请求参数>",
+      "clean_json": "{\n  \"AppName\": \"live\",\n  \"DomainName\": \"5000.live.push.com\",\n  \"StreamName\": \"livetest\",\n  \"StartTime\": 1589889600,\n  \"EndTime\": 1589904000,\n  \"TemplateId\": 0\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TaskId",
+      "type": "String",
+      "description": "任务ID，全局唯一标识截图任务。返回TaskId字段说明截图任务创建成功。示例值：UpTbk5RSVhRQFkAAfHwQCCjcRD0lRFcZ0xTSlNTQltlRVRLU1JAWW9EUb"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\",\n        \"TaskId\": \"UpTbk5RSVhRQFkAAfHwQCCjcRD0lRFcZ0xTSlNTQltlRVRLU1JAWW9EUb\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\",\n    \"TaskId\": \"UpTbk5RSVhRQFkAAfHwQCCjcRD0lRFcZ0xTSlNTQltlRVRLU1JAWW9EUb\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetConfigError",
+      "description": "获取配置错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NetworkError",
+      "description": "内部网络错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "LimitExceeded.MaximumRunningTask",
+      "description": "当前并发任务数超限制。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

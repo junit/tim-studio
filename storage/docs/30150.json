@@ -1,0 +1,163 @@
+{
+  "doc_id": 30150,
+  "api_id": "live_UpdateLiveWatermark",
+  "title": "更新水印",
+  "doc_url": "https://cloud.tencent.com/document/api/267/30150",
+  "sync_time": "2026-10-29 19:32:13",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n更新水印。\n默认接口请求频率限制：100次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=UpdateLiveWatermark\n&WatermarkId=452356\n&PictureUrl=http://watermark-10005041.cos.myqcloud.com/1251830167/watermark_img_Alogo.png\n&XPosition=80\n&YPosition=10\n&WatermarkName=logo\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：UpdateLiveWatermark。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "WatermarkId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "水印 ID。在添加水印接口 AddLiveWatermark 调用返回值中获取水印 ID。示例值：452356"
+    },
+    {
+      "name": "PictureUrl",
+      "type": "String",
+      "required": "必填",
+      "description": "水印图片 URL。URL中禁止包含的字符： ;(){}$>`#\"'|示例值：http://watermark-10005041.cos.myqcloud.com/1251830167/watermark_img_Alogo.png"
+    },
+    {
+      "name": "XPosition",
+      "type": "Integer",
+      "required": "必填",
+      "description": "显示位置，X轴偏移，单位是百分比，默认 0。示例值：80"
+    },
+    {
+      "name": "YPosition",
+      "type": "Integer",
+      "required": "必填",
+      "description": "显示位置，Y轴偏移，单位是百分比，默认 0。示例值：10"
+    },
+    {
+      "name": "WatermarkName",
+      "type": "String",
+      "required": "选填",
+      "description": "水印名称。最长30字节。示例值：logo"
+    },
+    {
+      "name": "Width",
+      "type": "Integer",
+      "required": "选填",
+      "description": "水印宽度，占直播原始画面宽度百分比，建议高宽只设置一项，另外一项会自适应缩放，避免变形。默认原始宽度。示例值：100"
+    },
+    {
+      "name": "Height",
+      "type": "Integer",
+      "required": "选填",
+      "description": "水印高度，占直播原始画面宽度百分比，建议高宽只设置一项，另外一项会自适应缩放，避免变形。默认原始高度。示例值：100"
+    },
+    {
+      "name": "BackgroundWidth",
+      "type": "Integer",
+      "required": "选填",
+      "description": "背景水印宽度。默认宽度1920。示例值：1920"
+    },
+    {
+      "name": "BackgroundHeight",
+      "type": "Integer",
+      "required": "选填",
+      "description": "背景水印高度。默认高度1080。示例值：1080"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=UpdateLiveWatermark\n&WatermarkId=452356\n&PictureUrl=http://watermark-10005041.cos.myqcloud.com/1251830167/watermark_img_Alogo.png\n&XPosition=80\n&YPosition=10\n&WatermarkName=logo\n&<公共请求参数>",
+      "clean_json": "{\n  \"WatermarkId\": 452356,\n  \"PictureUrl\": \"http://watermark-10005041.cos.myqcloud.com/1251830167/watermark_img_Alogo.png\",\n  \"XPosition\": 80,\n  \"YPosition\": 10,\n  \"WatermarkName\": \"logo\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetBizidError",
+      "description": "获取用户账号错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.WatermarkEditError",
+      "description": "水印修改内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.WatermarkNotExist",
+      "description": "水印不存在。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.WatermarkNotExist",
+      "description": "水印不存在。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

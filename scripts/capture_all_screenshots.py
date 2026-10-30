@@ -24,24 +24,42 @@ MOCK_CONFIG_DATA = {
                 "id": "env_dev",
                 "name": "开发联调沙箱",
                 "tag": "DEV",
-                "remark": "开发联调与测试沙箱环境",
+                "remark": "开发联调与测试沙箱环境（支持 IM REST 与云直播 API 3.0 等多业务）",
                 "sdkappid": 1400000000,
                 "secret_key": "YOUR****************HERE",
                 "has_secret": True,
                 "admin_user": "administrator",
                 "domain": "console.tim.qq.com",
+                "tc_secret_id": "AKID****************************ABCD",
+                "tc_secret_key": "YOUR****************HERE",
+                "has_tc_secret": True,
+                "tc_region": "ap-guangzhou",
+                "tc_endpoint": "live.tencentcloudapi.com",
+                "live_push_domain": "push-live.example.com",
+                "live_play_domain": "play-live.example.com",
+                "live_push_key": "YOUR****************HERE",
+                "live_play_key": "YOUR****************HERE",
                 "delay_sec": 0.05
             },
             {
                 "id": "env_prod",
                 "name": "正式生产环境",
                 "tag": "PROD",
-                "remark": "腾讯云 IM 官方主业务正式生产环境",
+                "remark": "腾讯云多业务主业务正式生产环境",
                 "sdkappid": 1400000001,
                 "secret_key": "YOUR****************HERE",
                 "has_secret": True,
                 "admin_user": "administrator",
                 "domain": "console.tim.qq.com",
+                "tc_secret_id": "AKID****************************EFGH",
+                "tc_secret_key": "YOUR****************HERE",
+                "has_tc_secret": True,
+                "tc_region": "ap-guangzhou",
+                "tc_endpoint": "live.tencentcloudapi.com",
+                "live_push_domain": "push.domain.com",
+                "live_play_domain": "play.domain.com",
+                "live_push_key": "YOUR****************HERE",
+                "live_play_key": "YOUR****************HERE",
                 "delay_sec": 0.05
             }
         ],
@@ -50,6 +68,15 @@ MOCK_CONFIG_DATA = {
         "has_secret": True,
         "admin_user": "administrator",
         "domain": "console.tim.qq.com",
+        "tc_secret_id": "AKID****************************ABCD",
+        "tc_secret_key": "YOUR****************HERE",
+        "has_tc_secret": True,
+        "tc_region": "ap-guangzhou",
+        "tc_endpoint": "live.tencentcloudapi.com",
+        "live_push_domain": "push-live.example.com",
+        "live_play_domain": "play-live.example.com",
+        "live_push_key": "YOUR****************HERE",
+        "live_play_key": "YOUR****************HERE",
         "delay_sec": 0.05
     }
 }
@@ -63,7 +90,6 @@ def optimize_image(filepath, target_size=(1440, 900)):
     print(f"Saved {filepath} ({im.size[0]}x{im.size[1]}, {os.path.getsize(filepath)//1024} KB)")
 
 def main():
-    # 1. 临时切换为示例脱敏配置，双重保险防泄密
     has_backup = False
     try:
         if os.path.exists(CONFIG_PATH):
@@ -95,7 +121,7 @@ def main():
             desktop.route("**/api/config", handle_config_route)
             
             desktop.goto(BASE_URL)
-            desktop.wait_for_timeout(1500)
+            desktop.wait_for_timeout(2000)
             
             # --- 1.1 Workbench ---
             print("Capturing workbench.png (Sanitized)...")
@@ -120,6 +146,21 @@ def main():
             batch_path = os.path.join(OUT_DIR, "batch_runner.png")
             desktop.screenshot(path=batch_path)
             optimize_image(batch_path, (1440, 900))
+
+            # --- 1.3.1 Batch History ---
+            print("Capturing history.png (Sanitized)...")
+            hist_btn = desktop.query_selector('button:has-text("历史执行台账")')
+            if hist_btn:
+                hist_btn.click()
+                desktop.wait_for_timeout(1200)
+                hist_path = os.path.join(OUT_DIR, "history.png")
+                desktop.screenshot(path=hist_path)
+                optimize_image(hist_path, (1440, 900))
+                # 切回 runner
+                runner_btn = desktop.query_selector('button:has-text("批量任务执行")')
+                if runner_btn:
+                    runner_btn.click()
+                    desktop.wait_for_timeout(500)
             
             # --- 1.4 Environments (重点脱敏) ---
             print("Capturing environments.png (Sanitized)...")
@@ -132,9 +173,8 @@ def main():
             # --- 1.5 AI Agent Workbench ---
             print("Capturing agent_workbench.png (Sanitized)...")
             desktop.click('button:has-text("AI 智能体")')
-            desktop.wait_for_timeout(1500)
+            desktop.wait_for_timeout(2000)
             
-            # Position scroll to showcase clean structured investigation without floating prompt
             desktop.evaluate('''() => {
                 const style = document.createElement('style');
                 style.id = 'hide-float-btn';
@@ -146,7 +186,7 @@ def main():
                     el.scrollTop = 20850;
                 }
             }''')
-            desktop.wait_for_timeout(800)
+            desktop.wait_for_timeout(1000)
             agent_path = os.path.join(OUT_DIR, "agent_workbench.png")
             desktop.screenshot(path=agent_path)
             optimize_image(agent_path, (1440, 900))
@@ -156,7 +196,7 @@ def main():
             topo_btn = desktop.query_selector('button:has-text("协同拓扑")')
             if topo_btn:
                 topo_btn.click()
-                desktop.wait_for_timeout(1000)
+                desktop.wait_for_timeout(1200)
                 topo_path = os.path.join(OUT_DIR, "agent_topology.png")
                 desktop.screenshot(path=topo_path)
                 optimize_image(topo_path, (1440, 900))
@@ -173,7 +213,7 @@ def main():
             )
             mobile.route("**/api/config", handle_config_route)
             mobile.goto(BASE_URL)
-            mobile.wait_for_timeout(1500)
+            mobile.wait_for_timeout(2000)
             mobile_path = os.path.join(OUT_DIR, "mobile.png")
             mobile.screenshot(path=mobile_path)
             optimize_image(mobile_path, (390, 844))
@@ -182,7 +222,6 @@ def main():
             browser.close()
             print("All sanitized screenshots captured successfully!")
     finally:
-        # 恢复用户的真实配置
         if has_backup and os.path.exists(BAK_PATH):
             shutil.copyfile(BAK_PATH, CONFIG_PATH)
             os.remove(BAK_PATH)

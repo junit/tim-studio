@@ -1,0 +1,85 @@
+{
+  "doc_id": 138609,
+  "api_id": "live_ModifyAuditTemplate",
+  "title": "修改审核模板",
+  "doc_url": "https://cloud.tencent.com/document/api/267/138609",
+  "sync_time": "2026-10-29 19:32:17",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n修改审核模板。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ModifyAuditTemplate。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "AuditTemplate",
+      "type": "AuditTemplate",
+      "required": "必填",
+      "description": "审核模板。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: ModifyAuditTemplate\n<公共请求参数>\n\n{\n    \"AuditTemplate\": {\n        \"TemplateId\": 55514,\n        \"TemplateName\": \"直播审核_test\",\n        \"Description\": \"直播审核_test\",\n        \"AuditImage\": true,\n        \"AuditAudio\": true,\n        \"AuditText\": 1,\n        \"SnapshotInterval\": 50,\n        \"AudioInterval\": 30,\n        \"CosBucket\": \"live-test\",\n        \"CosRegion\": \"ap-shanghai\",\n        \"CosFilePath\": \"/Audit/{Year}-{Month}-{Day}/{StreamID}-Audit-{Hour}-{Minute}-{Second}{Ext}\",\n        \"EnableFailoverCos\": false,\n        \"SceneInfos\": [\n            {\n                \"BizInfos\": [\n                    {\n                        \"BizType\": \"1_1_7_55514\",\n                        \"Status\": true,\n                        \"StrategyType\": \"ShortAudio\",\n                        \"StrategyConfig\": \"{\\\"ability\\\":{\\\"asr_text\\\":true,\\\"audio\\\":true},\\\"asr_text_labels\\\":{\\\"ad\\\":[\\\"AdvertisingDiversion\\\",\\\"FinancialAdvertising\\\"]},\\\"audio_labels\\\":{},\\\"user_text_libs\\\":[\\\"0fd0600e-0603-41e8-a985-ae49a73fbe9f\\\"]}\"\n                    },\n                    {\n                        \"BizType\": \"1_1_2_55514\",\n                        \"Status\": true,\n                        \"StrategyType\": \"Image\",\n                        \"StrategyConfig\": \"{\\\"ability\\\":{\\\"image\\\":true,\\\"ocr_text\\\":true},\\\"ocr_text_labels\\\":{\\\"ad\\\":[\\\"AdvertisingDiversion\\\",\\\"FinancialAdvertising\\\"]},\\\"image_labels\\\":{\\\"illegal\\\":[\\\"Delinquenent\\\",\\\"NonMainstream\\\",\\\"Illegal\\\",\\\"Contraband\\\",\\\"PersonalPrivacy\\\",\\\"Nausea\\\"],\\\"ad\\\":[\\\"QRCode\\\",\\\"LOGO\\\"]},\\\"user_text_libs\\\":[\\\"0fd0600e-0603-41e8-a985-ae49a73fbe9f\\\"]}\"\n                    },\n                    {\n                        \"BizType\": \"1_1_1_55514\",\n                        \"Status\": true,\n                        \"StrategyType\": \"Text\",\n                        \"StrategyConfig\": \"{\\\"ability\\\":{\\\"text\\\":true},\\\"ignore_word_conf\\\":{\\\"keyword_disable\\\":false,\\\"model_disable\\\":false,\\\"rule_disable\\\":false},\\\"text_labels\\\":{\\\"ad\\\":[\\\"AdvertisingDiversion\\\",\\\"FinancialAdvertising\\\"]},\\\"user_text_libs\\\":[\\\"0fd0600e-0603-41e8-a985-ae49a73fbe9f\\\"]}\"\n                    }\n                ]\n            }\n        ]\n    }\n}",
+      "clean_json": "{\n  \"AuditTemplate\": {\n    \"TemplateId\": 55514,\n    \"TemplateName\": \"直播审核_test\",\n    \"Description\": \"直播审核_test\",\n    \"AuditImage\": true,\n    \"AuditAudio\": true,\n    \"AuditText\": 1,\n    \"SnapshotInterval\": 50,\n    \"AudioInterval\": 30,\n    \"CosBucket\": \"live-test\",\n    \"CosRegion\": \"ap-shanghai\",\n    \"CosFilePath\": \"/Audit/{Year}-{Month}-{Day}/{StreamID}-Audit-{Hour}-{Minute}-{Second}{Ext}\",\n    \"EnableFailoverCos\": false,\n    \"SceneInfos\": [\n      {\n        \"BizInfos\": [\n          {\n            \"BizType\": \"1_1_7_55514\",\n            \"Status\": true,\n            \"StrategyType\": \"ShortAudio\",\n            \"StrategyConfig\": \"{\\\"ability\\\":{\\\"asr_text\\\":true,\\\"audio\\\":true},\\\"asr_text_labels\\\":{\\\"ad\\\":[\\\"AdvertisingDiversion\\\",\\\"FinancialAdvertising\\\"]},\\\"audio_labels\\\":{},\\\"user_text_libs\\\":[\\\"0fd0600e-0603-41e8-a985-ae49a73fbe9f\\\"]}\"\n          },\n          {\n            \"BizType\": \"1_1_2_55514\",\n            \"Status\": true,\n            \"StrategyType\": \"Image\",\n            \"StrategyConfig\": \"{\\\"ability\\\":{\\\"image\\\":true,\\\"ocr_text\\\":true},\\\"ocr_text_labels\\\":{\\\"ad\\\":[\\\"AdvertisingDiversion\\\",\\\"FinancialAdvertising\\\"]},\\\"image_labels\\\":{\\\"illegal\\\":[\\\"Delinquenent\\\",\\\"NonMainstream\\\",\\\"Illegal\\\",\\\"Contraband\\\",\\\"PersonalPrivacy\\\",\\\"Nausea\\\"],\\\"ad\\\":[\\\"QRCode\\\",\\\"LOGO\\\"]},\\\"user_text_libs\\\":[\\\"0fd0600e-0603-41e8-a985-ae49a73fbe9f\\\"]}\"\n          },\n          {\n            \"BizType\": \"1_1_1_55514\",\n            \"Status\": true,\n            \"StrategyType\": \"Text\",\n            \"StrategyConfig\": \"{\\\"ability\\\":{\\\"text\\\":true},\\\"ignore_word_conf\\\":{\\\"keyword_disable\\\":false,\\\"model_disable\\\":false,\\\"rule_disable\\\":false},\\\"text_labels\\\":{\\\"ad\\\":[\\\"AdvertisingDiversion\\\",\\\"FinancialAdvertising\\\"]},\\\"user_text_libs\\\":[\\\"0fd0600e-0603-41e8-a985-ae49a73fbe9f\\\"]}\"\n          }\n        ]\n      }\n    ]\n  }\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "description": "模板 ID 。示例值：55514"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"e91114bc-9075-4d8e-a35f-d914ddf9cb39\",\n        \"TemplateId\": 55514\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"e91114bc-9075-4d8e-a35f-d914ddf9cb39\",\n    \"TemplateId\": 55514\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.TemplateNotExists",
+      "description": "模板不存在。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

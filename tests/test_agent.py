@@ -30,13 +30,18 @@ def temp_bot_manager(tmp_path):
 
 
 def test_default_bot_created(temp_bot_manager):
-    """验证初始化时自动创建默认助手"""
+    """验证初始化时自动创建默认助手与云直播专属巡检官"""
     bots = temp_bot_manager.list_bots()
-    assert len(bots) >= 1
+    assert len(bots) >= 2
     bot = temp_bot_manager.get_bot("default_assistant")
     assert bot is not None
-    assert bot.name == "TIM 全能助手"
-    assert "166" in bot.description
+    assert bot.name in ("腾讯云全能架构管家", "TIM 全能助手")
+    assert "腾讯云" in bot.description
+
+    live_bot = temp_bot_manager.get_bot("css_live_operator")
+    assert live_bot is not None
+    assert live_bot.name == "云直播流媒体巡检官"
+    assert live_bot.avatar == "📡"
 
 
 def test_custom_bot_lifecycle(temp_bot_manager):
@@ -254,7 +259,8 @@ def test_auto_generate_bot_profile():
     profile = preview_data["profile"]
     assert profile["avatar"] == "🛡️"
     assert "社群风控卫士" in profile["base_prompt"]
-    assert "166" in profile["base_prompt"]
+    assert "腾讯云" in profile["base_prompt"]
+    assert "接口" in profile["base_prompt"] or "API" in profile["base_prompt"]
 
     # 2. 测试仅填名字和目标，一键自动创建 BOT
     create_resp = client.post("/api/agent/bots", json={
@@ -1554,6 +1560,85 @@ def test_api_file_download_endpoint():
     assert resp.status_code == 200
     assert "attachment" in resp.headers.get("content-disposition", "")
     assert len(resp.content) > 0
+
+
+def test_agent_multicloud_tools():
+    """测试智能体多云工具集（云直播 261 项 API 3.0 + 即时通信 IM 166 项 REST）"""
+    from core.agent.tools import CloudCallTool, CloudSearchApisTool, CloudGetDocTool, build_bot_tools
+    from core.agent.engine import AgentEngine
+    from core.registry import registry
+
+    registry.discover()
+    assert len(registry._ordered_apis) >= 427
+
+    # 1. 跨云搜索工具
+    search_tool = CloudSearchApisTool()
+    all_res = search_tool.forward("混流", service="all")
+    assert any("CommonMixStream" in r.get("action_or_command", "") for r in all_res)
+
+    live_res = search_tool.forward("Stream", service="live")
+    assert all(r.get("service") == "live" for r in live_res)
+
+    im_res = search_tool.forward("sendmsg", service="im")
+    assert all(r.get("service") == "im" for r in im_res)
+
+    # 2. 跨云文档工具
+    doc_tool = CloudGetDocTool()
+    live_doc = doc_tool.forward("CreateCommonMixStream")
+    assert live_doc.get("service") == "live"
+    assert "CommonMixInputParam" in str(live_doc)
+
+    im_doc = doc_tool.forward("openim/sendmsg")
+    assert im_doc.get("service") == "im"
+
+    # 3. 高危拦截门禁（云直播推断流）
+    intercepted = []
+    def mock_approval(req):
+        intercepted.append(req)
+        return "cancel"
+
+    call_tool = CloudCallTool(approval_requester=mock_approval)
+    cancel_res = call_tool.forward("DropLiveStream", {"StreamName": "stream_test_01", "DomainName": "live.qq.com"})
+    assert cancel_res.get("ActionStatus") == "CANCELLED"
+    assert len(intercepted) == 1
+    assert "stream_test_01" in intercepted[0].get("target_summary", "")
+
+    # 验证 LLM 传入 JSON 字符串时仍能精准提取目标标识并拦截
+    cancel_res2 = call_tool.forward("DropLiveStream", '{"StreamName": "string_stream_02", "DomainName": "live.qq.com"}')
+    assert cancel_res2.get("ActionStatus") == "CANCELLED"
+    assert len(intercepted) == 2
+    assert "string_stream_02" in intercepted[1].get("target_summary", "")
+
+    # 4. Engine 组装与沙箱安全门禁覆盖
+    engine = AgentEngine()
+    bot = engine.manager.get_bot("default_assistant")
+    sys_prompt = engine.assemble_system_prompt(bot)
+    assert "cloud_call" in sys_prompt
+    assert "云直播" in sys_prompt
+    assert "即时通信 IM" in sys_prompt
+
+    tools = build_bot_tools("default_assistant", engine.manager, engine.tim_client, engine=engine, approval_requester=mock_approval, cloud_client=engine.cloud_client)
+    tool_names = [t.name for t in tools]
+    assert "cloud_call" in tool_names
+    assert "cloud_search_apis" in tool_names
+    assert "cloud_get_doc" in tool_names
+    assert "tim_call" in tool_names
+
+    # 验证沙箱 live_call / im_call 不会绕过高危门禁
+    cloud_tool = next(t for t in tools if t.name == "cloud_call")
+    live_call = lambda act, p: cloud_tool.forward(act, p, service="live")
+    im_call = lambda path, p: cloud_tool.forward(path, p, service="im")
+
+    res_live = live_call("ForbidLiveStream", {"StreamName": "forbid_stream_99", "DomainName": "live.qq.com"})
+    assert res_live.get("ActionStatus") == "CANCELLED"
+    assert len(intercepted) == 3
+    assert "forbid_stream_99" in intercepted[2].get("target_summary", "")
+
+    res_im = im_call("destroy_group", {"GroupId": "group_destroyed_88"})
+    assert res_im.get("ActionStatus") == "CANCELLED"
+    assert len(intercepted) == 4
+    assert "group_destroyed_88" in intercepted[3].get("target_summary", "")
+
 
 
 

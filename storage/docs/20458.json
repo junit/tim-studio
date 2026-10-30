@@ -1,0 +1,19 @@
+{
+  "doc_id": 20458,
+  "api_id": "common_20458",
+  "title": "请求结构",
+  "doc_url": "https://cloud.tencent.com/document/api/267/20458",
+  "sync_time": "2026-10-30 01:18:29",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "api",
+  "overview": "本文介绍腾讯云直播API的服务地址、通信协议、请求方法及字符编码，推荐使用就近地域接入域名live.tencentcloudapi.com，对时延敏感业务建议指定带地域域名，所有接口通过HTTPS通信，支持POST和GET请求，编码统一为UTF-8。 服务地址：支持就近地域接入和指定地域域名，金融区需使用独立域名。 通信协议与请求方法：所有接口通过HTTPS通信，推荐POST请求，支持application/json等Content-Type。 字符编码：所有请求均使用UTF-8编码。",
+  "raw_body": "<h2 id=\"1.-.E6.9C.8D.E5.8A.A1.E5.9C.B0.E5.9D.80\">1. 服务地址</h2><p>API 支持就近地域接入，本产品就近地域接入域名为 live.tencentcloudapi.com ，也支持指定地域域名访问，例如广州地域的域名为 live.ap-guangzhou.tencentcloudapi.com 。</p>\n<p>推荐使用就近地域接入域名。根据调用接口时客户端所在位置，会自动解析到<strong>最近的</strong>某个具体地域的服务器。例如在广州发起请求，会自动解析到广州的服务器，效果和指定 live.ap-guangzhou.tencentcloudapi.com 是一致的。</p>\n<p><strong>注意：对时延敏感的业务，建议指定带地域的域名。</strong></p>\n<p><strong>注意：域名是 API 的接入点，并不代表产品或者接口实际提供服务的地域。产品支持的地域列表请在调用方式/公共参数文档中查阅，接口支持的地域请在接口文档输入参数中查阅。</strong></p>\n<p>目前支持的域名列表为：</p>\n<table>\n<thead>\n<tr>\n<th>接入地域</th>\n<th>域名</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>就近地域接入（推荐，只支持非金融区）</td>\n<td>live.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>华南地区（广州）</td>\n<td>live.ap-guangzhou.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>华东地区（上海）</td>\n<td>live.ap-shanghai.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>华东地区（南京）</td>\n<td>live.ap-nanjing.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>华北地区（北京）</td>\n<td>live.ap-beijing.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>西南地区（成都）</td>\n<td>live.ap-chengdu.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>西南地区（重庆）</td>\n<td>live.ap-chongqing.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>港澳台地区（中国香港）</td>\n<td>live.ap-hongkong.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>亚太东南（新加坡）</td>\n<td>live.ap-singapore.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>亚太东南（雅加达）</td>\n<td>live.ap-jakarta.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>亚太东南（曼谷）</td>\n<td>live.ap-bangkok.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>亚太东北（首尔）</td>\n<td>live.ap-seoul.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>亚太东北（东京）</td>\n<td>live.ap-tokyo.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>美国东部（弗吉尼亚）</td>\n<td>live.na-ashburn.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>美国西部（硅谷）</td>\n<td>live.na-siliconvalley.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>南美地区（圣保罗）</td>\n<td>live.sa-saopaulo.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>欧洲地区（法兰克福）</td>\n<td>live.eu-frankfurt.tencentcloudapi.com</td>\n</tr>\n</tbody></table>\n<p><strong>注意：由于<a href=\"https://cloud.tencent.com/document/product/304/2766\">金融区</a>和非金融区是隔离不互通的，因此当访问金融区服务时（公共参数 Region 为金融区地域），需要同时指定带金融区地域的域名，最好和 Region 的地域保持一致。</strong></p>\n<table>\n<thead>\n<tr>\n<th>金融区接入地域</th>\n<th>金融区域名</th>\n</tr>\n</thead>\n<tbody><tr>\n<td>华东地区（上海金融）</td>\n<td>live.ap-shanghai-fsi.tencentcloudapi.com</td>\n</tr>\n<tr>\n<td>华南地区（深圳金融）</td>\n<td>live.ap-shenzhen-fsi.tencentcloudapi.com</td>\n</tr>\n</tbody></table>\n<h2 id=\"2.-.E9.80.9A.E4.BF.A1.E5.8D.8F.E8.AE.AE\">2. 通信协议</h2><p>腾讯云 API 的所有接口均通过 HTTPS 进行通信，提供高安全性的通信通道。</p>\n<h2 id=\"3.-.E8.AF.B7.E6.B1.82.E6.96.B9.E6.B3.95\">3. 请求方法</h2><p>支持的 HTTP 请求方法:</p>\n<ul>\n<li>POST（推荐）</li>\n<li>GET</li>\n</ul>\n<p>POST 请求支持的 Content-Type 类型：</p>\n<ul>\n<li>application/json（推荐），必须使用签名方法 v3（TC3-HMAC-SHA256）。</li>\n<li>application/x-www-form-urlencoded，必须使用签名方法 v1（HmacSHA1 或 HmacSHA256）。</li>\n<li>multipart/form-data（仅部分接口支持），必须使用签名方法 v3（TC3-HMAC-SHA256）。</li>\n</ul>\n<p>GET 请求的请求包大小不得超过32KB。POST 请求使用签名方法 v1（HmacSHA1、HmacSHA256）时不得超过1MB。POST 请求使用签名方法 v3（TC3-HMAC-SHA256）时支持10MB。</p>\n<h2 id=\"4.-.E5.AD.97.E7.AC.A6.E7.BC.96.E7.A0.81\">4. 字符编码</h2><p>均使用<code>UTF-8</code>编码。</p>\n",
+  "rate_limit": "20 QPS (API 3.0 默认)",
+  "url_params": [],
+  "request_body_fields": [],
+  "request_examples": [],
+  "response_body_fields": [],
+  "response_examples": [],
+  "error_codes": []
+}

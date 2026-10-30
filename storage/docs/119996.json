@@ -1,0 +1,193 @@
+{
+  "doc_id": 119996,
+  "api_id": "live_DescribeLiveCloudEffectList",
+  "title": "查询直播云端特效列表",
+  "doc_url": "https://cloud.tencent.com/document/api/267/119996",
+  "sync_time": "2026-10-29 19:32:25",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n使用该接口查询云端特效列表，特效列表中包含一部分官方精品特效，同时包含用户自定义生成的特效。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveCloudEffectList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "Id",
+      "type": "String",
+      "required": "选填",
+      "description": "云端特效ID。示例值：1552"
+    },
+    {
+      "name": "Prompt",
+      "type": "String",
+      "required": "选填",
+      "description": "云端特效描述词。由用户原始输入的描述词。示例值：小熊"
+    },
+    {
+      "name": "Flag",
+      "type": "String",
+      "required": "选填",
+      "description": "云端特效标签。对云端特效进行分类标签，可用于分类搜索。示例值：动物"
+    },
+    {
+      "name": "Type",
+      "type": "String",
+      "required": "选填",
+      "description": "云端特效类型, 默认不填，返回全部。PGC: 特效库中的特效；AICG : AI生成的特效；UGC：用户自定义上传的特效；示例值：UGC"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost:live.tencentcloudapi.com\nContent-Type:application/json\nX-TC-Action: DescribeLiveCloudEffectList\n<公共请求参数>\n\n{\n    \"Prompt\": \"小狗\"\n}",
+      "clean_json": "{\n  \"Prompt\": \"小狗\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "InfoList",
+      "type": "Array of CloudEffectInfo",
+      "description": "云端特效信息列表。"
+    },
+    {
+      "name": "EnableCreateNum",
+      "type": "Integer",
+      "description": "允许创建的云端特效个数。示例值：100"
+    },
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "当前已有的特效总个数。示例值：30"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\",\n        \"EnableCreateNum\": 100,\n        \"TotalNum\": 30,\n        \"InfoList\": [\n            {\n                \"Id\": \"1001\",\n                \"Prompt\": \"小狗\",\n                \"Flag\": \"动物\",\n                \"Status\": \"FINISH\",\n                \"PreviewImageUrl\": \"http://preview.image.com/pic.jpg\",\n                \"Type\": \"PGC\",\n                \"CreateTime\": \"2025-05-19T00:00:00Z\",\n                \"UpdateTime\": \"2025-05-20T00:00:00Z\"\n            }\n        ]\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\",\n    \"EnableCreateNum\": 100,\n    \"TotalNum\": 30,\n    \"InfoList\": [\n      {\n        \"Id\": \"1001\",\n        \"Prompt\": \"小狗\",\n        \"Flag\": \"动物\",\n        \"Status\": \"FINISH\",\n        \"PreviewImageUrl\": \"http://preview.image.com/pic.jpg\",\n        \"Type\": \"PGC\",\n        \"CreateTime\": \"2025-05-19T00:00:00Z\",\n        \"UpdateTime\": \"2025-05-20T00:00:00Z\"\n      }\n    ]\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CallOtherSvrError",
+      "description": "调用内部服务错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfigNotExist",
+      "description": "配置不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetBizidError",
+      "description": "获取用户账号错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetStreamInfoError",
+      "description": "获取流信息失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetUpstreamInfoError",
+      "description": "获取直播源信息错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotPermmitOperat",
+      "description": "无权限操作。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.StreamStatusError",
+      "description": "流状态异常。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.UpdateDataError",
+      "description": "更新数据失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

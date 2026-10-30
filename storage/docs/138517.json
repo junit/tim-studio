@@ -1,0 +1,69 @@
+{
+  "doc_id": 138517,
+  "api_id": "live_CreateAuditImages",
+  "title": "直播审核图库添加图片",
+  "doc_url": "https://cloud.tencent.com/document/api/267/138517",
+  "sync_time": "2026-10-29 19:32:15",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n直播审核图库添加图片，添加到预设库，图库不需要创建。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateAuditImages。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "Images.N",
+      "type": "Array of AuditImage",
+      "required": "必填",
+      "description": "样本图片列表。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateAuditImages\n<公共请求参数>\n\n{\n    \"Images\": [\n        {\n            \"Index\": \"autotest_index_HLRIioUifQ\",\n            \"Url\": \"https://livewatermark-1251132611.cos.ap-guangzhou.myqcloud.com/1256342408/watermark_img_1682650739917_huiyi.jpeg\",\n            \"Md5\": \"75500dac4340c9973f90e24331c07127\",\n            \"Name\": \"autotest_HLRIioUifQ.jpeg\",\n            \"Label\": \"Normal\"\n        }\n    ]\n}",
+      "clean_json": "{\n  \"Images\": [\n    {\n      \"Index\": \"autotest_index_HLRIioUifQ\",\n      \"Url\": \"https://livewatermark-1251132611.cos.ap-guangzhou.myqcloud.com/1256342408/watermark_img_1682650739917_huiyi.jpeg\",\n      \"Md5\": \"75500dac4340c9973f90e24331c07127\",\n      \"Name\": \"autotest_HLRIioUifQ.jpeg\",\n      \"Label\": \"Normal\"\n    }\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "Infos",
+      "type": "Array of AuditImageCreateDetail",
+      "description": "创建图片结果详情。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"Infos\": [\n            {\n                \"ImageId\": \"75500dac4340c9973f90e24331c07127_100\",\n                \"Index\": \"autotest_index_HLRIioUifQ\",\n                \"Status\": 0\n            }\n        ],\n        \"RequestId\": \"be35ef55-f49f-49f4-a836-af13acbcb9f2\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"Infos\": [\n      {\n        \"ImageId\": \"75500dac4340c9973f90e24331c07127_100\",\n        \"Index\": \"autotest_index_HLRIioUifQ\",\n        \"Status\": 0\n      }\n    ],\n    \"RequestId\": \"be35ef55-f49f-49f4-a836-af13acbcb9f2\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

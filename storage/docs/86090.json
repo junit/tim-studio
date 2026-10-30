@@ -1,0 +1,156 @@
+{
+  "doc_id": 86090,
+  "api_id": "live_DescribeTimeShiftStreamList",
+  "title": "查询时移流列表",
+  "doc_url": "https://cloud.tencent.com/document/api/267/86090",
+  "sync_time": "2026-10-29 19:32:18",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询某个时间范围内所有时移流列表。最大支持查询24小时内的数据。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeTimeShiftStreamList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-guangzhou 。"
+    },
+    {
+      "name": "StartTime",
+      "type": "Integer",
+      "required": "必填",
+      "description": "查询范围起始时间，Unix 时间戳。示例值：1669032313"
+    },
+    {
+      "name": "EndTime",
+      "type": "Integer",
+      "required": "必填",
+      "description": "查询范围结束时间，Unix 时间戳。示例值：1669035913"
+    },
+    {
+      "name": "StreamName",
+      "type": "String",
+      "required": "选填",
+      "description": "流名称。示例值：streamname"
+    },
+    {
+      "name": "Domain",
+      "type": "String",
+      "required": "选填",
+      "description": "推流域名。示例值：push.domain.com"
+    },
+    {
+      "name": "DomainGroup",
+      "type": "String",
+      "required": "选填",
+      "description": "推流域名所属域名组。示例值：domaingroup"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "用户指定要返回的最大结果数，取值范围[0,100]，不指定或者指定为0时，API 默认值为100。指定超过100时，API 强制使用100。指定值为负数时，接口返回错误。示例值：100"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "指定拉取的页码，不传时默认为1。示例值：1"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeTimeShiftStreamList\n<公共请求参数>\n\n{\n    \"StartTime\": 1668064484,\n    \"EndTime\": 1668074484\n}",
+      "clean_json": "{\n  \"StartTime\": 1668064484,\n  \"EndTime\": 1668074484\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TotalSize",
+      "type": "Integer",
+      "description": "时间段内所有的数据量。示例值：500"
+    },
+    {
+      "name": "StreamList",
+      "type": "Array of TimeShiftStreamInfo",
+      "description": "流列表。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"27b51725-321e-4347-8906-4e1d94b5a373\",\n        \"TotalSize\": 100,\n        \"StreamList\": [\n            {\n                \"DomainGroup\": \"\",\n                \"Domain\": \"5000.live.push.com\",\n                \"AppName\": \"live\",\n                \"StreamName\": \"livetest\",\n                \"StartTime\": 1668064484,\n                \"EndTime\": 1668064584,\n                \"Duration\": 604800,\n                \"TransCodeId\": 330587,\n                \"StreamType\": 2\n            }\n        ]\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"27b51725-321e-4347-8906-4e1d94b5a373\",\n    \"TotalSize\": 100,\n    \"StreamList\": [\n      {\n        \"DomainGroup\": \"\",\n        \"Domain\": \"5000.live.push.com\",\n        \"AppName\": \"live\",\n        \"StreamName\": \"livetest\",\n        \"StartTime\": 1668064484,\n        \"EndTime\": 1668064584,\n        \"Duration\": 604800,\n        \"TransCodeId\": 330587,\n        \"StreamType\": 2\n      }\n    ]\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetConfigError",
+      "description": "获取配置错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NetworkError",
+      "description": "内部网络错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

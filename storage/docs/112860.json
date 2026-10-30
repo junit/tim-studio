@@ -1,0 +1,125 @@
+{
+  "doc_id": 112860,
+  "api_id": "live_DescribeCaster",
+  "title": "查询导播台信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/112860",
+  "sync_time": "2026-10-29 19:32:08",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询导播台信息接口，用来查询导播台状态、描述、输出长、宽等信息\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeCaster。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "CasterId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "需查询的导播台ID示例值：63501"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeCaster\n<公共请求参数>\n\n{\n    \"CasterId\": 63501\n}",
+      "clean_json": "{\n  \"CasterId\": 63501\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "CasterInfo",
+      "type": "CasterInfo",
+      "description": "导播台信息"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"CasterInfo\": {\n            \"CasterId\": 63501,\n            \"CasterName\": \"example\",\n            \"StartLiveTime\": 0,\n            \"Description\": \"\",\n            \"CreateTime\": 1603158528,\n            \"Status\": 0,\n            \"ExpireTime\": -1,\n            \"DelayTime\": 0,\n            \"PgmWidth\": 0,\n            \"PgmHeight\": 0,\n            \"PgmFps\": 0,\n            \"PgmBitRate\": 0,\n            \"PgmAudioBitRate\": 256,\n            \"FeeType\": 0,\n            \"RecordTemplateId\": 0,\n            \"RecordStatus\": 0,\n            \"RecordTaskId\": \"\"\n        },\n        \"RequestId\": \"bebdd4e4-4087-411b-ab2e-3692dcfba4c3\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"CasterInfo\": {\n      \"CasterId\": 63501,\n      \"CasterName\": \"example\",\n      \"StartLiveTime\": 0,\n      \"Description\": \"\",\n      \"CreateTime\": 1603158528,\n      \"Status\": 0,\n      \"ExpireTime\": -1,\n      \"DelayTime\": 0,\n      \"PgmWidth\": 0,\n      \"PgmHeight\": 0,\n      \"PgmFps\": 0,\n      \"PgmBitRate\": 0,\n      \"PgmAudioBitRate\": 256,\n      \"FeeType\": 0,\n      \"RecordTemplateId\": 0,\n      \"RecordStatus\": 0,\n      \"RecordTaskId\": \"\"\n    },\n    \"RequestId\": \"bebdd4e4-4087-411b-ab2e-3692dcfba4c3\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.CasterNotFound",
+      "description": "导播台不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.OutOfService",
+      "description": "账户被停服。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    },
+    {
+      "code": "UnknownParameter",
+      "description": "未知参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

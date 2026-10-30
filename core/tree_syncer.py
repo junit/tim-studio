@@ -11,6 +11,7 @@ import html
 import json
 import os
 import re
+import time
 import urllib.request
 from typing import Dict, List, Optional, Tuple
 
@@ -28,9 +29,9 @@ def get_current_time_str() -> str:
     return datetime.now(BEIJING_TZ).strftime("%Y-%m-%d %H:%M:%S")
 
 
-def fetch_doc_detail_api(doc_id: int) -> Optional[dict]:
+def fetch_doc_detail_api(doc_id: int, max_retries: int = 3) -> Optional[dict]:
     """
-    通过官方 getDocPageDetail 接口直接拉取页面元数据与正文 JSON
+    通过官方 getDocPageDetail 接口直接拉取页面元数据与正文 JSON（支持针对 567 等频控超时的重试机制）
     """
     url = "https://cloud.tencent.com/document/cgi/document/getDocPageDetail"
     payload = {
@@ -50,7 +51,7 @@ def fetch_doc_detail_api(doc_id: int) -> Optional[dict]:
             "Accept": "application/json, text/plain, */*",
             "Content-Type": "application/json",
             "Origin": "https://cloud.tencent.com",
-            "Referer": f"https://cloud.tencent.com/document/product/269/{doc_id}",
+            "Referer": f"https://cloud.tencent.com/document/api/267/{doc_id}",
             "User-Agent": (
                 "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
                 "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
@@ -59,18 +60,35 @@ def fetch_doc_detail_api(doc_id: int) -> Optional[dict]:
         },
     )
 
-    try:
-        with urllib.request.urlopen(req, timeout=12) as resp:
-            raw = resp.read()
-            try:
-                raw = gzip.decompress(raw)
-            except Exception:
-                pass
-            data = json.loads(raw.decode("utf-8"))
-            if data.get("code") == 0:
-                return data.get("data", {}).get("content", {})
-    except Exception as e:
-        print(f"[WARN] Failed to fetch doc detail for {doc_id}: {e}")
+    for attempt in range(max_retries):
+        try:
+            with urllib.request.urlopen(req, timeout=15) as resp:
+                raw = resp.read()
+                try:
+                    raw = gzip.decompress(raw)
+                except Exception:
+                    pass
+                data = json.loads(raw.decode("utf-8"))
+                if data.get("code") == 0:
+                    return data.get("data", {}).get("content", {})
+                elif data.get("code") == 301:
+                    redirect_url = data.get("detail", {}).get("redirectUrl", "")
+                    m = re.search(r"/(\d+)$", redirect_url)
+                    if m and m.group(1) != str(doc_id):
+                        target_id = int(m.group(1))
+                        if target_id in (20456, 1519, 1520):
+                            return {
+                                "title": f"已下线接口 (原文档 {doc_id})",
+                                "body": f"<h2>接口说明</h2><p>该接口已在腾讯云官方下线，官方文档已重定向至 API 概览页面: <a href='{redirect_url}'>{redirect_url}</a>。</p>",
+                                "is_offline": True,
+                            }
+                        if max_retries > 1:
+                            return fetch_doc_detail_api(target_id, max_retries=max_retries - 1)
+        except Exception as e:
+            if attempt < max_retries - 1:
+                time.sleep(0.5 * (attempt + 1))
+            else:
+                print(f"[WARN] Failed to fetch doc detail for {doc_id} after {max_retries} attempts: {e}")
     return None
 
 

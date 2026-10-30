@@ -1,0 +1,150 @@
+{
+  "doc_id": 70279,
+  "api_id": "live_DescribeScreenshotTask",
+  "title": "查询截图任务列表",
+  "doc_url": "https://cloud.tencent.com/document/api/267/70279",
+  "sync_time": "2026-10-29 19:32:20",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询指定时间段范围内启动和结束的截图任务列表。\n使用前提\n仅用于查询由 CreateScreenshotTask接口创建的截图任务。\n不能查询被 DeleteScreenshotTask接口删除以及已过期（平台侧保留3个月）的截图任务。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DescribeScreenshotTask\n&AppName=live\n&DomainName=5000.live.push.com\n&StreamName=livetest\n&StartTime=1595779200\n&EndTime=1595865600\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeScreenshotTask。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-guangzhou 。"
+    },
+    {
+      "name": "StartTime",
+      "type": "Integer",
+      "required": "必填",
+      "description": "查询任务开始时间，Unix 时间戳。设置时间不早于当前时间之前90天的时间，且查询时间跨度不超过一周。示例值：1595779200"
+    },
+    {
+      "name": "EndTime",
+      "type": "Integer",
+      "required": "必填",
+      "description": "查询任务结束时间，Unix 时间戳。EndTime 必须大于 StartTime，设置时间不早于当前时间之前90天的时间，且查询时间跨度不超过一周。（注意：任务开始结束时间必须在查询时间范围内）。示例值：1595865600"
+    },
+    {
+      "name": "StreamName",
+      "type": "String",
+      "required": "选填",
+      "description": "流名称。示例值：livetest"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "选填",
+      "description": "推流域名。示例值：5000.live.push.com"
+    },
+    {
+      "name": "AppName",
+      "type": "String",
+      "required": "选填",
+      "description": "推流路径。示例值：live"
+    },
+    {
+      "name": "ScrollToken",
+      "type": "String",
+      "required": "选填",
+      "description": "翻页标识，分批拉取时使用：当单次请求无法拉取所有数据，接口将会返回 ScrollToken，下一次请求携带该 Token，将会从下一条记录开始获取。示例值：RF1bV9tRVVEW="
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=DescribeScreenshotTask\n&AppName=live\n&DomainName=5000.live.push.com\n&StreamName=livetest\n&StartTime=1595779200\n&EndTime=1595865600\n&<公共请求参数>",
+      "clean_json": "{\n  \"AppName\": \"live\",\n  \"DomainName\": \"5000.live.push.com\",\n  \"StreamName\": \"livetest\",\n  \"StartTime\": 1595779200,\n  \"EndTime\": 1595865600\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ScrollToken",
+      "type": "String",
+      "description": "翻页标识，当请求未返回所有数据，该字段表示下一条记录的 Token。当该字段为空，说明已无更多数据。示例值：RF1bV9tRVVEW="
+    },
+    {
+      "name": "TaskList",
+      "type": "Array of ScreenshotTask",
+      "description": "截图任务列表。当该字段为空，说明已返回所有数据。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\",\n        \"ScrollToken\": \"\",\n        \"TaskList\": [\n            {\n                \"TaskId\": \"UpTbk5RSVhRQFkAAfHwQCCjcRD0lRFcZ0xTSlNTQltlRVRLU1JAWW9EUb\",\n                \"DomainName\": \"5000.live.push.com\",\n                \"AppName\": \"live\",\n                \"StreamName\": \"livetest\",\n                \"StartTime\": 1595779900,\n                \"EndTime\": 1595789900,\n                \"TemplateId\": 123,\n                \"Stopped\": 1595783500\n            },\n            {\n                \"TaskId\": \"UpTbk5RSVhRQFkAAfHwQCCjcRD0lRFcZ0xTSlNTQltlRVRLFszdDWW9EUb\",\n                \"DomainName\": \"5000.live.push.com\",\n                \"AppName\": \"live\",\n                \"StreamName\": \"livetest\",\n                \"StartTime\": 1595789900,\n                \"EndTime\": 1595799900,\n                \"TemplateId\": 0,\n                \"Stopped\": 0\n            }\n        ]\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\",\n    \"ScrollToken\": \"\",\n    \"TaskList\": [\n      {\n        \"TaskId\": \"UpTbk5RSVhRQFkAAfHwQCCjcRD0lRFcZ0xTSlNTQltlRVRLU1JAWW9EUb\",\n        \"DomainName\": \"5000.live.push.com\",\n        \"AppName\": \"live\",\n        \"StreamName\": \"livetest\",\n        \"StartTime\": 1595779900,\n        \"EndTime\": 1595789900,\n        \"TemplateId\": 123,\n        \"Stopped\": 1595783500\n      },\n      {\n        \"TaskId\": \"UpTbk5RSVhRQFkAAfHwQCCjcRD0lRFcZ0xTSlNTQltlRVRLFszdDWW9EUb\",\n        \"DomainName\": \"5000.live.push.com\",\n        \"AppName\": \"live\",\n        \"StreamName\": \"livetest\",\n        \"StartTime\": 1595789900,\n        \"EndTime\": 1595799900,\n        \"TemplateId\": 0,\n        \"Stopped\": 0\n      }\n    ]\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetConfigError",
+      "description": "获取配置错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NetworkError",
+      "description": "内部网络错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

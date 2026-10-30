@@ -1,0 +1,104 @@
+{
+  "doc_id": 139378,
+  "api_id": "live_DescribeStreamPackageIngestStatistics",
+  "title": "查询媒体包装输入用量信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/139378",
+  "sync_time": "2026-10-29 19:32:27",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\nDescribeStreamPackageIngestStatistics\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeStreamPackageIngestStatistics。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-bangkok, ap-beijing, ap-chengdu, ap-chongqing, ap-guangzhou, ap-hongkong, ap-jakarta, ap-seoul, ap-shanghai, ap-singapore, ap-tokyo, eu-frankfurt, na-ashburn 。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "选填",
+      "description": "查询起始时间，RFC3339 格式，如2026-08-24T00:00:00+08:00示例值：2026-09-23T00:00:00+08:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "选填",
+      "description": "查询结束时间，RFC3339 格式，如 2026-08-24T00:00:00+08:00；必须晚于 StartTime示例值：2026-09-24T00:00:00+08:00"
+    },
+    {
+      "name": "ChannelIds.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "频道ID列表，不传则查全部频道示例值：[\"68774AEC000027733C4C\"]"
+    },
+    {
+      "name": "Types.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "频道类型过滤，枚举值：LiveChannel、SSAI、FASTChannel示例值：[\"LiveChannel\"]"
+    },
+    {
+      "name": "Dimension",
+      "type": "Boolean",
+      "required": "选填",
+      "description": "维度，false(默认): summary 汇总模式；true: detail 明细模式（按时间拆分），当为false时粒度不生效示例值：true"
+    },
+    {
+      "name": "Granularity",
+      "type": "Integer",
+      "required": "选填",
+      "description": "时间粒度（分钟），支持5（默认）/ 60 / 1440示例值：5"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: mdp.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeStreamPackageIngestStatistics\n<公共请求参数>\n\n{\n    \"StartTime\": \"2026-09-23T00:00:00+08:00\",\n    \"EndTime\": \"2026-09-24T00:00:00+08:00\",\n    \"ChannelIds\": [\n        \"68774AEC000027733C4C\"\n    ],\n    \"Types\": [\n        \"LiveChannel\"\n    ],\n    \"Dimension\": true,\n    \"Granularity\": 5\n}",
+      "clean_json": "{\n  \"StartTime\": \"2026-09-23T00:00:00+08:00\",\n  \"EndTime\": \"2026-09-24T00:00:00+08:00\",\n  \"ChannelIds\": [\n    \"68774AEC000027733C4C\"\n  ],\n  \"Types\": [\n    \"LiveChannel\"\n  ],\n  \"Dimension\": true,\n  \"Granularity\": 5\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of IngestStatisticsDataInfo",
+      "description": "输入流量数据"
+    },
+    {
+      "name": "TotalIngest",
+      "type": "Integer",
+      "description": "总输入用量示例值：37788778885"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"ChannelId\": \"68774AEC000027733C4C\",\n                \"Ingest\": 137081471,\n                \"Time\": \"2026-09-23T00:00:00+08:00\",\n                \"Type\": \"LiveChannel\"\n            }\n        ],\n        \"TotalIngest\": 37788778885,\n        \"RequestId\": \"22ffc5ce-b418-4bb8-b8a8-9c1c413e55b3\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"ChannelId\": \"68774AEC000027733C4C\",\n        \"Ingest\": 137081471,\n        \"Time\": \"2026-09-23T00:00:00+08:00\",\n        \"Type\": \"LiveChannel\"\n      }\n    ],\n    \"TotalIngest\": 37788778885,\n    \"RequestId\": \"22ffc5ce-b418-4bb8-b8a8-9c1c413e55b3\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

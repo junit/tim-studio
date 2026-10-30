@@ -1,0 +1,149 @@
+{
+  "doc_id": 30423,
+  "api_id": "live_ModifyLivePushAuthKey",
+  "title": "修改推流鉴权key",
+  "doc_url": "https://cloud.tencent.com/document/api/267/30423",
+  "sync_time": "2026-10-29 19:32:21",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n修改直播推流鉴权key\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ModifyLivePushAuthKey。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "推流域名。示例值：aaa.elementtest.org"
+    },
+    {
+      "name": "Enable",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否启用，0：关闭，1：启用。不传表示不修改当前值。示例值：1"
+    },
+    {
+      "name": "MasterAuthKey",
+      "type": "String",
+      "required": "选填",
+      "description": "主鉴权key。不传表示不修改当前值。示例值：714cc271251e714cc271251e"
+    },
+    {
+      "name": "BackupAuthKey",
+      "type": "String",
+      "required": "选填",
+      "description": "备鉴权key。不传表示不修改当前值。示例值：888cc271251e714cc271251e"
+    },
+    {
+      "name": "AuthDelta",
+      "type": "Integer",
+      "required": "选填",
+      "description": "有效时间，单位：秒。示例值：6000"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: ModifyLivePushAuthKey\n<公共请求参数>\n\n{\n    \"DomainName\": \"abc.com\",\n    \"Enable\": 0,\n    \"MasterAuthKey\": \"abc*&^\",\n    \"BackupAuthKey\": \"\",\n    \"AuthDelta\": 1\n}",
+      "clean_json": "{\n  \"DomainName\": \"abc.com\",\n  \"Enable\": 0,\n  \"MasterAuthKey\": \"abc*&^\",\n  \"BackupAuthKey\": \"\",\n  \"AuthDelta\": 1\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"e48b9f8d-d9d1-4de4-a732-5ab8a333c0d8\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"e48b9f8d-d9d1-4de4-a732-5ab8a333c0d8\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConnectDbError",
+      "description": "DB 连接错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.PushDomainNoRecord",
+      "description": "推流域名不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.PushDomainNoRecord",
+      "description": "推流域名不存在。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

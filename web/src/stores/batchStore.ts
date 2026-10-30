@@ -10,6 +10,7 @@ export interface LogItem {
 
 export interface BatchPreset {
   id: string
+  service_type?: string
   title: string
   tag: string
   tag_color: string

@@ -1,0 +1,160 @@
+{
+  "doc_id": 33987,
+  "api_id": "live_DescribeStreamDayPlayInfoList",
+  "title": "查询所有流的流量数据",
+  "doc_url": "https://cloud.tencent.com/document/api/267/33987",
+  "sync_time": "2026-10-29 19:32:22",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口为监控数据接口，数据采集及统计方式与计费数据不同，仅供运营分析使用，不能用于计费对账参考。\n查询天维度每条流的播放数据，包括总流量等。\n默认接口请求频率限制：500次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DescribeStreamDayPlayInfoList\n&PlayDomain=5000.livepush.com\n&DayTime=2019-02-21\n&PageNum=1\n&PageSize=1000\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeStreamDayPlayInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DayTime",
+      "type": "String",
+      "required": "必填",
+      "description": "日期，格式：YYYY-mm-dd。第二天凌晨3点出昨天的数据，建议在这个时间点之后查询最新数据。支持最近3个月的数据查询。示例值：2019-02-21"
+    },
+    {
+      "name": "PlayDomain",
+      "type": "String",
+      "required": "选填",
+      "description": "播放域名。示例值：5000.livepush.com"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "页号，范围[1,1000]，默认值是1。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "每页个数，范围[100,1000]，默认值是1000。示例值：1000"
+    },
+    {
+      "name": "MainlandOrOversea",
+      "type": "String",
+      "required": "选填",
+      "description": "可选值：Mainland：查询国内数据，Oversea：则查询国外数据，默认：查询国内+国外的数据。示例值：Mainland"
+    },
+    {
+      "name": "ServiceName",
+      "type": "String",
+      "required": "选填",
+      "description": "服务名称，可选值包括LVB(标准直播)，LEB(快直播)，不填则查LVB+LEB总值。示例值：LVB"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=DescribeStreamDayPlayInfoList\n&PlayDomain=5000.livepush.com\n&DayTime=2019-02-21\n&PageNum=1\n&PageSize=1000\n&<公共请求参数>",
+      "clean_json": "{\n  \"PlayDomain\": \"5000.livepush.com\",\n  \"DayTime\": \"2019-02-21\",\n  \"PageNum\": 1,\n  \"PageSize\": 1000\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of PlayDataInfoByStream",
+      "description": "播放数据信息列表。"
+    },
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "总数量。示例值：100"
+    },
+    {
+      "name": "TotalPage",
+      "type": "Integer",
+      "description": "总页数。示例值：1"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "description": "当前数据所处页码。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "description": "每页个数。示例值：1000"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"StreamName\": \"test1\",\n                \"TotalFlux\": 500.0\n            }\n        ],\n        \"TotalNum\": 100,\n        \"TotalPage\": 1,\n        \"PageNum\": 1,\n        \"PageSize\": 1000,\n        \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"StreamName\": \"test1\",\n        \"TotalFlux\": 500.0\n      }\n    ],\n    \"TotalNum\": 100,\n    \"TotalPage\": 1,\n    \"PageNum\": 1,\n    \"PageSize\": 1000,\n    \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

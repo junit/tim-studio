@@ -54,6 +54,8 @@ if _original_parse_code_blobs:
 
 from ..config import load_config
 from ..tim_client import TimClient
+from ..cloud_client import UniversalCloudClient
+from ..live_util import generate_live_push_url, generate_live_play_urls
 from .bot_manager import BotManager, bot_manager
 from .file_parser import get_file_category_and_type, format_file_size
 from .constants import (
@@ -66,7 +68,13 @@ from .constants import (
     PROVIDER_DEFAULTS,
 )
 from .models import BotConfig, LLMConfig
-from .tools import build_bot_tools
+from .tools import (
+    build_bot_tools,
+    build_sandbox_scope,
+    CloudCallTool,
+    CloudSearchApisTool,
+    CloudGetDocTool,
+)
 
 logger = logging.getLogger("tim.agent.engine")
 
@@ -291,7 +299,8 @@ def format_execution_observation(raw_obs: Any, step_num: int = 1) -> str:
 class AgentEngine:
     def __init__(self, manager: Optional[BotManager] = None):
         self.manager = manager or bot_manager
-        self.tim_client = TimClient()
+        self.cloud_client = UniversalCloudClient()
+        self.tim_client = self.cloud_client.tim_client
         self._local = threading.local()
         # 跨轮多会话 Python 沙箱环境变量存储 (按 bot_id 隔离)
         self._bot_sandbox_states: Dict[str, Dict[str, Any]] = {}
@@ -325,7 +334,7 @@ class AgentEngine:
 
         if not api_key:
             raise ValueError(
-                f"大模型 API Key 尚未配置。请在 TIM Studio 的 AI 智能体设置中配置 [{llm_cfg.provider}] 的 API Key 或接入 Ollama 本地模型。"
+                f"大模型 API Key 尚未配置。请在 TC Studio 的 AI 智能体设置中配置 [{llm_cfg.provider}] 的 API Key 或接入 Ollama 本地模型。"
             )
 
         # 归一化 base_url
@@ -350,21 +359,34 @@ class AgentEngine:
         # 1. 基础人设
         prompt_parts.append(f"# 角色设定\n{bot.base_prompt}\n")
 
-        # 2. 腾讯云 IM 166 REST API 调度原则
+        # 2. 腾讯云多业务架构与 API 调度原则（动态自适应：从 registry SSoT 自动提取，彻底拒绝硬编码）
+        from ..registry import registry
+        services_summary = registry.get_services_summary()
+
         prompt_parts.append(
             "## 核心使命与工具调度原则\n"
-            "1. 你拥有直接调用腾讯云 IM 166 个 REST 接口的最高权限 (`tim_call`)，以及完整的接口检索 (`tim_search_apis`) 和文档查阅 (`tim_get_doc`) 能力。\n"
-            "2. 当需要执行批量操作（如批量禁言、循环撤回、拉取多页群成员并清洗过滤）时，请直接编写并执行 Python 脚本，使用 for 循环和条件判断高效完成。\n"
-            "3. 编写 Python 脚本时，首行建议使用中文注释简短写出本步行动意图（例如 `# 1. 获取群成员列表与禁言状态`），以便系统和用户直观追踪步骤进展。\n"
-            "4. 输出打印规范（重要）：调用 `tim_call` 或完成数据统计后，请务必使用 `print(...)` 打印出接口返回的关键响应或核心数据结果，以便在前端卡片中直观展现 API 响应详情与运行日志。\n"
-            "5. 保持回答专业、精炼、客观，并在调用关键接口或修改系统配置后，明确汇总操作结果和受影响的账号或群组。\n"
-            "6. 高危破坏性操作安全防线：当涉及解散群组 (`destroy_group`)、注销/删除账号 (`account_delete`)、清空漫游消息 (`clean_roam_msg`) 或批量踢人时，必须在回答中首先向用户清晰列出受影响的目标群 ID、账号范围以及潜在不可逆后果，并要求二次确认，严禁未经告知即大范围批量销毁生产数据。\n"
-            "7. 高效批量执行与收敛准则（关键）：\n"
-            "   - 在处理复杂任务（如「拉取 TOP5 群并拉取各自最近10条消息」）时，应在一个完整的 Python 脚本中通过循环和函数紧凑完成（如一次性完成分页拉取、详情合并、排序与前 N 个群消息提取并打印），严禁将单一流程拆分为过多单行探索脚本，以免耗尽步数配额；\n"
+            f"1. 你拥有直接调度腾讯云多业务全量接口的最高权限：完整涵盖{services_summary['prompt_text']}。\n"
+            "   - 【统一调度工具】: `cloud_call(action_or_path, payload)`（如 Action `DescribeLiveStreamState` 或 IM 路径 `openim/sendmsg`）；\n"
+            "   - 【统一检索与文档】: `cloud_search_apis(keyword, service)`（全量跨云搜索或按 service 筛选）与 `cloud_get_doc(action_or_path)`（提取字段规范、复杂结构体及入参样例）；\n"
+            "   - 【向后兼容】: 自动兼容旧版指令 `tim_call`、`tim_search_apis`、`tim_get_doc`。\n"
+            "2. Python 沙箱原生环境已为你内置了快捷函数与 SDK 驱动：\n"
+            "   - `cloud_call(action_or_path, payload, service=None)`：统一调度网关；\n"
+            "   - `live_call(action, payload=None)`：云直播 API 3.0 原生快捷调用（例如 `live_call('DescribeLiveStreamState', {'DomainName': '...'})`）；\n"
+            "   - `gen_live_push_url(domain, stream_name, key=None)` / `gen_live_play_url(...)`：快捷生成带防盗链签名的多协议推拉流地址；\n"
+            "   - `im_call(path, payload=None)` / `tim_call(path, payload=None)`：即时通信 IM REST 原生快捷调用；\n"
+            "   - `search_apis(keyword, service='all')` / `get_doc(action_or_path)`：沙箱内即时查接口与文档结构；\n"
+            "   - `cloud_client` / `tim_client`：统一客户端与底层驱动实例。\n"
+            "3. 当需要执行批量操作（如批量禁言、循环撤回、多流巡检、违规推流熔断清理、拉取多页群成员并清洗过滤）时，请直接编写并执行 Python 脚本，使用 for 循环和条件判断高效完成。\n"
+            "4. 编写 Python 脚本时，首行建议使用中文注释简短写出本步行动意图（例如 `# 1. 批量巡检活跃直播流推流状态` 或 `# 1. 获取群成员列表与禁言状态`），以便系统和用户直观追踪步骤进展。\n"
+            "5. 输出打印规范（重要）：调用接口或完成数据统计后，请务必使用 `print(...)` 打印出接口返回的关键响应或核心数据结果，以便在前端卡片中直观展现 API 响应详情与运行日志。\n"
+            "6. 保持回答专业、精炼、客观，并在调用关键接口或修改系统配置后，明确汇总操作结果和受影响的业务实体（直播流/域名/群组/账号）。\n"
+            "7. 高危破坏性操作安全防线：当涉及直播断流与禁推 (`DropLiveStream`, `ForbidLiveStream`, `DeleteLiveRecordRule`, `DeleteLiveTranscodeRule`)、解散群组 (`destroy_group`)、注销/删除账号 (`account_delete`)、清空漫游消息 (`clean_roam_msg`) 或批量踢人时，必须在回答中首先向用户清晰列出受影响的目标流名、域名、群 ID、账号范围以及潜在不可逆后果，并要求二次确认，严禁未经告知即大范围批量销毁生产数据。\n"
+            "8. 高效批量执行与收敛准则（关键）：\n"
+            "   - 在处理复杂任务（如「拉取 TOP5 群并拉取各自最近10条消息」或「扫描在线直播流并对帧率异常流做统计告警」）时，应在一个完整的 Python 脚本中通过循环和函数紧凑完成，严禁将单一流程拆分为过多单行探索脚本，以免耗尽步数配额；\n"
             "   - 当已通过 print 获得核心数据后，必须在脚本最后调用 `final_answer(markdown_report)` 直接输出完整的结构化业务报告。\n"
-            "8. 腾讯云 IM 数据结构防御式编程规范：\n"
-            "   - 在拉取历史消息时（如 `group_msg_get_simple`），普通聊天消息的 `MsgBody` 是列表 (`list`)，但在群组系统通知/事件（如 `GroupJoinType`）中，部分群类型返回的 `MsgBody` 是字典 (`dict`) 或空；\n"
-            "   - 编写解析函数时务必同时兼容：`if isinstance(body, list): ... elif isinstance(body, dict): ...`，绝不可假定一定是 list。\n\n"
+            "9. 数据结构防御式编程规范：\n"
+            "   - 【IM 消息体兼容】：在拉取历史消息时（如 `group_msg_get_simple`），普通聊天消息的 `MsgBody` 是列表 (`list`)，但在群组系统通知/事件中部分群类型返回字典 (`dict`) 或空；务必同时兼容 `isinstance(body, list)` 与 `isinstance(body, dict)`；\n"
+            "   - 【Live API 3.0 应答规范】：云直播 API 3.0 应答标准结构为 `Response: { ... , RequestId: '...' }`，在脚本中解析时优先读取 `res.get('Response', res)`，并做好空键防御。\n\n"
             "## 📁 产出物与生成文件规范 (File Generation)\n"
             "若任务需要产出清洗后的数据、导出报表（Excel/CSV）、统计表格、生成的日志或图表数据：\n"
             "1. 【推荐】直接调用内置辅助函数 `save_file(filename, data)`（原生支持 Pandas DataFrame、字典、列表、字节与文本），自动保存至智能体专属文件中心；\n"
@@ -428,9 +450,9 @@ class AgentEngine:
         if bot.id == "default_assistant":
             prompt_parts.append(
                 "## 🤖 智能体孵化与创建专享特权 (create_bot)\n"
-                "作为系统内建唯一的 TIM 全能助手，你独享通过 `create_bot` 工具为用户创建新专属业务智能体的特权。\n"
+                "作为系统内建唯一的腾讯云全能架构管家，你独享通过 `create_bot` 工具为用户创建新专属业务智能体的特权。\n"
                 "当用户以**任何自然语言**提出创建、新增、定制新智能体的需求时（例如“帮我建一个社群风控官”、“建一个自动查单号的机器人”、“孵化一个消息巡检助手”，**无需任何特殊命令或前缀**）：\n"
-                "1. 充分分析用户诉求，智能推断其名称、头像 Emoji、专业业务定位和约 200 字专业系统设定提示词（强调严谨技术人设，结合 166 API 与沙箱能力）；\n"
+                "1. 充分分析用户诉求，智能推断其名称、头像 Emoji、专业业务定位和约 200 字专业系统设定提示词（强调严谨技术人设，结合全量云接口与沙箱能力）；\n"
                 "2. 自主调用 `create_bot(name, goal, avatar, base_prompt, suggested_prompts)` 工具即刻生成该智能体；\n"
                 "3. 创建成功后，在回复中清晰展示新智能体的名称、头像、职责和推荐指令，告知用户该智能体已就绪，可在左侧切换或在会话中随时进行协同指挥调度。\n"
             )
@@ -464,7 +486,7 @@ class AgentEngine:
             "2. 当用户上传了附件时：\n"
             "   - 你可以使用内置工具 `read_file(file_path)` 读取文档、代码或文本内容；\n"
             "   - 你可以直接在 Python 沙箱中编写脚本，使用 `pandas`、`openpyxl`、`docx`、`csv`、`PIL` 等主流官方库直接读取本地文件绝对路径，执行深度数据清洗、复杂统计分析、词频汇总或批处理；\n"
-            "   - 若附件涉及用户列表、群组 ID、黑名单或待发送消息，请将其与腾讯云 IM 166 个 REST 接口无缝串联自动化执行。\n"
+            "   - 若附件涉及接口调用参数或业务实体数据，请将其与腾讯云多业务全量接口无缝串联自动化执行。\n"
         )
 
         # 10. 数据统计就地可视化图表输出 (Interactive ECharts)
@@ -557,7 +579,8 @@ class AgentEngine:
             self.manager,
             self.tim_client,
             engine=self,
-            call_chain=new_chain
+            call_chain=new_chain,
+            cloud_client=self.cloud_client
         )
         system_prompt = self.assemble_system_prompt(target_bot)
 
@@ -612,13 +635,24 @@ class AgentEngine:
                 file = os.path.join(target_uploads_dir, os.path.basename(file))
             return open(file, mode, *args, **kwargs)
 
+        subtask_cloud_call = next((t for t in tools if isinstance(t, CloudCallTool)), None) or CloudCallTool(bot_manager=self.manager, tim_client=self.tim_client)
+        subtask_search_tool = next((t for t in tools if isinstance(t, CloudSearchApisTool)), None) or CloudSearchApisTool()
+        subtask_doc_tool = next((t for t in tools if isinstance(t, CloudGetDocTool)), None) or CloudGetDocTool()
+
         agent.python_executor.static_tools = {
             **lpe.BASE_PYTHON_TOOLS,
             "open": subtask_bot_open,
             "render_chart": render_chart,
             "save_file": subtask_save_file,
             "OUTPUT_DIR": target_uploads_dir,
-            "WORKSPACE_DIR": target_uploads_dir
+            "WORKSPACE_DIR": target_uploads_dir,
+            **build_sandbox_scope(
+                caller_tool=subtask_cloud_call,
+                search_tool=subtask_search_tool,
+                doc_tool=subtask_doc_tool,
+                cloud_client=self.cloud_client,
+                tim_client=self.tim_client
+            )
         }
 
         resp = agent.run(task_prompt)
@@ -684,7 +718,14 @@ class AgentEngine:
             return
 
         # 3. 组装 Tools & Agent
-        tools = build_bot_tools(bot_id, self.manager, self.tim_client, engine=self, approval_requester=approval_requester)
+        tools = build_bot_tools(
+            bot_id,
+            self.manager,
+            self.tim_client,
+            engine=self,
+            approval_requester=approval_requester,
+            cloud_client=self.cloud_client
+        )
         system_prompt = self.assemble_system_prompt(bot)
         stream_start_time = time.time()
 
@@ -853,13 +894,24 @@ class AgentEngine:
                 file = os.path.join(uploads_dir, os.path.basename(file))
             return open(file, mode, *args, **kwargs)
 
+        stream_cloud_call = next((t for t in tools if isinstance(t, CloudCallTool)), None) or CloudCallTool(approval_requester=approval_requester, bot_manager=self.manager, tim_client=self.tim_client)
+        stream_search_tool = next((t for t in tools if isinstance(t, CloudSearchApisTool)), None) or CloudSearchApisTool()
+        stream_doc_tool = next((t for t in tools if isinstance(t, CloudGetDocTool)), None) or CloudGetDocTool()
+
         agent.python_executor.static_tools = {
             **lpe.BASE_PYTHON_TOOLS,
             "open": bot_open,
             "render_chart": render_chart,
             "save_file": save_file,
             "OUTPUT_DIR": uploads_dir,
-            "WORKSPACE_DIR": uploads_dir
+            "WORKSPACE_DIR": uploads_dir,
+            **build_sandbox_scope(
+                caller_tool=stream_cloud_call,
+                search_tool=stream_search_tool,
+                doc_tool=stream_doc_tool,
+                cloud_client=self.cloud_client,
+                tim_client=self.tim_client
+            )
         }
 
         # 初始化线程隔离的实时协同事件收集器

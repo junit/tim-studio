@@ -39,6 +39,7 @@ data/*
 
 # Local runtime storage & execution ledger
 storage/history.json
+storage/docs_cache/
 
 # Log files
 logs/

@@ -9,11 +9,18 @@ export interface ApiField {
   placeholder: string
   help_text: string
   aliases: string[]
+  struct_name?: string
+  sub_fields?: ApiField[]
+  item_schema?: {
+    struct_name?: string
+    fields?: ApiField[]
+  }
 }
 
 export interface ApiMeta {
   api_id: string
   name: string
+  service_type?: string
   category: string
   subcategory: string
   path?: string[]
@@ -21,11 +28,65 @@ export interface ApiMeta {
   service_name: string
   command: string
   raw_command?: string
+  action?: string
+  version?: string
+  endpoint?: string
   doc_url: string
   description: string
   fields: ApiField[]
   sample_payload: Record<string, any>
 }
+
+export function getCleanApiName(name: string, command?: string, action?: string): string {
+  if (!name) return ''
+  const target = (action || command || '').trim()
+  if (target) {
+    const reg = new RegExp(`\\s*[\\(（]${target}[\\)）]\\s*$`, 'i')
+    if (reg.test(name)) {
+      return name.replace(reg, '').trim()
+    }
+  }
+  return name.replace(/\s*[\(（][a-zA-Z0-9_]+[\)）]\s*$/, '').trim()
+}
+
+export interface CloudService {
+  id: string
+  name: string
+  shortName: string
+  tag: string
+  description: string
+  iconName: 'message' | 'video' | 'cloud'
+  badgeColor: string
+  docUrl?: string
+  protocol?: 'rest' | 'api3'
+}
+
+export const DEFAULT_CLOUD_SERVICES: CloudService[] = [
+  {
+    id: 'im',
+    name: '即时通信 IM',
+    shortName: 'IM',
+    tag: 'TIM',
+    description: '单聊/群聊/全员推送/会话与资料管理等全量 REST 接口',
+    iconName: 'message',
+    badgeColor: 'blue',
+    docUrl: 'https://cloud.tencent.com/document/product/269/1520',
+    protocol: 'rest',
+  },
+  {
+    id: 'live',
+    name: '云直播 (CSS)',
+    shortName: '云直播',
+    tag: 'CSS',
+    description: '流管理/导播台/数字人/转码录制等全量 API 3.0 接口',
+    iconName: 'video',
+    badgeColor: 'emerald',
+    docUrl: 'https://cloud.tencent.com/document/product/267/20455',
+    protocol: 'api3',
+  },
+]
+
+export const CLOUD_SERVICES = DEFAULT_CLOUD_SERVICES
 
 export interface InvokeHistoryItem {
   id: string
@@ -78,7 +139,11 @@ interface ApiState {
   isSidebarOpen: boolean
   sidebarWidth: number
   isPreviewMode: boolean
+  activeServiceId: string
+  cloudServices: CloudService[]
 
+  fetchServices: () => Promise<void>
+  setActiveServiceId: (serviceId: string) => void
   fetchApis: () => Promise<void>
   setActiveApi: (api: ApiMeta) => void
   openTab: (api: ApiMeta, overrides?: Partial<ApiTab>) => void
@@ -297,7 +362,22 @@ function recordRecentApiId(apiId: string) {
   } catch {}
 }
 
-function getPersistedTabsState(): { tabIds: string[]; activeTabId: string | null } {
+interface PersistedTabDraft {
+  formData?: Record<string, any>
+  jsonText?: string
+  isModified?: boolean
+  requestTab?: 'params' | 'body' | 'headers' | 'docs'
+  bodyMode?: 'form' | 'json'
+  responseTab?: 'pretty' | 'sent' | 'curl' | 'raw'
+}
+
+interface PersistedTabsState {
+  tabIds: string[]
+  activeTabId: string | null
+  drafts?: Record<string, PersistedTabDraft>
+}
+
+function getPersistedTabsState(): PersistedTabsState {
   try {
     const raw = localStorage.getItem('tim_open_tabs_state')
     if (raw) {
@@ -305,17 +385,30 @@ function getPersistedTabsState(): { tabIds: string[]; activeTabId: string | null
       return {
         tabIds: Array.isArray(data.tabIds) ? data.tabIds : [],
         activeTabId: data.activeTabId || null,
+        drafts: data.drafts || {},
       }
     }
   } catch {}
-  return { tabIds: [], activeTabId: null }
+  return { tabIds: [], activeTabId: null, drafts: {} }
 }
 
 function savePersistedTabsState(tabs: ApiTab[], activeTabId: string | null) {
   try {
-    const state = {
+    const drafts: Record<string, PersistedTabDraft> = {}
+    tabs.forEach((t) => {
+      drafts[t.apiId] = {
+        formData: t.formData,
+        jsonText: t.jsonText,
+        isModified: t.isModified,
+        requestTab: t.requestTab,
+        bodyMode: t.bodyMode,
+        responseTab: t.responseTab,
+      }
+    })
+    const state: PersistedTabsState = {
       tabIds: tabs.map((t) => t.apiId),
       activeTabId,
+      drafts,
     }
     localStorage.setItem('tim_open_tabs_state', JSON.stringify(state))
   } catch {}
@@ -365,7 +458,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
   apis: [],
   activeApi: null,
   tabs: [],
-  activeTabId: null,
+  activeTabId: (typeof localStorage !== 'undefined' ? getPersistedTabsState().activeTabId : null),
   toast: null,
   searchQuery: '',
   openCategories: {}, // 默认收起全部
@@ -374,7 +467,42 @@ export const useApiStore = create<ApiState>((set, get) => ({
   isSidebarOpen: typeof window !== 'undefined' ? window.innerWidth >= 1024 : true, // 大屏默认展开，小屏/移动端默认收起
   sidebarWidth: 320, // 侧边栏固定默认宽度 320px
   isPreviewMode: false,
+  activeServiceId: (typeof localStorage !== 'undefined' && localStorage.getItem('tim_active_service')) || 'im',
+  cloudServices: DEFAULT_CLOUD_SERVICES,
   recentApiIds: getRecentApiIds(),
+
+  fetchServices: async () => {
+    try {
+      const res = await fetch('/api/services')
+      const json = await res.json()
+      if (json.status === 'success' && Array.isArray(json.data) && json.data.length > 0) {
+        const merged: CloudService[] = json.data.map((srv: any) => {
+          const fallback = DEFAULT_CLOUD_SERVICES.find((d) => d.id === srv.id)
+          return {
+            id: srv.id,
+            name: srv.name || fallback?.name || srv.id.toUpperCase(),
+            shortName: srv.short_name || srv.shortName || fallback?.shortName || srv.name || srv.id.toUpperCase(),
+            tag: srv.tag || fallback?.tag || srv.id.toUpperCase(),
+            description: srv.description || fallback?.description || '',
+            iconName: (srv.icon_name || fallback?.iconName || (srv.id === 'live' ? 'video' : (srv.id === 'im' ? 'message' : 'cloud'))) as any,
+            badgeColor: srv.badge_color || fallback?.badgeColor || (srv.id === 'live' ? 'emerald' : 'blue'),
+            docUrl: srv.doc_url || fallback?.docUrl,
+            protocol: srv.protocol || fallback?.protocol || (srv.id === 'im' ? 'rest' : 'api3'),
+          }
+        })
+        set({ cloudServices: merged })
+      }
+    } catch (e) {
+      console.warn('Failed to fetch dynamic services, using default fallback', e)
+    }
+  },
+
+  setActiveServiceId: (serviceId: string) => {
+    try {
+      localStorage.setItem('tim_active_service', serviceId)
+    } catch {}
+    set({ activeServiceId: serviceId })
+  },
 
   getRecentApis: () => {
     const { apis, recentApiIds } = get()
@@ -416,11 +544,17 @@ export const useApiStore = create<ApiState>((set, get) => ({
   },
 
   fetchApis: async () => {
+    // 异步拉取后端单点真实源 (SSoT) 动态注册的云服务清单
+    get().fetchServices().catch(() => {})
     try {
       const res = await fetch('/api/apis')
       const json = await res.json()
       if (json.status === 'success') {
-        const apis: ApiMeta[] = json.data
+        const rawApis: ApiMeta[] = json.data
+        const apis: ApiMeta[] = rawApis.map((a) => ({
+          ...a,
+          name: getCleanApiName(a.name, a.command, a.action),
+        }))
         const persisted = getPersistedTabsState()
         let initialTabs: ApiTab[] = []
         let activeTab: ApiTab | null = null
@@ -430,11 +564,21 @@ export const useApiStore = create<ApiState>((set, get) => ({
           for (const tid of persisted.tabIds) {
             const matched = apis.find((a) => a.api_id === tid)
             if (matched && !initialTabs.some((t) => t.apiId === matched.api_id)) {
-              initialTabs.push(createTabFromApi(matched))
+              const tab = createTabFromApi(matched)
+              const draft = persisted.drafts?.[tid]
+              if (draft) {
+                if (draft.formData) tab.formData = draft.formData
+                if (draft.jsonText) tab.jsonText = draft.jsonText
+                if (draft.isModified !== undefined) tab.isModified = draft.isModified
+                if (draft.requestTab) tab.requestTab = draft.requestTab
+                if (draft.bodyMode) tab.bodyMode = draft.bodyMode
+                if (draft.responseTab) tab.responseTab = draft.responseTab
+              }
+              initialTabs.push(tab)
             }
           }
           if (persisted.activeTabId) {
-            activeTab = initialTabs.find((t) => t.apiId === persisted.activeTabId) || null
+            activeTab = initialTabs.find((t) => t.apiId === persisted.activeTabId || t.id === persisted.activeTabId) || null
           }
         }
 
@@ -455,12 +599,18 @@ export const useApiStore = create<ApiState>((set, get) => ({
         const activeId = activeTab ? activeTab.id : null
         savePersistedTabsState(initialTabs, activeId)
 
+        const activeService = activeTab?.api.service_type || get().activeServiceId || 'im'
+        try {
+          localStorage.setItem('tim_active_service', activeService)
+        } catch {}
+
         set({
           apis,
           tabs: initialTabs,
           activeTabId: activeId,
           activeApi: activeTab ? activeTab.api : null,
-          invokeResponse: initialTabs[0]?.invokeResponse || null,
+          activeServiceId: activeService,
+          invokeResponse: activeTab?.invokeResponse || null,
           recentApiIds: getRecentApiIds(),
           openCategories: {},
         })
@@ -477,22 +627,44 @@ export const useApiStore = create<ApiState>((set, get) => ({
   openTab: (api: ApiMeta, overrides?: Partial<ApiTab>) => {
     recordRecentApiId(api.api_id)
     const { tabs } = get()
-    const existing = tabs.find(t => t.apiId === api.api_id)
+    const existing = tabs.find(t => t.apiId === api.api_id || t.id === api.api_id)
     let newTabs: ApiTab[]
     let activeId: string
     let activeApi: ApiMeta
 
+    const targetService = api.service_type || 'im'
+    if (get().activeServiceId !== targetService) {
+      try {
+        localStorage.setItem('tim_active_service', targetService)
+      } catch {}
+    }
+
     if (existing) {
-      const updated = overrides
-        ? { ...existing, ...overrides, dataVersion: Date.now() }
-        : existing
-      newTabs = overrides ? tabs.map(t => t.id === existing.id ? updated : t) : tabs
+      // 若原标签页保存的 API 元数据较旧（例如当时 fields 为空，或 payload 为空而新 API 具备有效 payload），进行平滑升级
+      const shouldUpdatePayload =
+        (!existing.formData || Object.keys(existing.formData).length === 0) &&
+        api.sample_payload &&
+        Object.keys(api.sample_payload).length > 0
+
+      const freshFormData = shouldUpdatePayload ? initializeFormData(api) : existing.formData
+      const freshJsonText = shouldUpdatePayload ? JSON.stringify(freshFormData, null, 2) : existing.jsonText
+
+      const updated = {
+        ...existing,
+        api, // 升级为最新的包含丰富 fields 的 api 对象
+        formData: freshFormData,
+        jsonText: freshJsonText,
+        ...(overrides || {}),
+        dataVersion: Date.now(),
+      }
+      newTabs = tabs.map(t => (t.id === existing.id || t.apiId === existing.apiId) ? updated : t)
       activeId = existing.id
-      activeApi = existing.api
+      activeApi = api
       set({
         tabs: newTabs,
         activeTabId: activeId,
         activeApi: activeApi,
+        activeServiceId: targetService,
         invokeResponse: updated.invokeResponse,
         isInvoking: updated.isInvoking,
         recentApiIds: getRecentApiIds(),
@@ -506,6 +678,7 @@ export const useApiStore = create<ApiState>((set, get) => ({
         tabs: newTabs,
         activeTabId: activeId,
         activeApi: activeApi,
+        activeServiceId: targetService,
         invokeResponse: newTab.invokeResponse,
         isInvoking: false,
         recentApiIds: getRecentApiIds(),
@@ -596,12 +769,20 @@ export const useApiStore = create<ApiState>((set, get) => ({
 
   setActiveTabId: (tabId: string) => {
     const { tabs } = get()
-    const target = tabs.find(t => t.id === tabId)
+    const target = tabs.find(t => t.id === tabId || t.apiId === tabId)
     if (target) {
+      const targetService = target.api.service_type || 'im'
+      if (get().activeServiceId !== targetService) {
+        try {
+          localStorage.setItem('tim_active_service', targetService)
+        } catch {}
+      }
+
       savePersistedTabsState(tabs, target.id)
       set({
         activeTabId: target.id,
         activeApi: target.api,
+        activeServiceId: targetService,
         invokeResponse: target.invokeResponse,
         isInvoking: target.isInvoking,
       })
@@ -617,17 +798,19 @@ export const useApiStore = create<ApiState>((set, get) => ({
       }
       return t
     })
+    savePersistedTabsState(newTabs, activeTabId)
     set({ tabs: newTabs })
   },
 
   updateTab: (tabId: string, updates: Partial<ApiTab>) => {
-    const { tabs } = get()
+    const { tabs, activeTabId } = get()
     const newTabs = tabs.map(t => {
       if (t.id === tabId) {
         return { ...t, ...updates }
       }
       return t
     })
+    savePersistedTabsState(newTabs, activeTabId)
     set({ tabs: newTabs })
   },
 
@@ -661,13 +844,23 @@ export const useApiStore = create<ApiState>((set, get) => ({
     const all: Record<string, boolean> = {}
     apis.forEach((a) => {
       const parts = (a.path && a.path.length > 0)
-        ? a.path
+        ? [...a.path]
         : [a.category, a.subcategory].filter(Boolean) as string[]
       let cur = ''
       parts.forEach((p) => {
         cur = cur ? `${cur}:::${p}` : p
         all[cur] = true
       })
+
+      // 同时注册去除顶层业务名（如 '云直播 (CSS)'、'即时通信 (IM)' 等）后的路径键，确保侧边栏树结构展开兼容
+      if (parts.length > 1 && (parts[0].includes('云直播') || parts[0].includes('CSS') || parts[0].includes('IM') || parts[0].includes('即时通信'))) {
+        const stripped = parts.slice(1)
+        let curStripped = ''
+        stripped.forEach((p) => {
+          curStripped = curStripped ? `${curStripped}:::${p}` : p
+          all[curStripped] = true
+        })
+      }
     })
     set({ openCategories: all })
   },

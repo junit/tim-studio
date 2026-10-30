@@ -1,0 +1,113 @@
+{
+  "doc_id": 100420,
+  "api_id": "live_SwitchBackupStream",
+  "title": "直播备用流切换",
+  "doc_url": "https://cloud.tencent.com/document/api/267/100420",
+  "sync_time": "2026-10-30 00:01:15",
+  "status": "synced",
+  "source_mode": "html",
+  "requested_mode": "html",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n调用该接口实现切换当前播放所使用的主备流。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：SwitchBackupStream。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-bangkok, ap-beijing, ap-guangzhou, ap-hongkong, ap-seoul, ap-shanghai, ap-tokyo 。"
+    },
+    {
+      "name": "PushDomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "推流域名。示例值：5000.livepush.com"
+    },
+    {
+      "name": "AppName",
+      "type": "String",
+      "required": "必填",
+      "description": "应用名称。示例值：live"
+    },
+    {
+      "name": "StreamName",
+      "type": "String",
+      "required": "必填",
+      "description": "流名称。示例值：stream1"
+    },
+    {
+      "name": "UpstreamSequence",
+      "type": "String",
+      "required": "必填",
+      "description": "查询接口获取到该流所有在推的上行 Sequence。指定要切到的目标上行 Sequence。示例值：843110096313761792"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: SwitchBackupStream\n<公共请求参数>\n\n{\n    \"PushDomainName\": \"5000.livepush.com\",\n    \"AppName\": \"live\",\n    \"StreamName\": \"stream1\",\n    \"UpstreamSequence\": \"843110096313761792\"\n}",
+      "clean_json": "{\n  \"PushDomainName\": \"5000.livepush.com\",\n  \"AppName\": \"live\",\n  \"StreamName\": \"stream1\",\n  \"UpstreamSequence\": \"843110096313761792\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,122 @@
+{
+  "doc_id": 129393,
+  "api_id": "live_StartLiveAvatarRoom",
+  "title": "启动数字人直播间",
+  "doc_url": "https://cloud.tencent.com/document/api/267/129393",
+  "sync_time": "2026-10-29 19:32:27",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n调用该接口，用于启动数字人（包括AIGC数字人）直播间。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：StartLiveAvatarRoom。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "RoomId",
+      "type": "String",
+      "required": "必填",
+      "description": "数字人直播间 ID。示例值：10001"
+    },
+    {
+      "name": "Comment",
+      "type": "String",
+      "required": "必填",
+      "description": "目标地址描述。示例值：推往视频号"
+    },
+    {
+      "name": "ToUrl",
+      "type": "String",
+      "required": "必填",
+      "description": "推流目标地址。示例值：rtmp://5000.livepush.com/live/stream"
+    },
+    {
+      "name": "Operator",
+      "type": "String",
+      "required": "选填",
+      "description": "操作者。示例值：admin"
+    },
+    {
+      "name": "RoomType",
+      "type": "String",
+      "required": "选填",
+      "description": "房间类型。AIGC：AIGC形象房间；PRESET：预设形象房间枚举值：AIGC： AIGC形象房间PRESET： 预设形象房间示例值：AIGC"
+    },
+    {
+      "name": "SessionProtocol",
+      "type": "String",
+      "required": "选填",
+      "description": "交互模式下的协议，支持rtmp和trtc，默认是rtmp示例值：trtc"
+    },
+    {
+      "name": "TrtcSdkAppId",
+      "type": "String",
+      "required": "选填",
+      "description": "使用trtc协议时，在trtc的appid示例值：1600098322"
+    },
+    {
+      "name": "TrtcUserSig",
+      "type": "String",
+      "required": "选填",
+      "description": "进入房间时需要用UserSign来校验权限示例值：eJwtzE8LgjAcxvH3smth29pfoUNdKvEiBhV0KZz1o6y5qQXRe2lxfzheeNNmkedcahGNEIo-F-Q2HuDZTQM2GSKS6EHKovrkdroUAxERhjraaU9sW8LDgTnHNOQq1gepnUinJtJCDejiH86WdWpPN02Sx6LdHiam9T7tSvcUNWV2dZFVnYS3X6dZTP0QKnjTIx"
+    },
+    {
+      "name": "TrtcRoomId",
+      "type": "String",
+      "required": "选填",
+      "description": "要进入的房间示例值：79059"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost:live.tencentcloudapi.com\nContent-Type:application/json\nX-TC-Action: StartLiveAvatarRoom\n<公共请求参数>\n\n{\n    \"RoomId\": \"10001\",\n    \"Comment\": \"wx\",\n    \"ToUrl\": \"rtmp://5000.livepush.com/live/stream\"\n}",
+      "clean_json": "{\n  \"RoomId\": \"10001\",\n  \"Comment\": \"wx\",\n  \"ToUrl\": \"rtmp://5000.livepush.com/live/stream\"\n}"
+    },
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: StartLiveAvatarRoom\n<公共请求参数>\n\n{\n    \"RoomId\": \"2147485667\",\n    \"Comment\": \"推往trtc\",\n    \"ToUrl\": \"rtmp://5000.livepush.myqcloud.com/live/qloud_push_test_test_50?txSecret=40e467c0e787205b7086c7fa9db0e3fd&txTime=6ba1006a\",\n    \"SessionProtocol\": \"trtc\",\n    \"TrtcSdkAppId\": \"1600098322\",\n    \"TrtcUserSig\": \"eJwtzE8LgjAcxvH3smth29pfoUNdKvEiBhV0KZz1o6y5qQXRe2*lx*fzheeNNmkedcahGNEIo-F-Q2HuDZTQM2GSKS6EHKovrkdroUAxERhjraaU9sW8LDgTnHNOQ*q1gepnUinJtJCDejiH86WdW*pPN02Sx6LdHiam9T7tSvcUNWV2dZFVnY*S3X6dZTP0*QKnjTIx\",\n    \"TrtcRoomId\": \"79059\"\n}",
+      "clean_json": "{\n  \"RoomId\": \"2147485667\",\n  \"Comment\": \"推往trtc\",\n  \"ToUrl\": \"rtmp://5000.livepush.myqcloud.com/live/qloud_push_test_test_50?txSecret=40e467c0e787205b7086c7fa9db0e3fd&txTime=6ba1006a\",\n  \"SessionProtocol\": \"trtc\",\n  \"TrtcSdkAppId\": \"1600098322\",\n  \"TrtcUserSig\": \"eJwtzE8LgjAcxvH3smth29pfoUNdKvEiBhV0KZz1o6y5qQXRe2*lx*fzheeNNmkedcahGNEIo-F-Q2HuDZTQM2GSKS6EHKovrkdroUAxERhjraaU9sW8LDgTnHNOQ*q1gepnUinJtJCDejiH86WdW*pPN02Sx6LdHiam9T7tSvcUNWV2dZFVnY*S3X6dZTP0*QKnjTIx\",\n  \"TrtcRoomId\": \"79059\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n  }\n}"
+    },
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"79da8b98-8e57-4343-aba0-bc8f614ba8ba\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"79da8b98-8e57-4343-aba0-bc8f614ba8ba\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

@@ -196,13 +196,21 @@ export function analyzePythonScript(code: string) {
   const lines = clean.split('\n')
   const lineCount = lines.length
 
-  const apiMatches = Array.from(clean.matchAll(/tim_call\(\s*["']([^"']+)["']/g)).map((m) => m[1])
+  // 匹配所有泛化接口调用 (cloud_call, live_call, im_call, tim_call, 及任意 {service}_call)
+  const apiMatches = Array.from(
+    clean.matchAll(/(?:cloud_call|[a-zA-Z0-9_]+_call)\(\s*['"]([^'"]+)['"]/g)
+  ).map((m) => m[1])
   const uniqueApis = Array.from(new Set(apiMatches))
 
   const toolsUsed: string[] = []
-  if (clean.includes('tim_search_apis')) toolsUsed.push('tim_search_apis')
-  if (clean.includes('tim_get_doc')) toolsUsed.push('tim_get_doc')
+  if (clean.includes('cloud_search_apis') || clean.includes('tim_search_apis') || clean.includes('search_apis')) {
+    toolsUsed.push('search_apis')
+  }
+  if (clean.includes('cloud_get_doc') || clean.includes('tim_get_doc') || clean.includes('get_doc')) {
+    toolsUsed.push('get_doc')
+  }
   if (clean.includes('save_memory')) toolsUsed.push('save_memory')
+  if (clean.includes('recall_memory')) toolsUsed.push('recall_memory')
   if (clean.includes('save_skill')) toolsUsed.push('save_skill')
   if (clean.includes('run_skill')) toolsUsed.push('run_skill')
 
@@ -210,12 +218,14 @@ export function analyzePythonScript(code: string) {
   if (uniqueApis.length > 0) {
     const apiBasenames = uniqueApis.map((a) => a.split('/').pop() || a)
     stepTitle = `调用 ${apiBasenames.join(', ')}`
-  } else if (clean.includes('tim_search_apis')) {
-    stepTitle = '检索腾讯云 IM REST 接口'
-  } else if (clean.includes('tim_get_doc')) {
-    stepTitle = '查阅官方 REST 接口文档'
+  } else if (clean.includes('cloud_search_apis') || clean.includes('tim_search_apis') || clean.includes('search_apis')) {
+    stepTitle = '检索腾讯云多业务接口'
+  } else if (clean.includes('cloud_get_doc') || clean.includes('tim_get_doc') || clean.includes('get_doc')) {
+    stepTitle = '查阅官方接口文档规范'
   } else if (clean.includes('save_skill')) {
     stepTitle = '沉淀并保存自动化技能'
+  } else if (clean.includes('save_memory')) {
+    stepTitle = '固化业务偏好至长期记忆'
   }
 
   return {

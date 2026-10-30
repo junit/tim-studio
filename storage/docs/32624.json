@@ -1,0 +1,245 @@
+{
+  "doc_id": 32624,
+  "api_id": "live_CreateLiveSnapshotTemplate",
+  "title": "创建截图模板",
+  "doc_url": "https://cloud.tencent.com/document/api/267/32624",
+  "sync_time": "2026-10-29 19:32:19",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n创建截图模板，数量上限：50，成功返回模板id后，需要调用 CreateLiveSnapshotRule 接口，将模板id绑定到流使用。\n截图相关文档： 直播截图 。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateLiveSnapshotTemplate。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "TemplateName",
+      "type": "String",
+      "required": "必填",
+      "description": "模板名称。长度上限：255字节。仅支持中文、英文、数字、_、-。示例值：testName"
+    },
+    {
+      "name": "CosAppId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "Cos 应用 ID。示例值：9654125"
+    },
+    {
+      "name": "CosBucket",
+      "type": "String",
+      "required": "必填",
+      "description": "Cos Bucket名称。注：CosBucket参数值不能包含-[appid] 部分。示例值：bucket"
+    },
+    {
+      "name": "CosRegion",
+      "type": "String",
+      "required": "必填",
+      "description": "Cos地区。示例值：beijing"
+    },
+    {
+      "name": "Description",
+      "type": "String",
+      "required": "选填",
+      "description": "描述信息。长度上限：1024字节。仅支持中文、英文、数字、_、-。示例值：testDesc"
+    },
+    {
+      "name": "SnapshotInterval",
+      "type": "Integer",
+      "required": "选填",
+      "description": "截图间隔，单位s，默认10s。范围： 2s ~ 300s。示例值：10"
+    },
+    {
+      "name": "Width",
+      "type": "Integer",
+      "required": "选填",
+      "description": "截图宽度。默认：0（原始宽）。范围：0-3000 。示例值：250"
+    },
+    {
+      "name": "Height",
+      "type": "Integer",
+      "required": "选填",
+      "description": "截图高度。默认：0（原始高）。范围：0-2000 。示例值：250"
+    },
+    {
+      "name": "PornFlag",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否开启鉴黄，0：不开启，1：开启。默认：0。示例值：0"
+    },
+    {
+      "name": "CosPrefix",
+      "type": "String",
+      "required": "选填",
+      "description": "Cos Bucket文件夹前缀。如不传，实际按默认值/{Year}-{Month}-{Day}生效示例值：12"
+    },
+    {
+      "name": "CosFileName",
+      "type": "String",
+      "required": "选填",
+      "description": "Cos 文件名称。如不传，实际按默认值{StreamID}-screenshot-{Hour}-{Minute}-{Second}-{Width}x{Height}{Ext}生效示例值：{StreamID}-screenshot-{Hour}-{Minute}-{Second}-{Width}x{Height}{Ext}"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateLiveSnapshotTemplate\n<公共请求参数>\n\n{\n    \"CosRegion\": \"beijing\",\n    \"Description\": \"testDesc\",\n    \"SnapshotInterval\": \"10\",\n    \"PornFlag\": \"0\",\n    \"CosBucket\": \"bucket\",\n    \"TemplateName\": \"testName\",\n    \"Height\": \"250\",\n    \"CosAppId\": \"8954511\",\n    \"Width\": \"250\"\n}",
+      "clean_json": "{\n  \"CosRegion\": \"beijing\",\n  \"Description\": \"testDesc\",\n  \"SnapshotInterval\": \"10\",\n  \"PornFlag\": \"0\",\n  \"CosBucket\": \"bucket\",\n  \"TemplateName\": \"testName\",\n  \"Height\": \"250\",\n  \"CosAppId\": \"8954511\",\n  \"Width\": \"250\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "description": "模板Id。示例值：1000"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"TemplateId\": 1000,\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"TemplateId\": 1000,\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CosBucketNotExist",
+      "description": "Cos bucket 不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CosBucketNotPermission",
+      "description": "无权限访问 Cos bucket。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CosRoleNotExists",
+      "description": "Cos 角色不存在，请前往 控制台 -> 功能配置 -> 直播截图&鉴黄 页面进行授权。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ArgsNotMatch",
+      "description": "针对添加转码模版的接口。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfInUsed",
+      "description": "模版使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfNotFound",
+      "description": "模版不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfOutLimit",
+      "description": "模版数量超过限制。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotFound",
+      "description": "记录不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleAlreadyExist",
+      "description": "规则已经配置。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleInUsing",
+      "description": "规则使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleNotFound",
+      "description": "规则不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.COSCustomFileNameError",
+      "description": "Cos自定义文件名错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation.NotLVBCodeMode",
+      "description": "非直播码/新版控制台模式。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

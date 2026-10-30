@@ -1,0 +1,98 @@
+{
+  "doc_id": 139376,
+  "api_id": "live_DescribeStreamPackageRemuxStatistics",
+  "title": "查询媒体包装转封装用量信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/139376",
+  "sync_time": "2026-10-29 19:32:27",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\nDescribeStreamPackageRemuxStatistics\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeStreamPackageRemuxStatistics。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-bangkok, ap-beijing, ap-chengdu, ap-chongqing, ap-guangzhou, ap-hongkong, ap-jakarta, ap-seoul, ap-shanghai, ap-singapore, ap-tokyo, eu-frankfurt, na-ashburn 。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "选填",
+      "description": "查询起始时间，RFC3339 格式，如 2026-08-24T00:00:00+08:00示例值：2026-08-24T00:00:00+08:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "选填",
+      "description": "查询结束时间，RFC3339 格式，如 2026-08-24T00:00:00+08:00；必须晚于 StartTime示例值：2026-08-25T00:00:00+08:00"
+    },
+    {
+      "name": "ChannelIds.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "频道ID列表，不传则查全部频道示例值：[\"6A89487440835E3B72CD\"]"
+    },
+    {
+      "name": "Dimension",
+      "type": "Boolean",
+      "required": "选填",
+      "description": "维度，false(默认): summary 汇总模式；true: detail 明细模式（按时间拆分），当为false时粒度不生效示例值：false"
+    },
+    {
+      "name": "Granularity",
+      "type": "Integer",
+      "required": "选填",
+      "description": "时间粒度（分钟），支持5（默认）/ 60 / 1440示例值：5"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: mdp.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeStreamPackageRemuxStatistics\n<公共请求参数>\n\n{\n    \"StartTime\": \"2026-08-24T00:00:00+08:00\",\n    \"EndTime\": \"2026-08-25T00:00:00+08:00\",\n    \"Dimension\": false,\n    \"Granularity\": 5\n}",
+      "clean_json": "{\n  \"StartTime\": \"2026-08-24T00:00:00+08:00\",\n  \"EndTime\": \"2026-08-25T00:00:00+08:00\",\n  \"Dimension\": false,\n  \"Granularity\": 5\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of RemuxStatisticsDataInfo",
+      "description": "封装用量数据"
+    },
+    {
+      "name": "TotalRemux",
+      "type": "Integer",
+      "description": "封装总用量示例值：1461990040036"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"ChannelId\": \"/v1/019810d5882d1ea506ec36a2054bc5\",\n                \"Remux\": 35545189124\n            }\n        ],\n        \"TotalRemux\": 1461990040036,\n        \"RequestId\": \"d7f31029-c8a3-4fe5-b5bd-85810bcc22b6\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"ChannelId\": \"/v1/019810d5882d1ea506ec36a2054bc5\",\n        \"Remux\": 35545189124\n      }\n    ],\n    \"TotalRemux\": 1461990040036,\n    \"RequestId\": \"d7f31029-c8a3-4fe5-b5bd-85810bcc22b6\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

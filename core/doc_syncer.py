@@ -12,6 +12,7 @@ import os
 import re
 import threading
 import time
+import urllib.parse
 import urllib.request
 from typing import Dict, List, Optional, Union
 
@@ -34,18 +35,90 @@ def clean_json_str(raw: str) -> str:
     """尝试将带注释或特殊字符的 JSON 文本清洗为格式化标准 JSON，失败则保留原字符串"""
     if not raw:
         return ""
-    # 移除单行与多行注释
-    no_comments = re.sub(r"//[^\n]*", "", raw)
+    # 1. 尝试直接标准 JSON 解析
+    try:
+        parsed = json.loads(raw.strip(), strict=False)
+        return json.dumps(parsed, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+    # 2. 若包含 HTTP 头或包装文本，截取第一个 { 或 [ 到最后一个 } 或 ] 之间的内容
+    s_obj = raw.find("{")
+    s_arr = raw.find("[")
+    s_idx = -1
+    if s_obj != -1 and s_arr != -1:
+        s_idx = min(s_obj, s_arr)
+    elif s_obj != -1:
+        s_idx = s_obj
+    elif s_arr != -1:
+        s_idx = s_arr
+
+    e_idx = max(raw.rfind("}"), raw.rfind("]"))
+    target = raw[s_idx:e_idx + 1] if s_idx != -1 and e_idx > s_idx else raw
+
+    try:
+        parsed = json.loads(target, strict=False)
+        return json.dumps(parsed, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+    # 3. 容错清洗：移除单行与多行注释（排除 http:// 与 https:// 中的 //），移除末尾逗号和省略号
+    no_comments = re.sub(r"(?<!:)\s*//[^\n]*", "", target)
     no_comments = re.sub(r"/\*.*?\*/", "", no_comments, flags=re.DOTALL)
-    # 移除末尾逗号
     no_trailing = re.sub(r",\s*([\}\]])", r"\1", no_comments)
-    # 移除省略号 ...
     no_dots = re.sub(r"\.\.\.+", "", no_trailing)
     try:
-        parsed = json.loads(no_dots)
+        parsed = json.loads(no_dots, strict=False)
         return json.dumps(parsed, ensure_ascii=False, indent=2)
     except Exception:
         return raw.strip()
+
+
+def parse_url_to_body(raw_text: str) -> dict:
+    """从 HTTP GET / 拼接参数 URL 中提取业务入参字典（用于腾讯云 API 3.0 输入示例解析）"""
+    text = raw_text.replace("\n&", "&").replace("\n", "").strip()
+    if "?" in text:
+        qs = text.split("?", 1)[1]
+    else:
+        qs = text
+    # 剥除占位标记如 <公共请求参数>
+    qs = re.sub(r"&?<[^>]+>&?", "&", qs).strip("&")
+    parsed = urllib.parse.parse_qs(qs, keep_blank_values=True)
+    body = {}
+    common_params = {
+        "Action", "Version", "Region", "Timestamp", "Nonce", "Signature",
+        "SignatureMethod", "Token", "<公共请求参数>"
+    }
+    for k, v in parsed.items():
+        if k in common_params:
+            continue
+        val = v[0] if len(v) == 1 else v
+        if str(val).isdigit():
+            val = int(val)
+        elif str(val).lower() == "true":
+            val = True
+        elif str(val).lower() == "false":
+            val = False
+
+        if "." in k:
+            base_k, idx = k.split(".", 1)
+            if idx == "N" or idx.isdigit():
+                if base_k not in body:
+                    body[base_k] = []
+                if isinstance(val, str) and (val.startswith("[") or val.startswith('"')):
+                    try:
+                        inner = json.loads(val)
+                        if isinstance(inner, list):
+                            body[base_k].extend(inner)
+                        else:
+                            body[base_k].append(inner)
+                        continue
+                    except Exception:
+                        pass
+                body[base_k].append(val)
+                continue
+        body[k] = val
+    return body
 
 
 def parse_official_doc(
@@ -174,7 +247,11 @@ def parse_official_doc(
         if m.group(1):
             h_text = html.unescape(re.sub(r"<[^>]+>", "", m.group(2))).strip()
             current_sub_heading = h_text
-            if any(k in h_text for k in ["请求包", "请求示例", "请求 URL", "请求参数", "最高调用频率", "功能说明", "应答包", "错误码", "回调"]):
+            if any(k in h_text for k in [
+                "请求包", "请求示例", "请求 URL", "请求参数", "最高调用频率",
+                "功能说明", "应答包", "错误码", "回调", "输入参数", "输出参数",
+                "输入示例", "输出示例", "示例"
+            ]):
                 current_major_section = h_text
         elif m.group(3):
             # 表格解析
@@ -235,19 +312,20 @@ def parse_official_doc(
                     if name and name not in ("参数", "字段", "参数名", "字段名"):
                         url_params.append({"name": name, "description": desc})
             elif has_field or has_type:
-                is_resp = any(k in heading_ctx for k in ["应答", "回包", "返回", "响应", "Response", "response"])
-                is_req = any(k in heading_ctx for k in ["请求包", "请求字段", "请求参数", "Request", "request"])
+                is_resp = any(k in heading_ctx for k in ["输出参数", "输出", "应答", "回包", "返回", "响应", "Response", "response"])
+                is_req = any(k in heading_ctx for k in ["输入参数", "输入", "请求包", "请求字段", "请求参数", "Request", "request"])
 
                 if is_resp or (not is_req and not has_req and len(req_fields) > 0):
                     for r in parsed_rows:
-                        name = get_cell(r, "字段名", "字段", "参数名", "参数", "属性名", "名称")
+                        name = get_cell(r, "字段名", "字段", "参数名", "参数", "属性名", "名称", "参数名称")
                         typ = get_cell(r, "类型", "数据类型", "Type")
                         desc = get_cell(r, "说明", "描述", "含义", "含义说明")
-                        if name and name not in ("字段", "字段名", "参数", "参数名"):
-                            resp_fields.append({"name": name, "type": typ, "description": desc})
+                        if name and name not in ("字段", "字段名", "参数", "参数名", "参数名称"):
+                            clean_name = name[:-2] if name.endswith(".N") else name
+                            resp_fields.append({"name": clean_name, "type": typ, "description": desc})
                 else:
                     for r in parsed_rows:
-                        name = get_cell(r, "字段名", "字段", "参数名", "参数", "属性名", "名称")
+                        name = get_cell(r, "字段名", "字段", "参数名", "参数", "属性名", "名称", "参数名称")
                         typ = get_cell(r, "类型", "数据类型", "Type")
                         req_val = get_cell(r, "必填", "是否必填", "属性", "必选", "Required")
                         desc = get_cell(r, "说明", "描述", "含义", "含义说明")
@@ -255,8 +333,14 @@ def parse_official_doc(
                             req_val = "必填"
                         elif req_val in ("否", "false", "False", "N", "NO"):
                             req_val = "选填"
-                        if name and name not in ("字段", "字段名", "参数", "参数名"):
-                            req_fields.append({"name": name, "type": typ, "required": req_val, "description": desc})
+                        if name in ("Action", "Version", "Region") or "公共参数" in desc:
+                            req_val = "公共参数"
+                        if name and name not in ("字段", "字段名", "参数", "参数名", "参数名称"):
+                            clean_name = name[:-2] if name.endswith(".N") else name
+                            field_item = {"name": clean_name, "type": typ, "required": req_val, "description": desc}
+                            if name != clean_name:
+                                field_item["aliases"] = [name]
+                            req_fields.append(field_item)
         elif m.group(5):
             # Pre 代码块
             pr_html = m.group(6)
@@ -290,14 +374,22 @@ def parse_official_doc(
                 ):
                     context_title = clean_t
 
-            if "请求 URL" in current_sub_heading or (clean.startswith("http") and "?" in clean):
-                url_sample = clean
-            elif "应答" in current_major_section or "应答" in current_sub_heading or any(k in clean for k in ("ActionStatus", "ErrorCode", "ErrorInfo")):
-                title_ex = context_title or (current_sub_heading if "应答" in current_sub_heading else "应答示例")
+            ctx = f"{current_major_section} {current_sub_heading}"
+            is_resp_block = (
+                any(k in ctx for k in ["输出示例", "输出", "应答", "回包", "返回", "Response", "response"])
+                or "\"Response\":" in clean or "'Response':" in clean
+                or "\"RequestId\":" in clean or "'RequestId':" in clean
+                or any(k in clean for k in ("ActionStatus", "ErrorCode", "ErrorInfo"))
+            ) and not any(k in current_sub_heading for k in ["输入示例", "输入参数", "请求包", "请求示例"])
+
+            if is_resp_block:
+                title_ex = context_title or (
+                    current_sub_heading if any(k in current_sub_heading for k in ["输出", "应答", "回包"]) else "官方输出示例"
+                )
                 if not context_title:
-                    if "FAIL" in clean:
+                    if "FAIL" in clean or ("ErrorCode" in clean and '"ErrorCode": 0' not in clean):
                         title_ex = "失败应答示例"
-                    elif "OK" in clean or '"ErrorCode": 0' in clean:
+                    elif "OK" in clean or '"ErrorCode": 0' in clean or '"RequestId":' in clean:
                         title_ex = "成功应答示例"
                 resp_examples.append({
                     "title": title_ex,
@@ -305,12 +397,24 @@ def parse_official_doc(
                     "clean_json": clean_json_str(clean)
                 })
             else:
-                title_ex = context_title or (current_sub_heading if current_sub_heading not in ("请求包示例", "请求包") else f"示例 {len(req_examples) + 1}")
-                req_examples.append({
-                    "title": title_ex,
-                    "content": clean,
-                    "clean_json": clean_json_str(clean)
-                })
+                if clean.startswith("http") and "?" in clean:
+                    url_sample = clean
+                    body_from_url = parse_url_to_body(clean)
+                    if body_from_url:
+                        req_examples.append({
+                            "title": context_title or current_sub_heading or "官方基础请求参数",
+                            "content": clean,
+                            "clean_json": json.dumps(body_from_url, ensure_ascii=False, indent=2)
+                        })
+                else:
+                    title_ex = context_title or (
+                        current_sub_heading if current_sub_heading not in ("请求包示例", "请求包", "输入示例") else f"示例 {len(req_examples) + 1}"
+                    )
+                    req_examples.append({
+                        "title": title_ex,
+                        "content": clean,
+                        "clean_json": clean_json_str(clean)
+                    })
 
     # 提取回调列表
     cb_m = re.search(r"<h[1-6][^>]*>(?:(?!</h[1-6]>).)*?(?:回调).*?</h[1-6]>(.*?)(?:<h[1-6]|\Z)", text, re.DOTALL)
@@ -411,6 +515,12 @@ class DocSyncManager:
             if saved:
                 # 补充 api_id 若缺失
                 saved["api_id"] = api_id
+                # 若旧缓存中的 request_examples 含有输出 (如 "Response":)，自动重新解析刷新缓存
+                if any('"Response":' in ex.get("content", "") or "'Response':" in ex.get("content", "") for ex in saved.get("request_examples", [])):
+                    try:
+                        saved = self.sync_single(doc_id, api_id=api_id, doc_url=saved.get("doc_url", doc_url), mode="auto")
+                    except Exception:
+                        pass
                 return saved
 
         # 本地未同步时提供友好骨架
@@ -433,6 +543,62 @@ class DocSyncManager:
                 "clean_json": payload_str,
             })
 
+        service_type = api_meta.get("service_type", "im") or "im"
+        if service_type == "im":
+            default_url_params = [
+                {"name": "sdkappid", "description": "创建应用时分配的 SDKAppID"},
+                {"name": "identifier", "description": "必须为 App 管理员账号"},
+                {"name": "usersig", "description": "管理员 UserSig 签名"},
+                {"name": "random", "description": "32位无符号整数随机数"},
+                {"name": "contenttype", "description": "固定为 json"},
+            ]
+            default_resp_fields = [
+                {"name": "ActionStatus", "type": "String", "description": "请求处理结果：OK 或 FAIL"},
+                {"name": "ErrorCode", "type": "Integer", "description": "错误码：0为成功，非0为失败"},
+                {"name": "ErrorInfo", "type": "String", "description": "详细错误信息"},
+            ]
+            default_resp_examples = [
+                {
+                    "title": "标准成功响应",
+                    "content": '{\n  "ActionStatus": "OK",\n  "ErrorCode": 0,\n  "ErrorInfo": ""\n}',
+                    "clean_json": '{\n  "ActionStatus": "OK",\n  "ErrorCode": 0,\n  "ErrorInfo": ""\n}',
+                }
+            ]
+            default_err_codes = [
+                {"code": "0", "description": "操作成功", "solution": "无需处理"},
+                {"code": "60002", "description": "UserSig 签名过期或无效", "solution": "请重新生成管理员 UserSig"},
+                {"code": "70001", "description": "SecretKey 不匹配或应用未配置", "solution": "核对控制台密钥配置"},
+                {"code": "90001", "description": "请求频率超限 (触发 QPS 限制)", "solution": "降低调用速率或联系腾讯云提频"},
+            ]
+        else:
+            action_name = api_meta.get("action") or api_meta.get("command") or ""
+            version_val = api_meta.get("version", "2018-08-01")
+            default_url_params = [
+                {"name": "X-TC-Action", "description": f"接口 Action 名称 (如 {action_name})"},
+                {"name": "X-TC-Version", "description": f"接口版本号 (如 {version_val})"},
+                {"name": "X-TC-Timestamp", "description": "当前 UNIX 时间戳 (秒)"},
+                {"name": "Authorization", "description": "TC3-HMAC-SHA256 签名凭据串"},
+                {"name": "X-TC-Region", "description": "地域参数 (如 ap-guangzhou)"},
+            ]
+            default_resp_fields = [
+                {"name": "Response.RequestId", "type": "String", "description": "唯一请求 ID，每次请求都会返回"},
+                {"name": "Response.Error", "type": "Object", "description": "调用失败时的错误信息对象"},
+                {"name": "Response.Error.Code", "type": "String", "description": "错误码，如 FailedOperation"},
+                {"name": "Response.Error.Message", "type": "String", "description": "错误信息描述"},
+            ]
+            default_resp_examples = [
+                {
+                    "title": "标准 API 3.0 成功响应示例",
+                    "content": '{\n  "Response": {\n    "RequestId": "d98129a0-8113-41c3-bb02-c322b918731f"\n  }\n}',
+                    "clean_json": '{\n  "Response": {\n    "RequestId": "d98129a0-8113-41c3-bb02-c322b918731f"\n  }\n}',
+                }
+            ]
+            default_err_codes = [
+                {"code": "InvalidParameter", "description": "参数错误，请检查入参类型与取值", "solution": "核对入参字段"},
+                {"code": "AuthFailure.SignatureFailure", "description": "签名失败，SecretId 或 SecretKey 不匹配", "solution": "检查环境配置中的 API 3.0 密钥"},
+                {"code": "RequestLimitExceeded", "description": "请求频次超限 (触发 QPS 限制)", "solution": "降低并发频率或申请提频"},
+            ]
+
         return {
             "doc_id": doc_id or 0,
             "api_id": api_id,
@@ -443,33 +609,12 @@ class DocSyncManager:
             "overview": desc,
             "rate_limit": "",
             "request_url_sample": "",
-            "url_params": [
-                {"name": "sdkappid", "description": "创建应用时分配的 SDKAppID"},
-                {"name": "identifier", "description": "必须为 App 管理员账号"},
-                {"name": "usersig", "description": "管理员 UserSig 签名"},
-                {"name": "random", "description": "32位无符号整数随机数"},
-                {"name": "contenttype", "description": "固定为 json"},
-            ],
+            "url_params": default_url_params,
             "request_body_fields": req_fields,
             "request_examples": req_examples,
-            "response_body_fields": [
-                {"name": "ActionStatus", "type": "String", "description": "请求处理结果：OK 或 FAIL"},
-                {"name": "ErrorCode", "type": "Integer", "description": "错误码：0为成功，非0为失败"},
-                {"name": "ErrorInfo", "type": "String", "description": "详细错误信息"},
-            ],
-            "response_examples": [
-                {
-                    "title": "标准成功响应",
-                    "content": '{\n  "ActionStatus": "OK",\n  "ErrorCode": 0,\n  "ErrorInfo": ""\n}',
-                    "clean_json": '{\n  "ActionStatus": "OK",\n  "ErrorCode": 0,\n  "ErrorInfo": ""\n}',
-                }
-            ],
-            "error_codes": [
-                {"code": "0", "description": "操作成功", "solution": "无需处理"},
-                {"code": "60002", "description": "UserSig 签名过期或无效", "solution": "请重新生成管理员 UserSig"},
-                {"code": "70001", "description": "SecretKey 不匹配或应用未配置", "solution": "核对控制台密钥配置"},
-                {"code": "90001", "description": "请求频率超限 (触发 QPS 限制)", "solution": "降低调用速率或联系腾讯云提频"},
-            ],
+            "response_body_fields": default_resp_fields,
+            "response_examples": default_resp_examples,
+            "error_codes": default_err_codes,
             "callbacks": [],
             "notes": [],
         }

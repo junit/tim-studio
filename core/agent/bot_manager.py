@@ -113,18 +113,67 @@ class BotManager:
     def _ensure_default_bot(self):
         default_id = "default_assistant"
         path = self._bot_dir(default_id)
+        default_name = "腾讯云全能架构管家"
+        default_desc = "内置腾讯云多业务云产品标准库（云直播 CSS、即时通信 IM 及未来扩展云服务）与 Python 执行沙箱的智能调度架构管家"
+        default_prompt = (
+            "你是一个专业的腾讯云多业务云架构与自动化运维技术专家（涵盖云直播 API 3.0、即时通信 IM REST API，并具备即插即用扩展任意云服务的能力）。\n"
+            "你精通腾讯云 API 3.0 规范（Action、签名、通用混流、流状态巡检、录制转码）、IM 架构（UserSig、REST、群组关系链、消息流转）。\n"
+            "你可以通过直接编写并执行 Python 脚本，调度 `cloud_call`、`live_call`、`im_call`、`cloud_search_apis` 等工具完成接口联调、复杂排障、多流监控与批量数据处理。\n"
+            "当发现用户有高频或特定模式的需求时，你可以主动通过工具将经验固化为【技能】或【强化自己的提示词】。"
+        )
+        default_prompts = [
+            "查询当前在线直播流推流状态并统计码率与帧率",
+            "拉取违规直播流并调用 DropLiveStream 执行安全熔断断流",
+            "配置直播通用混流模板 (CreateCommonMixStream) 并输出参数结构",
+            "批量拉取活跃群组最近 20 条消息并导出 Excel 分析报表"
+        ]
+
         if not os.path.exists(path):
             self.create_bot(
                 bot_id=default_id,
-                name="TIM 全能助手",
+                name=default_name,
                 avatar="🤖",
-                description="内置全量 166 个 REST API、API 文档索引与 Python 代码沙箱的智能调度助手",
+                description=default_desc,
+                base_prompt=default_prompt,
+                suggested_prompts=default_prompts
+            )
+        else:
+            # 升级已有 default_assistant 的描述与人设，平滑扩展多云业务，保留已有历史与记忆
+            bot_json = os.path.join(path, "bot.json")
+            if os.path.exists(bot_json):
+                try:
+                    with open(bot_json, "r", encoding="utf-8") as f:
+                        data = json.load(f)
+                    if "166" in data.get("description", "") or "261" in data.get("description", "") or "IM (Instant Messaging)" in data.get("base_prompt", ""):
+                        data["name"] = default_name
+                        data["description"] = default_desc
+                        data["base_prompt"] = default_prompt
+                        data["suggested_prompts"] = default_prompts
+                        _atomic_dump_json(bot_json, data)
+                except Exception:
+                    pass
+
+        # 确保云直播专属巡检官内置就绪
+        live_id = "css_live_operator"
+        live_path = self._bot_dir(live_id)
+        if not os.path.exists(live_path):
+            self.create_bot(
+                bot_id=live_id,
+                name="云直播流媒体巡检官",
+                avatar="📡",
+                description="专精腾讯云直播 CSS 流状态巡检、混流布局配置、断流禁推熔断与音视频推拉流诊断",
                 base_prompt=(
-                    "你是一个专业的腾讯云 IM (Instant Messaging) 智能技术顾问与自动化工程师。\n"
-                    "你精通腾讯云 IM 架构、全量 166 个 REST API、消息流转机制、群组管理与用户关系链规范。\n"
-                    "你可以通过直接编写并执行 Python 脚本来完成用户的 API 调试、复杂场景排查、批量操作以及数据统计。\n"
-                    "当发现用户有高频或特定模式的需求时，你可以主动通过工具将经验固化为【技能】或【强化自己的提示词】。"
-                )
+                    "你是一个专精腾讯云直播 (CSS) 核心业务与流媒体运维的专业智能体。\n"
+                    "你熟练掌握腾讯云直播 API 3.0 体系（包括流状态查询、推断流监控、录制转码规则、混流模版、鉴权防盗链及安全熔断）。\n"
+                    "在处理推断流与混流任务时，编写紧凑高效的 Python 代码直接调用 `live_call(action, payload)` 或 `cloud_call`，提取 Response 中的核心流媒体指标。\n"
+                    "对涉及断流 (DropLiveStream)、封禁推流 (ForbidLiveStream) 的操作，严格遵守防线原则，确保流名、域名与解禁时间精确无误。"
+                ),
+                suggested_prompts=[
+                    "巡检指定域名的所有在线直播流及其实时帧率",
+                    "对指定的异常推流执行 DropLiveStream 立即断流",
+                    "生成一套主辅画面画中画的通用混流参数 (CreateCommonMixStream)",
+                    "导出本月直播录制与转码规则配置清单"
+                ]
             )
 
     def list_bots(self) -> List[Dict[str, Any]]:
@@ -217,8 +266,15 @@ class BotManager:
             return [
                 "为我新建一个【社群风控官】智能体，负责敏感词检测与一键禁言",
                 "帮我新建一个【IM运维巡检官】智能体，专注排查高频报错与离线",
-                "结合 166 个 REST API，为我分析当前系统核心接口清单",
+                "结合腾讯云全量 API，为我分析当前系统核心接口清单",
                 "列出所有已入驻的智能体，并指挥相关智能体开展协作"
+            ]
+        if any(k in primary_text for k in ["直播", "推流", "断流", "流媒体", "转码", "录制", "导播", "数字人", "live", "stream", "css"]):
+            return [
+                "批量巡检在线直播流状态，筛选出推流码率或帧率异常的直播间",
+                "生成一个测试房间的推流地址与带防盗链签名的播放链接",
+                "对违规直播流执行紧急断流操作并查询断流历史记录",
+                "查询当前已配置的转码模板与录制规则清单"
             ]
         if any(k in primary_text for k in ["投研", "投资", "研报", "金融", "证券"]):
             return [
@@ -278,7 +334,7 @@ class BotManager:
             ]
         # 通用兜底
         return [
-            f"结合 166 个 REST API，为我分析【{name}】的核心接口清单",
+            f"结合腾讯云多业务全量 API，为我分析【{name}】的核心接口清单",
             "编写 Python 脚本批量检查关键账号的在线与禁言状态",
             "列出当前系统中所有的群组并按成员规模排序",
             "将我常用的测试配置与参数记在你的长期记忆中"
@@ -419,11 +475,12 @@ class BotManager:
     def generate_bot_profile(self, name: str, goal: str = "") -> Dict[str, Any]:
         """根据用户输入的 BOT 名字和目标，智能生成 BOT ID、图标和专业提示词"""
         clean_name = name.strip() or "自定义助手"
-        clean_goal = goal.strip() or f"协助管理与排查 {clean_name} 相关的 IM 业务需求"
+        clean_goal = goal.strip() or f"协助管理与排查【{clean_name}】相关的腾讯云业务需求"
 
         # 1. 智能推断 Emoji 头像
         avatar = "🤖"
         kw_map = [
+            (["直播", "推流", "拉流", "流媒体", "转码", "录制", "导播", "数字人", "视频", "live", "stream"], "🎥"),
             (["风控", "安全", "拦截", "黑名单", "防护", "违规", "审核"], "🛡️"),
             (["巡检", "排查", "监控", "检测", "诊断", "健康"], "🔍"),
             (["群", "社群", "讨论组", "万人群", "成员"], "👥"),
@@ -444,7 +501,9 @@ class BotManager:
         timestamp_suffix = str(int(time.time()))[-4:]
         # 英文词根提取
         slug_prefix = "bot"
-        if any(k in combined_text for k in ["风控", "安全", "security", "risk"]):
+        if any(k in combined_text for k in ["直播", "推流", "拉流", "live", "stream", "css"]):
+            slug_prefix = "live"
+        elif any(k in combined_text for k in ["风控", "安全", "security", "risk"]):
             slug_prefix = "security"
         elif any(k in combined_text for k in ["巡检", "监控", "inspector", "monitor"]):
             slug_prefix = "inspector"
@@ -462,11 +521,11 @@ class BotManager:
 
         # 3. 生成专业精准的 System Prompt
         base_prompt = (
-            f"你是一个专注于【{clean_name}】的腾讯云 IM (Instant Messaging) 专属智能体助手。\n\n"
+            f"你是一个专注于【{clean_name}】的腾讯云多业务专属智能体助手。\n\n"
             f"【核心定位与使命】\n"
             f"{clean_goal}\n\n"
             f"【专属工作准则与规范】\n"
-            f"1. 你完全掌控腾讯云 IM 全部 166 个 REST API 的最高调用权限 (`tim_call`)，以及完整的官方文档全文索引 (`tim_search_apis`, `tim_get_doc`)。\n"
+            f"1. 你完全掌控腾讯云多业务全量接口（涵盖云直播 API 3.0、即时通信 IM REST 等）的最高调度权限（`cloud_call`、`live_call`、`im_call`），以及完整的官方文档全文索引与语义检索能力。\n"
             f"2. 当接到用户的业务指令时，优先针对【{clean_name}】的核心职责进行深度的 API 调用与 Python 脚本编排，支持循环、批处理与数据清洗。\n"
             f"3. 保持严谨客观，在执行涉及批量封禁、剔除或修改的操作前，向用户明确汇总受影响的对象范围与执行参数。\n"
             f"4. 遇到高复用价值的自动化流程或事实记忆，在后台自主调用 `save_skill` 或 `save_memory` 静默沉淀，保持回复精简专业，无需打扰用户。\n"
@@ -501,11 +560,11 @@ class BotManager:
                     temperature=0.3
                 )
                 system_task = (
-                    f"用户正在 TIM Studio 中创建名为【{clean_name}】的腾讯云 IM 智能体 BOT。\n"
+                    f"用户正在腾讯云多业务控制台 Studio 中创建名为【{clean_name}】的专属智能体 BOT。\n"
                     f"用户的职责目标设定是：【{clean_goal}】。\n"
                     f"请以 JSON 格式输出，不要包含任何 markdown 代码块标识（纯 JSON 文本）：\n"
                     f'{{\n'
-                    f'  "base_prompt": "约 200 字专属 System Prompt 正文，体现专业严谨人设，结合腾讯云 IM 166 个 REST API、Python 沙箱执行能力、自主技能沉淀与准则自我增强机制",\n'
+                    f'  "base_prompt": "约 200 字专属 System Prompt 正文，体现专业严谨人设，结合腾讯云多业务全量 API、Python 沙箱执行能力、自主技能沉淀与准则自我增强机制",\n'
                     f'  "suggested_prompts": ["4条用户最可能对该智能体提出的典型业务指令或问题，紧扣其人设定位，每条15~35字"]\n'
                     f'}}\n'
                 )

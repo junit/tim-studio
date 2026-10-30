@@ -1,0 +1,176 @@
+{
+  "doc_id": 33856,
+  "api_id": "live_DescribeLiveDomains",
+  "title": "查询域名列表",
+  "doc_url": "https://cloud.tencent.com/document/api/267/33856",
+  "sync_time": "2026-10-29 19:32:12",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n根据域名状态、类型等信息查询用户的域名信息。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveDomains。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainStatus",
+      "type": "Integer",
+      "required": "选填",
+      "description": "域名状态过滤。0-停用，1-启用。示例值：1"
+    },
+    {
+      "name": "DomainType",
+      "type": "Integer",
+      "required": "选填",
+      "description": "域名类型过滤。0-推流，1-播放。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "分页大小，范围：10~100。默认10。示例值：10"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "取第几页，范围：1~100000。默认1。示例值：1"
+    },
+    {
+      "name": "IsDelayLive",
+      "type": "Integer",
+      "required": "选填",
+      "description": "0 普通直播 1慢直播 默认0。示例值：0"
+    },
+    {
+      "name": "DomainPrefix",
+      "type": "String",
+      "required": "选填",
+      "description": "域名前缀。示例值：qq"
+    },
+    {
+      "name": "PlayType",
+      "type": "Integer",
+      "required": "选填",
+      "description": "播放区域，只在 DomainType=1 时该参数有意义。1: 国内。2: 全球。3: 海外。示例值：1"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeLiveDomains\n<公共请求参数>\n\n{\n    \"IsDelayLive\": \"0\",\n    \"PageSize\": \"10\",\n    \"PageNum\": \"1\",\n    \"DomainStatus\": \"1\",\n    \"DomainType\": \"1\"\n}",
+      "clean_json": "{\n  \"IsDelayLive\": \"0\",\n  \"PageSize\": \"10\",\n  \"PageNum\": \"1\",\n  \"DomainStatus\": \"1\",\n  \"DomainType\": \"1\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "AllCount",
+      "type": "Integer",
+      "description": "总记录数。示例值：2"
+    },
+    {
+      "name": "DomainList",
+      "type": "Array of DomainInfo",
+      "description": "域名详细信息列表。示例值：[{\"Name\":\"mudu.tv\",\"GroupName\":null,\"Type\":1,\"Status\":1,\"PlayType\":1,\"IsDelayLive\":0}]"
+    },
+    {
+      "name": "CreateLimitCount",
+      "type": "Integer",
+      "description": "可继续添加域名数量。示例值：77"
+    },
+    {
+      "name": "PlayTypeCount",
+      "type": "Array of Integer",
+      "description": "启用的播放域名加速区域统计，数组元素分别为：中国大陆（境内），全球地区，国际/港澳台（境外）域名数量。示例值：[1,0,3]"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\",\n        \"AllCount\": 2,\n        \"CreateLimitCount\": 0,\n        \"PlayTypeCount\": [\n            1,\n            2,\n            3\n        ],\n        \"DomainList\": [\n            {\n                \"Name\": \"abc.com\",\n                \"IsMiniProgramLive\": 0,\n                \"Type\": 1,\n                \"Status\": 1,\n                \"PlayType\": 1,\n                \"IsDelayLive\": 0,\n                \"CreateTime\": \"2018-08-29 10:00:00\",\n                \"BCName\": 1,\n                \"CurrentCName\": \"\",\n                \"TargetDomain\": \"abc.com.liveplay.myqcloud.com\",\n                \"RentTag\": 0,\n                \"RentExpireTime\": \"0000-00-00 00:00:00\"\n            }\n        ]\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\",\n    \"AllCount\": 2,\n    \"CreateLimitCount\": 0,\n    \"PlayTypeCount\": [\n      1,\n      2,\n      3\n    ],\n    \"DomainList\": [\n      {\n        \"Name\": \"abc.com\",\n        \"IsMiniProgramLive\": 0,\n        \"Type\": 1,\n        \"Status\": 1,\n        \"PlayType\": 1,\n        \"IsDelayLive\": 0,\n        \"CreateTime\": \"2018-08-29 10:00:00\",\n        \"BCName\": 1,\n        \"CurrentCName\": \"\",\n        \"TargetDomain\": \"abc.com.liveplay.myqcloud.com\",\n        \"RentTag\": 0,\n        \"RentExpireTime\": \"0000-00-00 00:00:00\"\n      }\n    ]\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConnectDbError",
+      "description": "DB 连接错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetBizidError",
+      "description": "获取用户账号错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.EmptyData",
+      "description": "数据为空。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.InvalidUser",
+      "description": "用户不支持此接口。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,176 @@
+{
+  "doc_id": 35963,
+  "api_id": "live_DescribeVisitTopSumInfoList",
+  "title": "查询某时间段top n的域名或流id信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/35963",
+  "sync_time": "2026-10-29 19:32:22",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询某时间段top n的域名或流id信息（暂支持top 1000）。\n默认接口请求频率限制：100次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DescribeVisitTopSumInfoList\n&StartTime=2019-03-01 00:00:00\n&EndTime=2019-03-01 04:00:00\n&PageSize=2\n&PageNum=2\n&TopIndex=StreamId\n&OrderParam=TotalFlux\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeVisitTopSumInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，格式为yyyy-mm-dd HH:MM:SS。示例值：2019-03-01 00:00:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，格式为yyyy-mm-dd HH:MM:SS时间跨度在(0,4小时]，支持最近1天数据查询。示例值：2019-03-01 04:00:00"
+    },
+    {
+      "name": "TopIndex",
+      "type": "String",
+      "required": "必填",
+      "description": "峰值指标，可选值包括”Domain”，”StreamId”。示例值：StreamId"
+    },
+    {
+      "name": "PlayDomains.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "播放域名，默认为不填，表示求总体数据。示例值：[\"live.com\"]"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "页号，范围是[1,1000]，默认值是1。示例值：2"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "每页个数，范围是[1,1000]，默认值是20。示例值：2"
+    },
+    {
+      "name": "OrderParam",
+      "type": "String",
+      "required": "选填",
+      "description": "排序指标，可选值包括” AvgFluxPerSecond”，”TotalRequest”（默认）,“TotalFlux”。示例值：TotalFlux"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=DescribeVisitTopSumInfoList\n&StartTime=2019-03-01 00:00:00\n&EndTime=2019-03-01 04:00:00\n&PageSize=2\n&PageNum=2\n&TopIndex=StreamId\n&OrderParam=TotalFlux\n&<公共请求参数>",
+      "clean_json": "{\n  \"StartTime\": \"2019-03-01 00:00:00\",\n  \"EndTime\": \"2019-03-01 04:00:00\",\n  \"PageSize\": 2,\n  \"PageNum\": 2,\n  \"TopIndex\": \"StreamId\",\n  \"OrderParam\": \"TotalFlux\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "description": "页号，范围是[1,1000]，默认值是1。示例值：2"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "description": "每页个数，范围是[1,1000]，默认值是20。示例值：2"
+    },
+    {
+      "name": "TopIndex",
+      "type": "String",
+      "description": "峰值指标，可选值包括”Domain”，”StreamId”。示例值：StreamId"
+    },
+    {
+      "name": "OrderParam",
+      "type": "String",
+      "description": "排序指标，可选值包括” AvgFluxPerSecond”(按每秒平均流量排序)，”TotalRequest”（默认，按总请求数排序）,“TotalFlux”（按总流量排序）。示例值：TotalFlux"
+    },
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "记录总数。示例值：1000"
+    },
+    {
+      "name": "TotalPage",
+      "type": "Integer",
+      "description": "记录总页数。示例值：500"
+    },
+    {
+      "name": "DataInfoList",
+      "type": "Array of PlaySumStatInfo",
+      "description": "数据内容。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"AvgFluxPerSecond\": 4.773,\n                \"Name\": \"CSZFMPP360\",\n                \"TotalRequest\": 36590,\n                \"TotalFlux\": 69023.772\n            },\n            {\n                \"AvgFluxPerSecond\": 4.634,\n                \"Name\": \"CSNXMPP360\",\n                \"TotalRequest\": 88629,\n                \"TotalFlux\": 67009.417\n            }\n        ],\n        \"OrderParam\": \"TotalFlux\",\n        \"PageNum\": 2,\n        \"PageSize\": 2,\n        \"RequestId\": \"k54e3deb-f318-4147-8a68-3c959642f9ec\",\n        \"TopIndex\": \"StreamId\",\n        \"TotalNum\": 1000,\n        \"TotalPage\": 500\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"AvgFluxPerSecond\": 4.773,\n        \"Name\": \"CSZFMPP360\",\n        \"TotalRequest\": 36590,\n        \"TotalFlux\": 69023.772\n      },\n      {\n        \"AvgFluxPerSecond\": 4.634,\n        \"Name\": \"CSNXMPP360\",\n        \"TotalRequest\": 88629,\n        \"TotalFlux\": 67009.417\n      }\n    ],\n    \"OrderParam\": \"TotalFlux\",\n    \"PageNum\": 2,\n    \"PageSize\": 2,\n    \"RequestId\": \"k54e3deb-f318-4147-8a68-3c959642f9ec\",\n    \"TopIndex\": \"StreamId\",\n    \"TotalNum\": 1000,\n    \"TotalPage\": 500\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,141 @@
+{
+  "doc_id": 131414,
+  "api_id": "live_CreateSceneVideoTask",
+  "title": "创建场景化生视频任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/131414",
+  "sync_time": "2026-10-29 19:32:27",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用于创建场景化视频任务。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateSceneVideoTask。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，此参数为可选参数。"
+    },
+    {
+      "name": "ModelName",
+      "type": "String",
+      "required": "选填",
+      "description": "模型名称。示例值：Kling"
+    },
+    {
+      "name": "ModelVersion",
+      "type": "String",
+      "required": "选填",
+      "description": "模型版本号。示例值：3.0"
+    },
+    {
+      "name": "SceneType",
+      "type": "String",
+      "required": "选填",
+      "description": "场景化类型。枚举值：template_effect： 模板特效。示例值：template_effect"
+    },
+    {
+      "name": "Prompt",
+      "type": "String",
+      "required": "选填",
+      "description": "输入的Prompt。避免出现违规词汇，审核会进行拦截。示例值：生成一只小狗"
+    },
+    {
+      "name": "Duration",
+      "type": "Integer",
+      "required": "选填",
+      "description": "指定输出的视频时长。部分场景不支持指定时长。示例值：5"
+    },
+    {
+      "name": "ImageUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "输入的首帧参考图片Url。需外网可访问。示例值：https://m**********a*********344703.******cel******myqcloud.com/multimodel-agent-1258344703/***nt/ead65276-ba60-44b6-ac0d-81a4e1f****6.jpg"
+    },
+    {
+      "name": "LastImageUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "输入的尾帧参考图片Url。示例值：https://ti**-age-1258**03.cos.elerate.myqcloud.com/multimodel-agent-1258344703/agent**5276-ba60-44b6-ac0d-81*230b6.jpg"
+    },
+    {
+      "name": "ImageInfos.N",
+      "type": "Array of SceneVideoReferenceImageInfo",
+      "required": "选填",
+      "description": "多图参考生视频时，通过该参数指定多张参考图。"
+    },
+    {
+      "name": "VideoInfos.N",
+      "type": "Array of SceneVideoReferenceVideoInfo",
+      "required": "选填",
+      "description": "视频编辑时，指定参考视频信息。"
+    },
+    {
+      "name": "ExtraParameters",
+      "type": "SceneVideoExtraParam",
+      "required": "选填",
+      "description": "常规扩展参数。"
+    },
+    {
+      "name": "AdditionalParameters",
+      "type": "String",
+      "required": "选填",
+      "description": "模型扩展参数，用于透传到模型侧。示例值：{\"effect_scene\":\"great_success\"}"
+    },
+    {
+      "name": "StoreCosParam",
+      "type": "SceneStoreCosParam",
+      "required": "选填",
+      "description": "输出结果存储到私有cos，需授权响应角色权限。"
+    },
+    {
+      "name": "Operator",
+      "type": "String",
+      "required": "选填",
+      "description": "操作者名称。示例值：admin"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateSceneVideoTask\n<公共请求参数>\n\n{\n    \"ModelName\": \"Kling\",\n    \"ModelVersion\": \"3.0\",\n    \"SceneType\": \"template_effect\",\n    \"Prompt\": \"生成一只小狗\",\n    \"Duration\": 5,\n    \"ImageUrl\": \"https://m**********a*********344703.******cel******myqcloud.com/multimodel-agent-1258344703/***nt/ead65276-ba60-44b6-ac0d-81a4e1f****6.jpg\",\n    \"LastImageUrl\": \"https://***ti*****-age**-1258****03.cos.***elerate.myqcloud.com/multimodel-agent-1258344703/agent*****5276-ba60-44b6-ac0d-81*****230b6.jpg\",\n    \"ImageInfos\": [\n        {\n            \"ImageUrl\": \"https://*****mod***agent-1258344703.***.a*****rate.myqcloud.com/multimo****agent-1258344703/agent/e*d65276-ba60-44b6-ac0d-81a4e1f***b6.jpg\",\n            \"Text\": \"这是图1\",\n            \"ReferenceType\": \"style\"\n        }\n    ],\n    \"VideoInfos\": [\n        {\n            \"VideoUrl\": \"https://******u**ut-video-file-1326893053.cos.ap-gu***zhou.my**lo****om/4/4-AigcVideo-c77c36***16142******a44*6f134475_0.mp4\"\n        }\n    ],\n    \"ExtraParameters\": {\n        \"Resolution\": \"1080P\",\n        \"AspectRatio\": \"16:9\",\n        \"OffPeak\": false,\n        \"LogoAdd\": true,\n        \"EnableAudio\": true,\n        \"EnableBgm\": true,\n        \"EnablePromptEnhance\": true\n    },\n    \"AdditionalParameters\": \"{\\\"effect_scene\\\":\\\"great_success\\\"}\",\n    \"StoreCosParam\": {\n        \"CosBucketName\": \"live-****ud-tts-****402212\",\n        \"CosBucketRegion\": \"ap-guangzhou\",\n        \"CosBucketPath\": \"/scene_video/\"\n    },\n    \"Operator\": \"admin\"\n}",
+      "clean_json": "{\n  \"ModelName\": \"Kling\",\n  \"ModelVersion\": \"3.0\",\n  \"SceneType\": \"template_effect\",\n  \"Prompt\": \"生成一只小狗\",\n  \"Duration\": 5,\n  \"ImageUrl\": \"https://m**********a*********344703.******cel******myqcloud.com/multimodel-agent-1258344703/***nt/ead65276-ba60-44b6-ac0d-81a4e1f****6.jpg\",\n  \"LastImageUrl\": \"https://***ti*****-age**-1258****03.cos.***elerate.myqcloud.com/multimodel-agent-1258344703/agent*****5276-ba60-44b6-ac0d-81*****230b6.jpg\",\n  \"ImageInfos\": [\n    {\n      \"ImageUrl\": \"https://*****mod***agent-1258344703.***.a*****rate.myqcloud.com/multimo****agent-1258344703/agent/e*d65276-ba60-44b6-ac0d-81a4e1f***b6.jpg\",\n      \"Text\": \"这是图1\",\n      \"ReferenceType\": \"style\"\n    }\n  ],\n  \"VideoInfos\": [\n    {\n      \"VideoUrl\": \"https://******u**ut-video-file-1326893053.cos.ap-gu***zhou.my**lo****om/4/4-AigcVideo-c77c36***16142******a44*6f134475_0.mp4\"\n    }\n  ],\n  \"ExtraParameters\": {\n    \"Resolution\": \"1080P\",\n    \"AspectRatio\": \"16:9\",\n    \"OffPeak\": false,\n    \"LogoAdd\": true,\n    \"EnableAudio\": true,\n    \"EnableBgm\": true,\n    \"EnablePromptEnhance\": true\n  },\n  \"AdditionalParameters\": \"{\\\"effect_scene\\\":\\\"great_success\\\"}\",\n  \"StoreCosParam\": {\n    \"CosBucketName\": \"live-****ud-tts-****402212\",\n    \"CosBucketRegion\": \"ap-guangzhou\",\n    \"CosBucketPath\": \"/scene_video/\"\n  },\n  \"Operator\": \"admin\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TaskId",
+      "type": "String",
+      "description": "输出的任务ID。示例值：10278-live-*ideo-721d18cefa094ba4a**dfcbbacab"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"TaskId\": \"**10**278-live-*****ideo-721d18cefa094ba4a******dfcbbacab\",\n        \"RequestId\": \"1f77ee4d-9802-40b5-aaa2-2752e8750590\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"TaskId\": \"**10**278-live-*****ideo-721d18cefa094ba4a******dfcbbacab\",\n    \"RequestId\": \"1f77ee4d-9802-40b5-aaa2-2752e8750590\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

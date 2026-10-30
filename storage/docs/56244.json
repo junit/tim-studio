@@ -1,0 +1,127 @@
+{
+  "doc_id": 56244,
+  "api_id": "live_DeleteLivePullStreamTask",
+  "title": "删除直播拉流任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/56244",
+  "sync_time": "2026-10-29 19:32:14",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n删除接口 CreateLivePullStreamTask 创建的拉流任务。\n注意：入参中的 TaskId 为 CreateLivePullStreamTask 接口创建时返回的TaskId。\n也可通过 DescribeLivePullStreamTasks 进行查询创建的任务。\n默认接口请求频率限制：50次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DeleteLivePullStreamTask\n&TaskId=10000\n&Operator=zhangsan\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DeleteLivePullStreamTask。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，详见产品支持的 地域列表，本接口仅支持其中的: ap-bangkok, ap-beijing, ap-chongqing, ap-guangzhou, ap-hongkong, ap-seoul, ap-shanghai, ap-singapore, ap-tokyo, eu-frankfurt, na-ashburn, na-siliconvalley 。"
+    },
+    {
+      "name": "TaskId",
+      "type": "String",
+      "required": "必填",
+      "description": "任务 Id。示例值：9564231"
+    },
+    {
+      "name": "Operator",
+      "type": "String",
+      "required": "必填",
+      "description": "操作人姓名。示例值：you_name"
+    },
+    {
+      "name": "SpecifyTaskId",
+      "type": "String",
+      "required": "选填",
+      "description": "指定任务 ID。注意：用于删除使用自定义任务 ID 创建的任务。示例值：myspecifytaskid"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=DeleteLivePullStreamTask\n&TaskId=10000\n&Operator=zhangsan\n&<公共请求参数>",
+      "clean_json": "{\n  \"TaskId\": 10000,\n  \"Operator\": \"zhangsan\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.TaskNotExist",
+      "description": "任务不存在。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

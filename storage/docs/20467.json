@@ -1,0 +1,172 @@
+{
+  "doc_id": 20467,
+  "api_id": "live_ResumeLiveStream",
+  "title": "恢复直播推流",
+  "doc_url": "https://cloud.tencent.com/document/api/267/20467",
+  "sync_time": "2026-10-29 19:32:24",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n恢复某条流的推流。\n默认接口请求频率限制：100次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=ResumeLiveStream\n&DomainName=5000.livepush.myqcloud.com\n&AppName=live\n&StreamName=stream1\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ResumeLiveStream。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "AppName",
+      "type": "String",
+      "required": "必填",
+      "description": "推流路径，与推流和播放地址中的AppName保持一致，默认为 live。示例值：live"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "您的推流域名。示例值：5000.livepush.com"
+    },
+    {
+      "name": "StreamName",
+      "type": "String",
+      "required": "必填",
+      "description": "流名称。示例值：mystreamname"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=ResumeLiveStream\n&DomainName=5000.livepush.myqcloud.com\n&AppName=live\n&StreamName=stream1\n&<公共请求参数>",
+      "clean_json": "{\n  \"DomainName\": \"5000.livepush.myqcloud.com\",\n  \"AppName\": \"live\",\n  \"StreamName\": \"stream1\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CallOtherSvrError",
+      "description": "调用内部服务错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfigNotExist",
+      "description": "配置不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetBizidError",
+      "description": "获取用户账号错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetStreamInfoError",
+      "description": "获取流信息失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.GetUpstreamInfoError",
+      "description": "获取直播源信息错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotPermmitOperat",
+      "description": "无权限操作。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.StreamStatusError",
+      "description": "流状态异常。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.UpdateDataError",
+      "description": "更新数据失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from 'react'
+import React, { useRef, useEffect, useState, useMemo } from 'react'
 import { motion } from 'framer-motion'
 import { Panel, Group, useGroupRef } from 'react-resizable-panels'
 import {
@@ -25,6 +25,8 @@ import {
   ChevronUp,
   Maximize2,
   Minimize2,
+  Search,
+  X,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -32,7 +34,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { ResizeHandle } from '@/components/ui/resize-handle'
 import { Dropzone } from '@/components/common/Dropzone'
 import { useBatchStore, BatchPreset } from '@/stores/batchStore'
-import { useApiStore } from '@/stores/apiStore'
+import { useApiStore, ApiMeta } from '@/stores/apiStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { HistoryPanel } from '@/components/panels/HistoryPanel'
 
@@ -49,6 +51,36 @@ const getPresetBadgeColor = (color: string) => {
     default:
       return 'bg-slate-100 text-slate-700 border border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
   }
+}
+
+/**
+ * 提取接口层级分类元数据
+ * 云直播：剔除冗余顶层 "云直播 (CSS)"，直接以 29 个具体业务模块（直播混流、转码、导播台等）作为一级分类
+ * 腾讯IM：保留一级大类（消息相关、群组相关等）与二级子分类（发送消息、历史消息等）
+ */
+export function getApiCategoryInfo(api: ApiMeta, serviceId: string) {
+  let segments =
+    api.path && api.path.length > 0
+      ? [...api.path]
+      : ([api.category || '其它分类', api.subcategory].filter(Boolean) as string[])
+
+  if (segments.length === 0) {
+    segments = ['其它分类']
+  }
+
+  if (
+    serviceId === 'live' &&
+    segments.length > 1 &&
+    (segments[0] === '云直播 (CSS)' || segments[0] === '云直播')
+  ) {
+    segments = segments.slice(1)
+  }
+
+  const l1 = segments[0] || '其它分类'
+  const l2 = segments.length > 1 ? segments[1] : undefined
+  const fullGroup = l2 && l2 !== l1 ? `${l1} · ${l2}` : l1
+
+  return { l1, l2, fullGroup }
 }
 
 export const BatchCenter: React.FC = () => {
@@ -83,9 +115,123 @@ export const BatchCenter: React.FC = () => {
     stopBatch,
   } = useBatchStore()
 
-  const { apis } = useApiStore()
+  const { apis, activeServiceId } = useApiStore()
   const logContainerRef = useRef<HTMLDivElement>(null)
   const batchGroupRef = useGroupRef()
+
+  const currentServiceApis = useMemo(() => {
+    return apis.filter((a) => (a.service_type || 'im') === activeServiceId)
+  }, [apis, activeServiceId])
+
+  // 区分业务场景预设（各业务场景互相隔离，优先使用明确的 service_type，动态兼容多业务）
+  const currentServicePresets = useMemo(() => {
+    return presets.filter((p) => {
+      if (p.service_type) {
+        return p.service_type === activeServiceId
+      }
+      const targetApi = apis.find((a) => a.api_id === p.api_id)
+      if (targetApi) {
+        return (targetApi.service_type || 'im') === activeServiceId
+      }
+      if (p.id.startsWith('preset_live_') || p.api_id.startsWith('live_')) {
+        return activeServiceId === 'live'
+      }
+      const match = p.id.match(/^preset_([a-z0-9]+)_/)
+      if (match && match[1]) {
+        return activeServiceId === match[1]
+      }
+      return activeServiceId === 'im'
+    })
+  }, [presets, apis, activeServiceId])
+
+  // 接口分类过滤与关键字搜索
+  const [selectedCategory, setSelectedCategory] = useState<string>('all')
+  const [apiSearchKeyword, setApiSearchKeyword] = useState<string>('')
+
+  // 1. 服务切换：重置搜索与分类，且若当前 apiId 不属于新服务，自动切换到首个可用接口
+  useEffect(() => {
+    setSelectedCategory('all')
+    setApiSearchKeyword('')
+    if (currentServiceApis.length > 0) {
+      const exists = currentServiceApis.some((a) => a.api_id === apiId)
+      if (!exists) {
+        setApiId(currentServiceApis[0].api_id)
+      }
+    }
+  }, [activeServiceId, currentServiceApis])
+
+  // 2. 统计当前服务的一级分类列表与接口数量
+  const l1Categories = useMemo(() => {
+    const map = new Map<string, number>()
+    currentServiceApis.forEach((api) => {
+      const { l1 } = getApiCategoryInfo(api, activeServiceId)
+      map.set(l1, (map.get(l1) || 0) + 1)
+    })
+    return Array.from(map.entries())
+      .map(([name, count]) => ({ name, count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'))
+  }, [currentServiceApis, activeServiceId])
+
+  // 3. 根据所选分类与搜索关键字过滤接口
+  const filteredApis = useMemo(() => {
+    const kw = apiSearchKeyword.trim().toLowerCase()
+    return currentServiceApis.filter((api) => {
+      const { l1, fullGroup } = getApiCategoryInfo(api, activeServiceId)
+
+      if (selectedCategory !== 'all' && l1 !== selectedCategory) {
+        return false
+      }
+
+      if (kw) {
+        const matchName = api.name.toLowerCase().includes(kw)
+        const matchCommand = api.command.toLowerCase().includes(kw)
+        const matchApiId = api.api_id.toLowerCase().includes(kw)
+        const matchGroup = fullGroup.toLowerCase().includes(kw)
+        return matchName || matchCommand || matchApiId || matchGroup
+      }
+
+      return true
+    })
+  }, [currentServiceApis, activeServiceId, selectedCategory, apiSearchKeyword])
+
+  // 4. 按层级分组 (optgroup)：全部分类视角下展示完整路径，单分类筛选视角下展示二级子分类
+  const groupedApis = useMemo(() => {
+    const groups: Record<string, ApiMeta[]> = {}
+
+    filteredApis.forEach((api) => {
+      const { l1, l2, fullGroup } = getApiCategoryInfo(api, activeServiceId)
+      const groupKey = selectedCategory !== 'all' && l2 ? l2 : fullGroup
+
+      if (!groups[groupKey]) {
+        groups[groupKey] = []
+      }
+      groups[groupKey].push(api)
+    })
+
+    return groups
+  }, [filteredApis, activeServiceId, selectedCategory])
+
+  // 5. 过滤与跨服务联动：若当前 apiId 不在当前服务接口列表中，自动选中第一个有效项
+  useEffect(() => {
+    if (filteredApis.length > 0) {
+      const exists = filteredApis.some((a) => a.api_id === apiId)
+      if (!exists) {
+        setApiId(filteredApis[0].api_id)
+      }
+    }
+  }, [filteredApis, apiId, setApiId])
+
+  // 6. 场景预设载入或外部修改 apiId 时：若当前分类非 all 且与该接口不匹配，自动同步分类
+  useEffect(() => {
+    if (!apiId) return
+    const cur = currentServiceApis.find((a) => a.api_id === apiId)
+    if (cur) {
+      const { l1 } = getApiCategoryInfo(cur, activeServiceId)
+      if (selectedCategory !== 'all' && selectedCategory !== l1) {
+        setSelectedCategory(l1)
+      }
+    }
+  }, [apiId, currentServiceApis, activeServiceId])
 
   // 子视图切换：批量任务执行 (runner) / 历史执行台账 (history)
   const [batchView, setBatchView] = useState<'runner' | 'history'>('runner')
@@ -116,7 +262,9 @@ export const BatchCenter: React.FC = () => {
   }, [logs])
 
   const selectedApi = apis.find((a) => a.api_id === apiId)
-  const selectedPreset = presets.find((p) => p.id === activePresetId || p.api_id === apiId)
+  const selectedPreset = currentServicePresets.find(
+    (p) => p.id === activePresetId || p.api_id === apiId
+  )
 
   const handleExportCsv = (onlyFailed = false) => {
     if (!activeTaskId) return
@@ -165,38 +313,16 @@ export const BatchCenter: React.FC = () => {
 
   return (
     <div className="flex h-full flex-col bg-slate-50/60 dark:bg-slate-950 overflow-hidden">
-      {/* 批量调用统一头部栏：支持「批量任务执行」与「历史执行台账」 */}
-      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4 select-none min-h-[56px]">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
-            <Layers className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                批量调用中心
-              </h2>
-              <Badge
-                variant="outline"
-                className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[9px] py-0 px-1.5 shrink-0"
-              >
-                Runner
-              </Badge>
-            </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-              全量 166 项 API 批量通用调用、智能风控节流与自动化历史审计
-            </p>
-          </div>
-        </div>
-
-        {/* 视图分段切换器 (Segmented Switch) */}
-        <div className="flex items-center w-full sm:w-auto rounded-xl bg-slate-100 dark:bg-slate-800/80 p-0.5 border border-slate-200/80 dark:border-slate-750 shadow-inner">
+      {/* 批量调用轻量功能子导航条 (紧凑 42px，无多余 Logo 与标语堆叠) */}
+      <div className="shrink-0 px-4 sm:px-5 py-1.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 flex items-center justify-between gap-3 select-none min-h-[42px]">
+        {/* 左侧：轻量分段切换器 (Segmented Switch) */}
+        <div className="flex items-center rounded-xl bg-slate-100 dark:bg-slate-800/80 p-0.5 border border-slate-200/80 dark:border-slate-750 shadow-inner">
           <button
             type="button"
             onClick={() => setBatchView('runner')}
-            className={`flex flex-1 sm:flex-initial items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
               batchView === 'runner'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border-slate-200/60 dark:border-slate-650'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border-slate-200/60 dark:border-slate-650 font-bold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border-transparent'
             }`}
           >
@@ -207,9 +333,9 @@ export const BatchCenter: React.FC = () => {
           <button
             type="button"
             onClick={() => setBatchView('history')}
-            className={`flex flex-1 sm:flex-initial items-center justify-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+            className={`flex items-center gap-1.5 px-3 py-1 rounded-lg text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
               batchView === 'history'
-                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border-slate-200/60 dark:border-slate-650'
+                ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-xs border-slate-200/60 dark:border-slate-650 font-bold'
                 : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 border-transparent'
             }`}
           >
@@ -221,6 +347,21 @@ export const BatchCenter: React.FC = () => {
               </span>
             )}
           </button>
+        </div>
+
+        {/* 右侧：当前任务状态微徽标 */}
+        <div className="hidden sm:flex items-center gap-2">
+          {isRunning ? (
+            <span className="flex items-center gap-1.5 text-xs font-semibold text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800 px-2.5 py-1 rounded-lg">
+              <span className="h-2 w-2 rounded-full bg-blue-500 animate-pulse" />
+              <span>任务执行中 ({progress.current}/{progress.total})</span>
+            </span>
+          ) : activeTaskId ? (
+            <span className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400">
+              <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />
+              <span>就绪</span>
+            </span>
+          ) : null}
         </div>
       </div>
 
@@ -247,7 +388,7 @@ export const BatchCenter: React.FC = () => {
                       variant="outline"
                       className="text-[10px] font-mono text-slate-500 border-slate-200 dark:border-slate-800 py-0 px-1.5 h-4"
                     >
-                      {presets.length}
+                      {currentServicePresets.length}
                     </Badge>
                   </div>
 
@@ -261,7 +402,7 @@ export const BatchCenter: React.FC = () => {
                         title={`下载「${selectedPreset.title}」标准 CSV 模板`}
                       >
                         <Download className="h-3 w-3" />
-                        <span>下载「{selectedPreset.title.replace('批量', '')}」模板</span>
+                        <span>下载「{selectedPreset.title.replace('云直播：', '').replace('批量', '')}」模板</span>
                       </a>
                     )}
 
@@ -284,7 +425,7 @@ export const BatchCenter: React.FC = () => {
                 {/* Compact Pills Row (紧凑模式：极大地释放纵向展示空间) */}
                 {!isPresetsExpanded ? (
                   <div className="flex items-center gap-2 mt-2.5 overflow-x-auto pb-1 scrollbar-thin">
-                    {presets.map((preset) => {
+                    {currentServicePresets.map((preset) => {
                       const isSelected = activePresetId === preset.id || apiId === preset.api_id
                       return (
                         <button
@@ -311,7 +452,7 @@ export const BatchCenter: React.FC = () => {
                                 : 'bg-slate-400'
                             }`}
                           />
-                          <span>{preset.title.replace('批量', '')}</span>
+                          <span>{preset.title.replace('云直播：', '').replace('批量', '')}</span>
                         </button>
                       )
                     })}
@@ -319,7 +460,7 @@ export const BatchCenter: React.FC = () => {
                 ) : (
                   /* Expanded Grid Cards (完整展开卡片视图) */
                   <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-2.5 mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
-                    {presets.map((preset) => {
+                    {currentServicePresets.map((preset) => {
                       const isSelected = activePresetId === preset.id || apiId === preset.api_id
                       return (
                         <div
@@ -390,24 +531,83 @@ export const BatchCenter: React.FC = () => {
               <Card className="border-slate-200/90 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
                 <CardContent className="p-3.5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    {/* Target API Selection */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                        目标 REST 接口:
-                      </span>
-                      <select
-                        value={apiId}
-                        onChange={(e) => setApiId(e.target.value)}
-                        className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-xs truncate dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                      >
-                        {apis.map((api) => (
-                          <option key={api.api_id} value={api.api_id}>
-                            [{api.category}] {api.name} ({api.command})
-                          </option>
-                        ))}
-                      </select>
+                    {/* Hierarchical API Selection & Category Filtering */}
+                    <div className="flex flex-wrap items-center gap-2">
+                      {/* 1. Category Filter */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          业务分类:
+                        </span>
+                        <select
+                          value={selectedCategory}
+                          onChange={(e) => setSelectedCategory(e.target.value)}
+                          className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[155px] truncate dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
+                          title="按业务分类筛选接口"
+                        >
+                          <option value="all">全部分类 ({currentServiceApis.length})</option>
+                          {l1Categories.map((cat) => (
+                            <option key={cat.name} value={cat.name}>
+                              {cat.name} ({cat.count})
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      {/* 2. Target API Selection with <optgroup> */}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                          目标业务接口:
+                        </span>
+                        <select
+                          value={apiId}
+                          onChange={(e) => setApiId(e.target.value)}
+                          className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px] max-w-sm truncate dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
+                        >
+                          {filteredApis.length === 0 ? (
+                            <option disabled value="">
+                              暂无匹配接口
+                            </option>
+                          ) : (
+                            Object.entries(groupedApis).map(([groupName, groupList]) => (
+                              <optgroup key={groupName} label={`📁 ${groupName} (${groupList.length})`}>
+                                {groupList.map((api) => (
+                                  <option key={api.api_id} value={api.api_id}>
+                                    {api.name} ({api.command})
+                                  </option>
+                                ))}
+                              </optgroup>
+                            ))
+                          )}
+                        </select>
+                      </div>
+
+                      {/* 3. Search Filter */}
+                      <div className="relative flex items-center">
+                        <Search className="absolute left-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                        <input
+                          type="text"
+                          placeholder="快速搜索..."
+                          value={apiSearchKeyword}
+                          onChange={(e) => setApiSearchKeyword(e.target.value)}
+                          className="h-8 pl-8 pr-6 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-28 focus:w-36 transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500"
+                        />
+                        {apiSearchKeyword && (
+                          <button
+                            type="button"
+                            onClick={() => setApiSearchKeyword('')}
+                            className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+                            title="清空搜索"
+                          >
+                            <X className="h-3 w-3" />
+                          </button>
+                        )}
+                      </div>
+
                       {selectedApi && (
-                        <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500">
+                        <span
+                          className="font-mono text-[10px] text-slate-400 dark:text-slate-500 max-w-[160px] truncate hidden xl:inline"
+                          title={selectedApi.command}
+                        >
                           {selectedApi.command}
                         </span>
                       )}

@@ -1,0 +1,340 @@
+{
+  "doc_id": 32646,
+  "api_id": "live_CreateLiveTranscodeTemplate",
+  "title": "创建转码模板",
+  "doc_url": "https://cloud.tencent.com/document/api/267/32646",
+  "sync_time": "2026-10-29 19:32:07",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n创建转码模板，数量上限：50，成功返回模板id后，需要调用 CreateLiveTranscodeRule 接口，将返回的模板id绑定到流使用。\n转码相关文档： 直播转封装及转码 。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateLiveTranscodeTemplate。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "TemplateName",
+      "type": "String",
+      "required": "必填",
+      "description": "模板名称，例： 900p 仅支持字母和数字的组合。长度限制：  标准转码：1-10个字符  极速高清转码：3-10个字符示例值：900p"
+    },
+    {
+      "name": "VideoBitrate",
+      "type": "Integer",
+      "required": "必填",
+      "description": "视频码率。范围：0kbps - 8000kbps。0为保持原始码率。注: 转码模板有码率唯一要求，最终保存的码率可能与输入码率有所差别。示例值：0"
+    },
+    {
+      "name": "Acodec",
+      "type": "String",
+      "required": "选填",
+      "description": "音频编码。默认为自动适配示例值：aac"
+    },
+    {
+      "name": "AudioBitrate",
+      "type": "Integer",
+      "required": "选填",
+      "description": "音频码率，默认0。范围：0-500。示例值：0"
+    },
+    {
+      "name": "Vcodec",
+      "type": "String",
+      "required": "选填",
+      "description": "视频编码：h264/h265/origin，默认origin。origin: 保持原始编码格式示例值：h264"
+    },
+    {
+      "name": "Description",
+      "type": "String",
+      "required": "选填",
+      "description": "模板描述。示例值：transcode"
+    },
+    {
+      "name": "NeedVideo",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否保留视频，0：否，1：是。默认1。示例值：0"
+    },
+    {
+      "name": "Width",
+      "type": "Integer",
+      "required": "选填",
+      "description": "宽，默认0。范围[0-3000]数值必须是2的倍数，0是原始宽度示例值：0"
+    },
+    {
+      "name": "NeedAudio",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否保留音频，0：否，1：是。默认1。示例值：0"
+    },
+    {
+      "name": "Height",
+      "type": "Integer",
+      "required": "选填",
+      "description": "高，默认0。范围[0-3000]数值必须是2的倍数，0是原始高度。极速高清模板（AiTransCode = 1 的时候）必须传。示例值：0"
+    },
+    {
+      "name": "Fps",
+      "type": "Integer",
+      "required": "选填",
+      "description": "帧率，默认0。范围0-60fps示例值：0"
+    },
+    {
+      "name": "Gop",
+      "type": "Integer",
+      "required": "选填",
+      "description": "关键帧间隔，单位：秒。默认原始的间隔范围1-6示例值：2"
+    },
+    {
+      "name": "Rotate",
+      "type": "Integer",
+      "required": "选填",
+      "description": "旋转角度，默认0。可取值：0，90，180，270示例值：0"
+    },
+    {
+      "name": "Profile",
+      "type": "String",
+      "required": "选填",
+      "description": "编码质量：baseline/main/high。默认baseline示例值：baseline"
+    },
+    {
+      "name": "BitrateToOrig",
+      "type": "Integer",
+      "required": "选填",
+      "description": "当设置的码率>原始码率时，是否以原始码率为准。0：否， 1：是默认 0。示例值：0"
+    },
+    {
+      "name": "HeightToOrig",
+      "type": "Integer",
+      "required": "选填",
+      "description": "当设置的高度>原始高度时，是否以原始高度为准。0：否， 1：是默认 0。示例值：0"
+    },
+    {
+      "name": "FpsToOrig",
+      "type": "Integer",
+      "required": "选填",
+      "description": "当设置的帧率>原始帧率时，是否以原始帧率为准。0：否， 1：是默认 0。示例值：0"
+    },
+    {
+      "name": "AiTransCode",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否是极速高清模板，0：否，1：是。默认0。示例值：0"
+    },
+    {
+      "name": "AdaptBitratePercent",
+      "type": "Float",
+      "required": "选填",
+      "description": "极速高清视频码率压缩比。极速高清目标码率=VideoBitrate * (1-AdaptBitratePercent)取值范围：0.0 到 0.5智能降码：0.5 到 0.9。示例值：0.0"
+    },
+    {
+      "name": "ShortEdgeAsHeight",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否以短边作为高度，0：否，1：是。默认0。示例值：0"
+    },
+    {
+      "name": "DRMType",
+      "type": "String",
+      "required": "选填",
+      "description": "DRM 加密类型，可选值：fairplay、normalaes、widevine。不传递或者为空字符串，清空之前的DRM配置。示例值：normalaes"
+    },
+    {
+      "name": "DRMTracks",
+      "type": "String",
+      "required": "选填",
+      "description": "DRM 加密项，可选值：AUDIO、SD、HD、UHD1、UHD2，后四个为一组，同组中的内容只能选一个。不传递或者为空字符串，清空之前的DRM配置。示例值：AUDIO|HD"
+    },
+    {
+      "name": "IsAdaptiveBitRate",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否创建自适应码率，默认值 0。0：否。1：是。示例值：0"
+    },
+    {
+      "name": "AdaptiveChildren.N",
+      "type": "Array of ChildTemplateInfo",
+      "required": "选填",
+      "description": "自适应码率，子转码模板信息，当 IsAdaptiveBitRate 为 1 时有效。"
+    },
+    {
+      "name": "AudienceDrivenTranscode",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否智能降码，1 表示智能降码。如果设置了智能降码，AiTransCode  = 1、Height = 0、VideoBitrate = 0、AdaptBitratePercent、AudienceThreshold 必须传递。示例值：1"
+    },
+    {
+      "name": "AudienceThreshold",
+      "type": "Integer",
+      "required": "选填",
+      "description": "智能降码人数阈值，当 AudienceDrivenTranscode = 1 时需要传递。取值范围：[100, 1000000]示例值：1001"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateLiveTranscodeTemplate\n<公共请求参数>\n\n{\n    \"TemplateName\": \"jiang8\",\n    \"VideoBitrate\": 0,\n    \"Description\": \"\",\n    \"IsAdaptiveBitRate\": 1,\n    \"AdaptiveChildren\": [\n        {\n            \"TemplateName\": \"jiang9\",\n            \"Vcodec\": \"origin\",\n            \"VideoBitrate\": 3000,\n            \"Height\": 2000,\n            \"Fps\": 0,\n            \"Gop\": 0,\n            \"NeedVideo\": 1,\n            \"NeedAudio\": 1,\n            \"BitrateToOrig\": 0,\n            \"HeightToOrig\": 0,\n            \"FpsToOrig\": 0,\n            \"ShortEdgeAsHeight\": 0,\n            \"HlsContainerFormat\": \"ts\",\n            \"HlsMp4VideoCodecTag\": \"hev1\"\n        }\n    ]\n}",
+      "clean_json": "{\n  \"TemplateName\": \"jiang8\",\n  \"VideoBitrate\": 0,\n  \"Description\": \"\",\n  \"IsAdaptiveBitRate\": 1,\n  \"AdaptiveChildren\": [\n    {\n      \"TemplateName\": \"jiang9\",\n      \"Vcodec\": \"origin\",\n      \"VideoBitrate\": 3000,\n      \"Height\": 2000,\n      \"Fps\": 0,\n      \"Gop\": 0,\n      \"NeedVideo\": 1,\n      \"NeedAudio\": 1,\n      \"BitrateToOrig\": 0,\n      \"HeightToOrig\": 0,\n      \"FpsToOrig\": 0,\n      \"ShortEdgeAsHeight\": 0,\n      \"HlsContainerFormat\": \"ts\",\n      \"HlsMp4VideoCodecTag\": \"hev1\"\n    }\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "description": "模板Id。示例值：459625"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"TemplateId\": 8453014,\n        \"RequestId\": \"12306f18-9332-412f-bf15-e5b47f6fcaf1\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"TemplateId\": 8453014,\n    \"RequestId\": \"12306f18-9332-412f-bf15-e5b47f6fcaf1\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.AiTranscodeOptionFail",
+      "description": "操作 AI 接口失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ArgsNotMatch",
+      "description": "针对添加转码模版的接口。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfInUsed",
+      "description": "模版使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfNotFound",
+      "description": "模版不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfOutLimit",
+      "description": "模版数量超过限制。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotFound",
+      "description": "记录不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ProcessorAlreadyExist",
+      "description": "转码模板名称已经存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleAlreadyExist",
+      "description": "规则已经配置。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleInUsing",
+      "description": "规则使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.RuleNotFound",
+      "description": "规则不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.ArgsNotMatch",
+      "description": "错误的模板名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.GopMustEqualAndExists",
+      "description": "自适应码率子模板gop值必须存在且相等。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.ProcessorAlreadyExist",
+      "description": "转码模板已存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation.NotLVBCodeMode",
+      "description": "非直播码/新版控制台模式。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

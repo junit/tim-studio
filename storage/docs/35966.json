@@ -1,0 +1,197 @@
+{
+  "doc_id": 35966,
+  "api_id": "live_DescribePlayErrorCodeSumInfoList",
+  "title": "查询播放http错误码汇总数据",
+  "doc_url": "https://cloud.tencent.com/document/api/267/35966",
+  "sync_time": "2026-10-29 19:32:21",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口为监控数据接口，数据采集及统计方式与计费数据不同，仅供运营分析使用，不能用于计费对账参考。\n查询下行播放错误码信息。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "https://live.tencentcloudapi.com/?Action=DescribePlayErrorCodeSumInfoList\n&PlayDomains.0=5000.playdomain.com\n&StartTime=2019-03-01 00:00:00\n&EndTime=2019-03-01 12:00:00\n&<公共请求参数>",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribePlayErrorCodeSumInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，北京时间。格式：yyyy-mm-dd HH:MM:SS。示例值：2019-03-01 00:00:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，北京时间。格式：yyyy-mm-dd HH:MM:SS。注：EndTime 和 StartTime 只支持最近1天的数据查询。示例值：2019-03-01 12:00:00"
+    },
+    {
+      "name": "PlayDomains.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "播放域名列表，不填表示总体数据。示例值：[\"5000.playdomain.com\\n\"]"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "页数，范围[1,1000]，默认值是1。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "每页个数，范围：[1,1000]，默认值是20。示例值：100"
+    },
+    {
+      "name": "MainlandOrOversea",
+      "type": "String",
+      "required": "选填",
+      "description": "地域，可选值：Mainland，Oversea，China，Foreign，Global（默认值）；如果为空，查询总的数据；如果为“Mainland”，查询中国大陆的数据；如果为“Oversea”，则查询中国大陆以外的数据；如果为China，查询中国的数据（包括港澳台）；如果为Foreign，查询国外的数据（不包括港澳台）。示例值：Mainland"
+    },
+    {
+      "name": "GroupType",
+      "type": "String",
+      "required": "选填",
+      "description": "分组参数，可选值：CountryProIsp（默认值），Country（国家），默认是按照国家+省份+运营商来进行分组；目前国外的省份和运营商暂时无法识别。示例值：CountryProIsp"
+    },
+    {
+      "name": "OutLanguage",
+      "type": "String",
+      "required": "选填",
+      "description": "输出字段使用的语言，可选值：Chinese（默认值），English，目前国家，省份和运营商支持多语言。示例值：Chinese"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "https://live.tencentcloudapi.com/?Action=DescribePlayErrorCodeSumInfoList\n&PlayDomains.0=5000.playdomain.com\n&StartTime=2019-03-01 00:00:00\n&EndTime=2019-03-01 12:00:00\n&<公共请求参数>",
+      "clean_json": "{\n  \"PlayDomains\": [\n    \"5000.playdomain.com\"\n  ],\n  \"StartTime\": \"2019-03-01 00:00:00\",\n  \"EndTime\": \"2019-03-01 12:00:00\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "ProIspInfoList",
+      "type": "Array of ProIspPlayCodeDataInfo",
+      "description": "分省份分运营商错误码为2或3或4或5开头的状态码数据信息。"
+    },
+    {
+      "name": "TotalCodeAll",
+      "type": "Integer",
+      "description": "所有状态码的加和的次数。示例值：100"
+    },
+    {
+      "name": "TotalCode4xx",
+      "type": "Integer",
+      "description": "状态码为4开头的总次数。示例值：10"
+    },
+    {
+      "name": "TotalCode5xx",
+      "type": "Integer",
+      "description": "状态码为5开头的总次数。示例值：29"
+    },
+    {
+      "name": "TotalCodeList",
+      "type": "Array of PlayCodeTotalInfo",
+      "description": "各状态码的总次数。"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "description": "页号。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "description": "每页大小。示例值：10"
+    },
+    {
+      "name": "TotalPage",
+      "type": "Integer",
+      "description": "总页数。示例值：10"
+    },
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "总记录数。示例值：100"
+    },
+    {
+      "name": "TotalCode2xx",
+      "type": "Integer",
+      "description": "状态码为2开头的总次数。示例值：11"
+    },
+    {
+      "name": "TotalCode3xx",
+      "type": "Integer",
+      "description": "状态码为3开头的总次数。示例值：12"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"ProIspInfoList\": [\n            {\n                \"CountryAreaName\": \"中国\",\n                \"ProvinceName\": \"山东省\",\n                \"IspName\": \"中国移动\",\n                \"Code2xx\": 11,\n                \"Code3xx\": 12,\n                \"Code4xx\": 10,\n                \"Code5xx\": 19\n            }\n        ],\n        \"TotalCodeList\": [\n            {\n                \"Code\": \"200\",\n                \"Num\": 11\n            },\n            {\n                \"Code\": \"302\",\n                \"Num\": 12\n            },\n            {\n                \"Code\": \"403\",\n                \"Num\": 1000\n            },\n            {\n                \"Code\": \"500\",\n                \"Num\": 19\n            }\n        ],\n        \"TotalCodeAll\": 100,\n        \"TotalCode2xx\": 11,\n        \"TotalCode3xx\": 12,\n        \"TotalCode4xx\": 10,\n        \"TotalCode5xx\": 29,\n        \"PageNum\": 1,\n        \"PageSize\": 10,\n        \"TotalPage\": 10,\n        \"TotalNum\": 100,\n        \"RequestId\": \"e6628973-db6a-48f1-9fcd-fe0b3ba54bc9\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"ProIspInfoList\": [\n      {\n        \"CountryAreaName\": \"中国\",\n        \"ProvinceName\": \"山东省\",\n        \"IspName\": \"中国移动\",\n        \"Code2xx\": 11,\n        \"Code3xx\": 12,\n        \"Code4xx\": 10,\n        \"Code5xx\": 19\n      }\n    ],\n    \"TotalCodeList\": [\n      {\n        \"Code\": \"200\",\n        \"Num\": 11\n      },\n      {\n        \"Code\": \"302\",\n        \"Num\": 12\n      },\n      {\n        \"Code\": \"403\",\n        \"Num\": 1000\n      },\n      {\n        \"Code\": \"500\",\n        \"Num\": 19\n      }\n    ],\n    \"TotalCodeAll\": 100,\n    \"TotalCode2xx\": 11,\n    \"TotalCode3xx\": 12,\n    \"TotalCode4xx\": 10,\n    \"TotalCode5xx\": 29,\n    \"PageNum\": 1,\n    \"PageSize\": 10,\n    \"TotalPage\": 10,\n    \"TotalNum\": 100,\n    \"RequestId\": \"e6628973-db6a-48f1-9fcd-fe0b3ba54bc9\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

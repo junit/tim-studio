@@ -1,0 +1,290 @@
+{
+  "doc_id": 33862,
+  "api_id": "live_AddLiveDomain",
+  "title": "添加域名",
+  "doc_url": "https://cloud.tencent.com/document/api/267/33862",
+  "sync_time": "2026-10-29 19:32:11",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n添加域名，一次只能提交一个域名。域名必须已备案。\n默认接口请求频率限制：100次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：AddLiveDomain。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainName",
+      "type": "String",
+      "required": "必填",
+      "description": "域名名称。示例值：www.test.com"
+    },
+    {
+      "name": "DomainType",
+      "type": "Integer",
+      "required": "必填",
+      "description": "域名类型，0：推流域名，1：播放域名。示例值：0"
+    },
+    {
+      "name": "PlayType",
+      "type": "Integer",
+      "required": "选填",
+      "description": "拉流域名类型：1：国内，2：全球，3：境外。默认值：1。示例值：1"
+    },
+    {
+      "name": "IsDelayLive",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否是慢直播：0： 普通直播，1 ：慢直播 。默认值： 0。示例值：1"
+    },
+    {
+      "name": "IsMiniProgramLive",
+      "type": "Integer",
+      "required": "选填",
+      "description": "是否是小程序直播：0： 标准直播，1 ：小程序直播 。默认值： 0。示例值：1"
+    },
+    {
+      "name": "VerifyOwnerType",
+      "type": "String",
+      "required": "选填",
+      "description": "域名归属校验类型。可取值（与 AuthenticateDomainOwner 接口的 VerifyType 参数一致。）：dnsCheck ：立即验证配置 dns 的解析记录是否与待验证内容一致，成功则保存记录。fileCheck ：立即验证 web 文件是否与待验证内容一致，成功则保存记录。dbCheck :  检查是否已经验证成功过。若不传默认为 dbCheck 。示例值：dbCheck"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: AddLiveDomain\n<公共请求参数>\n\n{\n    \"DomainType\": \"0\",\n    \"DomainName\": \"www.test.com\"\n}",
+      "clean_json": "{\n  \"DomainType\": \"0\",\n  \"DomainName\": \"www.test.com\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"eac6b301-a322-493a-8e36-83b295459397\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DeleteDomainInLockedTime",
+      "description": "2天内有产生流量，域名处于锁定期间，2天内无流量产生才允许删除域名。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DomainAdded",
+      "description": "域名已添加。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DomainGslbFail",
+      "description": "配置域名规则失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DomainNeedRealName",
+      "description": "域名需要实名认证。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DomainNeedVerifyOwner",
+      "description": "域名归属待验证。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.HostOutLimit",
+      "description": "域名数量超过限制(100个）。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.ParentDomainAdded",
+      "description": "父域名已添加。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.SubDomainAdded",
+      "description": "子域名已添加。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ChineseCharacterDetected",
+      "description": "暂不支持添加中文域名，请核对域名格式。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConnectDbError",
+      "description": "DB 连接错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DomainAlreadyExist",
+      "description": "该域名已在其他处接入，请检查域名是否输入正确。  如域名正确，您可通过验证后重新添加域名。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DomainFormatError",
+      "description": "域名格式错误，请输入合法格式域名。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DomainGslbFail",
+      "description": "添加 GSLB 规则失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DomainIsFamous",
+      "description": "该域名已在其他处接入，请检查域名是否输入正确。  如域名正确，您可通过验证后重新添加域名。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DomainIsLimited",
+      "description": "您的域名不可用，请输入正确的域名。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DomainNoRecord",
+      "description": "域名没有备案。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DomainTooLong",
+      "description": "域名长度超过限制。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidUser",
+      "description": "账号信息错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NetworkError",
+      "description": "内部网络错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainAlreadyExist",
+      "description": "域名已经存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainFormatError",
+      "description": "域名格式错误，请输入合法格式域名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainHitBlackList",
+      "description": "当前域名在黑名单中。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainIsFamous",
+      "description": "使用黑名单域名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainIsLimited",
+      "description": "域名受限，请提交工单，申请解除限制。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.DomainTooLong",
+      "description": "域名长度超过限制。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.MpHostDelete",
+      "description": "当月不允许添加已删除的小程序域名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.MpPluginNoUse",
+      "description": "小程序插件没有授权。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.DomainNoRecord",
+      "description": "域名没有备案。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.InvalidUser",
+      "description": "用户不支持此接口。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

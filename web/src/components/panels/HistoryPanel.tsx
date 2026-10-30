@@ -358,6 +358,25 @@ export const HistoryPanel: React.FC<HistoryPanelProps> = ({
                           >
                             {item.api_name || item.api_id}
                           </span>
+                          {(() => {
+                            const svcType = item.service_type || (item.api_id.startsWith('live_') ? 'live' : 'im')
+                            const svcTag = svcType === 'live' ? 'CSS' : (svcType === 'im' ? 'TIM' : svcType.toUpperCase())
+                            const isLive = svcType === 'live'
+                            const isIm = svcType === 'im'
+                            const colorClass = isLive
+                              ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800'
+                              : isIm
+                              ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800'
+                              : 'bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 border-purple-200 dark:border-purple-800'
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={`font-mono text-[9px] px-1 py-0 shrink-0 ${colorClass}`}
+                              >
+                                {svcTag}
+                              </Badge>
+                            )
+                          })()}
                           <Badge
                             variant={item.failed === 0 ? 'success' : 'warning'}
                             className="font-mono text-[10px] px-1.5 py-0 shrink-0"

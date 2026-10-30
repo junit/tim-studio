@@ -15,6 +15,7 @@ from typing import Any, Dict, Generator, List, Optional
 
 from .config import load_config
 from .registry import registry
+from .cloud_client import UniversalCloudClient
 from .tim_client import TimClient
 
 STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage"))
@@ -58,12 +59,13 @@ def clear_history() -> bool:
 
 
 class BatchTask:
-    def __init__(self, task_id: str, api_id: str, items: List[dict], delay_sec: float = 0.05, dry_run: bool = False):
+    def __init__(self, task_id: str, api_id: str, items: List[dict], delay_sec: float = 0.05, dry_run: bool = False, config_snapshot: Optional[dict] = None):
         self.task_id = task_id
         self.api_id = api_id
         self.items = items
         self.delay_sec = delay_sec
         self.dry_run = dry_run
+        self.config_snapshot = config_snapshot
         self.total = len(items)
         self.current = 0
         self.success = 0
@@ -103,7 +105,9 @@ class TaskRunner:
         if delay_sec is None:
             delay_sec = cfg.get("delay_sec", 0.05)
         task_id = str(uuid.uuid4())[:8]
-        task = BatchTask(task_id, api_id, items, delay_sec=delay_sec, dry_run=dry_run)
+        # 快照当前激活配置，确保任务执行期间不受全局环境切换影响，彻底做到凭证隔离
+        config_snapshot = dict(cfg)
+        task = BatchTask(task_id, api_id, items, delay_sec=delay_sec, dry_run=dry_run, config_snapshot=config_snapshot)
         with self._lock:
             self.tasks[task_id] = task
         return task
@@ -127,7 +131,8 @@ class TaskRunner:
             task.status = "FAILED"
             return
 
-        client = TimClient()
+        # 使用该任务创建时固化的独立配置快照实例化统一云客户端
+        client = UniversalCloudClient(config=task.config_snapshot)
         task.emit("start", {
             "task_id": task.task_id,
             "api_id": task.api_id,
@@ -152,8 +157,8 @@ class TaskRunner:
                 err_info = "【预览演练】参数结构构建成功 (未发起真实网络请求)"
                 cost_ms = 0
             else:
-                # 调用真实 IM API 网关
-                resp = client.invoke(api_meta.service_name, api_meta.command, payload)
+                # 调用统一云网关驱动 (根据 service_type 自动分发至 IM 或 API 3.0)
+                resp = client.invoke_api(api_meta, payload)
                 action_status = resp.get("ActionStatus", "FAIL")
                 err_code = resp.get("ErrorCode", -1)
                 err_info = resp.get("ErrorInfo", "")
@@ -200,6 +205,7 @@ class TaskRunner:
             "task_id": task.task_id,
             "api_id": task.api_id,
             "api_name": api_meta.name,
+            "service_type": getattr(api_meta, "service_type", "im") or "im",
             "total": task.total,
             "success": task.success,
             "failed": task.failed,

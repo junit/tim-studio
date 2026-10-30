@@ -1,0 +1,210 @@
+{
+  "doc_id": 138608,
+  "api_id": "live_CreateLiveSmartEraseTemplate",
+  "title": "创建直播智能擦除模板",
+  "doc_url": "https://cloud.tencent.com/document/api/267/138608",
+  "sync_time": "2026-10-29 19:32:24",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n创建直播智能擦除模板。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateLiveSmartEraseTemplate。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "TemplateName",
+      "type": "String",
+      "required": "必填",
+      "description": "模板名称。长度上限：100字节。示例值：SmartNametttttt"
+    },
+    {
+      "name": "Type",
+      "type": "String",
+      "required": "必填",
+      "description": "擦除类型，如\"illegal audio|illegal image|logo|privacy protection 。示例值：illegal audio|privacy protection"
+    },
+    {
+      "name": "Description",
+      "type": "String",
+      "required": "选填",
+      "description": "描述信息。长度上限：1024字节。仅支持中文、英文、数字、_、-。示例值：SmartNameDesc"
+    },
+    {
+      "name": "AuditConfId",
+      "type": "Integer",
+      "required": "选填",
+      "description": "关联的审核模板id, 表audio_conf 。取值为DescribeAuditTemplates接口返回的AuditTemplates里面的TemplateId字段示例值：7930"
+    },
+    {
+      "name": "ImageBizType",
+      "type": "String",
+      "required": "选填",
+      "description": "天御图片审核策略BizType  Image 。取值为DescribeAuditTemplates返回的SceneInfos下BizInfos里面的对应的StrategyType为\"Image\"的BizType值示例值：1_1_1_7930"
+    },
+    {
+      "name": "AudioBizType",
+      "type": "String",
+      "required": "选填",
+      "description": "天御音频审核策略BizType  ShortAudio 。取值为DescribeAuditTemplates返回的SceneInfos下BizInfos里面的对应的StrategyType为\"ShortAudio\"的BizType值示例值：1_1_1_7930"
+    },
+    {
+      "name": "AudioTextBizType",
+      "type": "String",
+      "required": "选填",
+      "description": "天御音频文本审核策略BizType  ShortAudio 。取值为DescribeAuditTemplates返回的SceneInfos下BizInfos里面的对应的StrategyType为\"Text\"的BizType值示例值：1_1_1_7930"
+    },
+    {
+      "name": "DisplayMode",
+      "type": "Integer",
+      "required": "选填",
+      "description": "展示模式，取值 1:延时稳态展示; 3.实时动态展示。默认1 。示例值：3"
+    },
+    {
+      "name": "DisplayDelayTime",
+      "type": "Integer",
+      "required": "选填",
+      "description": "字幕延迟展示时间,单位毫秒。默认10000。示例值：5000"
+    },
+    {
+      "name": "PrivacyProtection",
+      "type": "String",
+      "required": "选填",
+      "description": "隐私保护可选的类型名，包括人脸模糊、车牌模糊枚举值：blur face： 人脸模糊blur license plate： 车牌模糊blur face|blur license plate： 复选示例值：blur face|blur license plate"
+    },
+    {
+      "name": "AudioErasureMode",
+      "type": "Integer",
+      "required": "选填",
+      "description": "音频处理可选项：静音擦除、哔音擦除，默认选择静音擦除枚举值：0： 静音1： 哔音默认值：0示例值：1"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateLiveSmartEraseTemplate\n<公共请求参数>\n\n{\n    \"AudioBizType\": \"1_1_7_55023\",\n    \"AudioTextBizType\": \"1_1_1_55023\",\n    \"AuditConfId\": 55023,\n    \"Description\": \"appwl9ph4hf4030的消音模板\",\n    \"ImageBizType\": \"1_1_2_55023\",\n    \"TemplateName\": \"appwl9ph4hf4030的消音模板\",\n    \"Type\": \"illegal audio\"\n}",
+      "clean_json": "{\n  \"AudioBizType\": \"1_1_7_55023\",\n  \"AudioTextBizType\": \"1_1_1_55023\",\n  \"AuditConfId\": 55023,\n  \"Description\": \"appwl9ph4hf4030的消音模板\",\n  \"ImageBizType\": \"1_1_2_55023\",\n  \"TemplateName\": \"appwl9ph4hf4030的消音模板\",\n  \"Type\": \"illegal audio\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TemplateId",
+      "type": "Integer",
+      "description": "模板Id。示例值：8390426"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"TemplateId\": 8390364,\n        \"RequestId\": \"11f23d53-613c-43ff-8f8b-81e3aef57952\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"TemplateId\": 8390364,\n    \"RequestId\": \"11f23d53-613c-43ff-8f8b-81e3aef57952\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.CallOtherSvrFailed",
+      "description": "调用内部服务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ArgsNotMatch",
+      "description": "针对添加转码模版的接口。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfInUsed",
+      "description": "模版使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfNotFound",
+      "description": "模版不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConfOutLimit",
+      "description": "模版数量超过限制。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidInput",
+      "description": "参数检校不通过。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NotFound",
+      "description": "记录不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation.NotLVBCodeMode",
+      "description": "非直播码/新版控制台模式。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

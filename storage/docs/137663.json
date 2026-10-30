@@ -1,0 +1,92 @@
+{
+  "doc_id": 137663,
+  "api_id": "live_DescribeLiveAvatarCloneFigureList",
+  "title": "查询数字人直播间克隆形象",
+  "doc_url": "https://cloud.tencent.com/document/api/267/137663",
+  "sync_time": "2026-10-29 19:32:26",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n调用该接口，查询数字人直播间信息列表。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveAvatarCloneFigureList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "TaskId",
+      "type": "String",
+      "required": "选填",
+      "description": "待查询的克隆形象的TaskId示例值：7501606042561581056"
+    },
+    {
+      "name": "Status",
+      "type": "String",
+      "required": "选填",
+      "description": "根据状态查询克隆形象枚举值：SUBMITTING： 已受理CHECKING： 检查中QUEUE： 排队中MAKING： 训练中CONFIRMING： 效果确认SUCCESS： 成功FAIL： 失败示例值：SUCCESS"
+    },
+    {
+      "name": "Limit",
+      "type": "String",
+      "required": "选填",
+      "description": "期望返回克隆形象的个数（最多20个）示例值：10"
+    },
+    {
+      "name": "Offset",
+      "type": "String",
+      "required": "选填",
+      "description": "期望返回克隆形象的起始偏移位置（默认为0）示例值：0"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeLiveAvatarCloneFigureList\n<公共请求参数>\n\n{\n    \"TaskId\": \"7501606042561581056\"\n}",
+      "clean_json": "{\n  \"TaskId\": \"7501606042561581056\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "CloneFigureList",
+      "type": "Array of LiveAvatarCloneFigureInfo",
+      "description": "克隆形象列表"
+    },
+    {
+      "name": "TotalCount",
+      "type": "Integer",
+      "description": "克隆形象总个数单位：个示例值：1"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"CloneFigureList\": [\n            {\n                \"AvatarKey\": \"966163fdc71b4d31b031ae03ffe5587b\",\n                \"CreateTime\": \"2026-09-04 19:44:13\",\n                \"EstimatedCompleteTime\": \"\",\n                \"ExpireTime\": \"\",\n                \"FailReason\": \"\",\n                \"FigureImg\": \"\",\n                \"FigureName\": \"图生测试形象\",\n                \"Gender\": \"UNKNOWN\",\n                \"IsExpired\": false,\n                \"MaterialUrl\": \"https://wsh-test-1303333058.cos.ap-guangzhou.myqcloud.com/%E6%95%B0%E5%AD%97%E4%BA%BA%E6%B5%8B%E8%AF%95/%E6%95%B0%E5%AD%97%E4%BA%BA%E5%A5%B3%E4%B8%BB%E6%92%AD.png\",\n                \"PhotoVersion\": 1,\n                \"Progress\": 100,\n                \"RenewStatus\": \"UNKNOWN\",\n                \"SceneType\": \"PHOTO\",\n                \"Status\": \"SUCCESS\",\n                \"TaskId\": \"7501606042561581056\",\n                \"UpdateTime\": \"2026-09-04 19:49:04\"\n            }\n        ],\n        \"TotalCount\": 1,\n        \"RequestId\": \"dc5e6604-e6e9-427e-ae39-57ef6f903b8b\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"CloneFigureList\": [\n      {\n        \"AvatarKey\": \"966163fdc71b4d31b031ae03ffe5587b\",\n        \"CreateTime\": \"2026-09-04 19:44:13\",\n        \"EstimatedCompleteTime\": \"\",\n        \"ExpireTime\": \"\",\n        \"FailReason\": \"\",\n        \"FigureImg\": \"\",\n        \"FigureName\": \"图生测试形象\",\n        \"Gender\": \"UNKNOWN\",\n        \"IsExpired\": false,\n        \"MaterialUrl\": \"https://wsh-test-1303333058.cos.ap-guangzhou.myqcloud.com/%E6%95%B0%E5%AD%97%E4%BA%BA%E6%B5%8B%E8%AF%95/%E6%95%B0%E5%AD%97%E4%BA%BA%E5%A5%B3%E4%B8%BB%E6%92%AD.png\",\n        \"PhotoVersion\": 1,\n        \"Progress\": 100,\n        \"RenewStatus\": \"UNKNOWN\",\n        \"SceneType\": \"PHOTO\",\n        \"Status\": \"SUCCESS\",\n        \"TaskId\": \"7501606042561581056\",\n        \"UpdateTime\": \"2026-09-04 19:49:04\"\n      }\n    ],\n    \"TotalCount\": 1,\n    \"RequestId\": \"dc5e6604-e6e9-427e-ae39-57ef6f903b8b\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

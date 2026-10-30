@@ -1,0 +1,161 @@
+{
+  "doc_id": 33851,
+  "api_id": "live_DescribeLiveTranscodeDetailInfo",
+  "title": "查询直播转码统计信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/33851",
+  "sync_time": "2026-10-29 19:32:21",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口为监控数据接口，数据采集及统计方式与计费数据不同，仅供运营分析使用，不能用于计费对账参考。\n支持查询某天或某段时间的转码详细信息。由于转码数据量较大，如果查询时间跨度太长可能会拉不到数据，可以尝试将查询时间范围缩小些再重试。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveTranscodeDetailInfo。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "PushDomain",
+      "type": "String",
+      "required": "选填",
+      "description": "推流域名。示例值：test.push.com"
+    },
+    {
+      "name": "StreamName",
+      "type": "String",
+      "required": "选填",
+      "description": "流名称。示例值：streamtest"
+    },
+    {
+      "name": "DayTime",
+      "type": "String",
+      "required": "选填",
+      "description": "查询时间，北京时间，格式：yyyymmdd。注意：支持查询近1个月内某天的详细数据，截止到昨天。示例值：20190307"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "页数，默认1，不超过100页。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "每页个数，默认20，范围：[10,1000]。示例值：20"
+    },
+    {
+      "name": "StartDayTime",
+      "type": "String",
+      "required": "选填",
+      "description": "起始天时间，北京时间，格式：yyyymmdd。注意：支持查询近1个月内的详细数据。示例值：20190307"
+    },
+    {
+      "name": "EndDayTime",
+      "type": "String",
+      "required": "选填",
+      "description": "结束天时间，北京时间，格式：yyyymmdd。注意：支持查询近1个月内的详细数据，截止到昨天，注意DayTime 与（StartDayTime，EndDayTime）必须要传一个，如果都传，会以DayTime为准 。示例值：20190307"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeLiveTranscodeDetailInfo\n<公共请求参数>\n\n{\n    \"PageNum\": \"1\",\n    \"PageSize\": \"20\",\n    \"DayTime\": \"20190307\"\n}",
+      "clean_json": "{\n  \"PageNum\": \"1\",\n  \"PageSize\": \"20\",\n  \"DayTime\": \"20190307\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of TranscodeDetailInfo",
+      "description": "统计数据列表。"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "description": "页码。示例值：1"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "description": "每页个数。示例值：20"
+    },
+    {
+      "name": "TotalNum",
+      "type": "Integer",
+      "description": "总个数。示例值：1"
+    },
+    {
+      "name": "TotalPage",
+      "type": "Integer",
+      "description": "总页数。示例值：1"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"StreamName\": \"stream1\",\n                \"StartTime\": \"2019-03-01 01:00\",\n                \"EndTime\": \"2019-03-01 04:00\",\n                \"Duration\": 8,\n                \"ModuleCodec\": \"liveprocessor_H264\",\n                \"Bitrate\": 120,\n                \"Type\": \"混流\",\n                \"PushDomain\": \"5000.livepush.com\",\n                \"Resolution\": \"480P\",\n                \"MainlandOrOversea\": \"Mainland\"\n            }\n        ],\n        \"PageNum\": 1,\n        \"PageSize\": 20,\n        \"TotalNum\": 1,\n        \"TotalPage\": 1,\n        \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"StreamName\": \"stream1\",\n        \"StartTime\": \"2019-03-01 01:00\",\n        \"EndTime\": \"2019-03-01 04:00\",\n        \"Duration\": 8,\n        \"ModuleCodec\": \"liveprocessor_H264\",\n        \"Bitrate\": 120,\n        \"Type\": \"混流\",\n        \"PushDomain\": \"5000.livepush.com\",\n        \"Resolution\": \"480P\",\n        \"MainlandOrOversea\": \"Mainland\"\n      }\n    ],\n    \"PageNum\": 1,\n    \"PageSize\": 20,\n    \"TotalNum\": 1,\n    \"TotalPage\": 1,\n    \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

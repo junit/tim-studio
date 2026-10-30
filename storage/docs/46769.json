@@ -1,0 +1,116 @@
+{
+  "doc_id": 46769,
+  "api_id": "live_DescribeDeliverBandwidthList",
+  "title": "查询直播转推计费带宽",
+  "doc_url": "https://cloud.tencent.com/document/api/267/46769",
+  "sync_time": "2026-10-29 19:32:23",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n查询直播转推计费带宽，查询时间范围最大支持3个月内的数据，时间跨度最长31天。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeDeliverBandwidthList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，接口查询支持两种时间格式：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。示例值：2020-01-07 21:10:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，接口查询支持两种时间格式：1）YYYY-MM-DDThh:mm:ssZ：UTC时间格式，详见IOS日期格式说明文档: https://cloud.tencent.com/document/product/266/11732#I2）YYYY-MM-DD hh:mm:ss：使用此格式时，默认代表北京时间。支持最近三个月的数据查询，时间跨度最大是1个月。示例值：2020-01-07 21:15:00"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeDeliverBandwidthList\n<公共请求参数>\n\n{\n    \"EndTime\": \"2020-01-07T21:15:00+08:00\",\n    \"StartTime\": \"2020-01-07T21:10:00+08:00\"\n}",
+      "clean_json": "{\n  \"EndTime\": \"2020-01-07T21:15:00+08:00\",\n  \"StartTime\": \"2020-01-07T21:10:00+08:00\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of BandwidthInfo",
+      "description": "转推计费带宽数据"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"Bandwidth\": 45927.6,\n                \"Time\": \"2020-05-01T00:00:00+08:00\"\n            },\n            {\n                \"Bandwidth\": 44494.84,\n                \"Time\": \"2020-05-01T00:05:00+08:00\"\n            },\n            {\n                \"Bandwidth\": 43061.09,\n                \"Time\": \"2020-05-01T00:10:00+08:00\"\n            }\n        ],\n        \"RequestId\": \"f54e3deb-f318-4148-8a68-3c959642f9ec\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"Bandwidth\": 45927.6,\n        \"Time\": \"2020-05-01T00:00:00+08:00\"\n      },\n      {\n        \"Bandwidth\": 44494.84,\n        \"Time\": \"2020-05-01T00:05:00+08:00\"\n      },\n      {\n        \"Bandwidth\": 43061.09,\n        \"Time\": \"2020-05-01T00:10:00+08:00\"\n      }\n    ],\n    \"RequestId\": \"f54e3deb-f318-4148-8a68-3c959642f9ec\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -1,0 +1,136 @@
+{
+  "doc_id": 112856,
+  "api_id": "live_DescribeLiveTimeShiftWriteSizeInfoList",
+  "title": "直播时移写入量数据",
+  "doc_url": "https://cloud.tencent.com/document/api/267/112856",
+  "sync_time": "2026-10-29 19:32:23",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n支持直播时移写入量数据查询。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeLiveTimeShiftWriteSizeInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，使用UTC格式时间，例如：2019-01-08T10:00:00Z。支持最近六个月的查询，查询开始和结束时间跨度不支持超过31天。示例值：2022-11-01T00:00:00+08:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，使用UTC格式时间，例如：2019-01-08T10:00:00Z。支持最近六个月的查询，查询开始和结束时间跨度不支持超过31天。示例值：2022-11-01T00:00:00+08:00"
+    },
+    {
+      "name": "DomainNames.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "域名。示例值：[\"5000.livepull.stream.com\"]"
+    },
+    {
+      "name": "Dimensions.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "维度Area地区、Domain 域名、StorageDays 时移天数示例值：[\"Time\",\"CountryOrAreaNames\"]"
+    },
+    {
+      "name": "StorageDays.N",
+      "type": "Array of Integer",
+      "required": "选填",
+      "description": "时移天数。示例值：[1,3,7,15,30]"
+    },
+    {
+      "name": "Granularity",
+      "type": "Integer",
+      "required": "选填",
+      "description": "时间跨度（分钟）默认5，可选 5、60或者1440。示例值：60"
+    },
+    {
+      "name": "MainlandOrOversea",
+      "type": "String",
+      "required": "选填",
+      "description": "区域可选Mainland、Oversea。示例值：Oversea"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeLiveTimeShiftWriteSizeInfoList\n<公共请求参数>\n\n{\n    \"StartTime\": \"2024-12-24T02:28:54Z\",\n    \"EndTime\": \"2024-12-25T02:28:54Z\",\n    \"DomainNames\": [\n        \"5000.livepull.com\"\n    ],\n    \"Dimensions\": [\n        \"StorageDays\"\n    ],\n    \"StorageDays\": [\n        1\n    ],\n    \"Granularity\": 0,\n    \"MainlandOrOversea\": \"Oversea\"\n}",
+      "clean_json": "{\n  \"StartTime\": \"2024-12-24T02:28:54Z\",\n  \"EndTime\": \"2024-12-25T02:28:54Z\",\n  \"DomainNames\": [\n    \"5000.livepull.com\"\n  ],\n  \"Dimensions\": [\n    \"StorageDays\"\n  ],\n  \"StorageDays\": [\n    1\n  ],\n  \"Granularity\": 0,\n  \"MainlandOrOversea\": \"Oversea\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of TimeShiftWriteSizeData",
+      "description": "直播时移写入量数据明细。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"Area\": \"Oversea\",\n                \"Time\": \"2024-12-25T02:28:54Z\",\n                \"WriteSize\": 0,\n                \"Domain\": \"5000.livepull.com\",\n                \"StorageDays\": 0\n            }\n        ],\n        \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"Area\": \"Oversea\",\n        \"Time\": \"2024-12-25T02:28:54Z\",\n        \"WriteSize\": 0,\n        \"Domain\": \"5000.livepull.com\",\n        \"StorageDays\": 0\n      }\n    ],\n    \"RequestId\": \"1047d0dc-6dc8-4898-a7f3-03726a822b0e\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

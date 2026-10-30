@@ -184,7 +184,8 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
   // 2. 获取文档汇总
   const fetchSummary = async () => {
     try {
-      const res = await fetch('/api/docs/summary')
+      const svc = api.service_type || 'im'
+      const res = await fetch(`/api/docs/summary?service=${svc}`)
       const data = await res.json()
       if (data.status === 'success') {
         setSummary(data.data)
@@ -258,7 +259,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
       const res = await fetch('/api/docs/sync/batch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ force, mode: modeToUse }),
+        body: JSON.stringify({ force, mode: modeToUse, service: api.service_type || 'im' }),
       })
       const data = await res.json()
       if (data.status === 'success') {
@@ -516,7 +517,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
                 fetchSummary()
               }}
               className="h-7 text-xs border-slate-200 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-300 gap-1.5 font-medium cursor-pointer shadow-2xs"
-              title="打开全量 166 个 REST API 文档批量同步面板"
+              title="打开全量官方 API 文档批量同步面板"
             >
               <Layers className="h-3 w-3 text-blue-600 dark:text-blue-400" />
               <span>批量同步</span>
@@ -696,7 +697,11 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-1.5 text-xs font-bold text-slate-900 dark:text-slate-100">
               <Info className="h-3.5 w-3.5 text-indigo-500 dark:text-indigo-400" />
-              <span>URL 查询参数说明 (Query Parameters)</span>
+              <span>
+                {(api.service_type || 'im') === 'im'
+                  ? 'URL 查询参数说明 (URL Query Parameters)'
+                  : '公共请求头与公共参数规范 (Common Headers & Params)'}
+              </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400 dark:text-slate-500">
               共 {doc.url_params.length} 项参数
@@ -821,7 +826,8 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
                 {doc.request_body_fields.map((field, idx) => {
                   const isRequired = field.required === '必填'
                   const isOptional = field.required === '选填'
-                  const isCustomReq = !isRequired && !isOptional && field.required
+                  const isCommon = field.required === '公共参数'
+                  const isCustomReq = !isRequired && !isOptional && !isCommon && field.required
                   return (
                     <tr key={idx} className="hover:bg-slate-50/70 dark:hover:bg-slate-850/60 transition-colors">
                       <td className="py-2.5 px-3 whitespace-nowrap align-top">
@@ -841,6 +847,14 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
                         {isOptional && (
                           <span className="inline-flex items-center px-2 py-0.5 rounded bg-slate-50 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-medium border border-slate-200 dark:border-slate-700 whitespace-nowrap text-[11px]">
                             选填
+                          </span>
+                        )}
+                        {isCommon && (
+                          <span
+                            className="inline-flex items-center px-2 py-0.5 rounded bg-purple-50 dark:bg-purple-950/60 text-purple-700 dark:text-purple-400 font-semibold border border-purple-200 dark:border-purple-800 whitespace-nowrap text-[10px]"
+                            title="公共参数由调用引擎或 SDK 自动填充，无需在请求体中手动传入"
+                          >
+                            公共参数
                           </span>
                         )}
                         {isCustomReq && (
@@ -1056,7 +1070,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
                     官方文档异步批量同步中心
                   </h3>
                   <p className="text-xs text-slate-500 dark:text-slate-400">
-                    一键抓取腾讯云 166 项 REST API 官方文档并完成结构化解析
+                    一键抓取腾讯云全量 API 官方文档并完成结构化解析
                   </p>
                 </div>
               </div>
@@ -1073,7 +1087,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
               <div>
                 <p className="text-[11px] text-slate-500 dark:text-slate-400">接口总计</p>
                 <p className="text-base font-bold font-mono text-slate-800 dark:text-slate-200">
-                  {summary?.total_apis || 166}
+                  {summary?.total_apis || '-'}
                 </p>
               </div>
               <div>

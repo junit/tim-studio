@@ -26,8 +26,9 @@ import {
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useApiStore, ApiMeta } from '@/stores/apiStore'
+import { useApiStore, ApiMeta, CLOUD_SERVICES } from '@/stores/apiStore'
 import { ApiDocsViewer } from '@/components/panels/ApiDocsViewer'
+import { CommonSpecsViewer } from '@/components/panels/CommonSpecsViewer'
 
 interface DocSummary {
   total_apis: number
@@ -57,7 +58,17 @@ interface DocsCenterPanelProps {
 }
 
 export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSandbox }) => {
-  const { apis, openTab, showToast, fetchApis } = useApiStore()
+  const { apis, openTab, showToast, fetchApis, activeServiceId, cloudServices } = useApiStore()
+  const availableServices = (cloudServices && cloudServices.length > 0) ? cloudServices : CLOUD_SERVICES
+
+  // 严格按当前选中的服务筛选 (由后端 SSoT 动态服务集自适应)
+  const currentService = useMemo(() => {
+    return availableServices.find((s) => s.id === activeServiceId) || availableServices[0]
+  }, [availableServices, activeServiceId])
+
+  const currentServiceApis = useMemo(() => {
+    return apis.filter((a) => (a.service_type || 'im') === activeServiceId)
+  }, [apis, activeServiceId])
 
   const [summary, setSummary] = useState<DocSummary | null>(null)
   const [syncStatus, setSyncStatus] = useState<DocSyncStatus | null>(null)
@@ -71,6 +82,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
   const [isSyncingTree, setIsSyncingTree] = useState(false)
   const [syncMode, setSyncMode] = useState<'auto' | 'html' | 'api'>('auto')
   const [isDrawerMaximized, setIsDrawerMaximized] = useState(false)
+  const [docViewMode, setDocViewMode] = useState<'apis' | 'common_specs'>('apis')
 
   // 正在查看完整文档的 API（打开抽屉）
   const [viewingApi, setViewingApi] = useState<ApiMeta | null>(null)
@@ -78,9 +90,11 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
   const pollTimerRef = useRef<any>(null)
 
   // 获取汇总数据
-  const fetchSummary = async () => {
+  const fetchSummary = async (serviceId?: string) => {
     try {
-      const res = await fetch('/api/docs/summary')
+      const svc = serviceId !== undefined ? serviceId : activeServiceId
+      const url = svc && svc !== 'all' ? `/api/docs/summary?service=${svc}` : '/api/docs/summary'
+      const res = await fetch(url)
       const json = await res.json()
       if (json.status === 'success') {
         setSummary(json.data)
@@ -109,8 +123,19 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
     }
   }
 
+  // 监听当前激活服务切换：重置分类与选中项，并重新获取该服务的文档统计
   useEffect(() => {
-    fetchSummary()
+    fetchSummary(activeServiceId)
+    setSelectedLevel1('all')
+    setSelectedLevel2('all')
+    setSelectedLevel3('all')
+    setSelectedApiIds(new Set())
+    if (currentService.protocol !== 'api3') {
+      setDocViewMode('apis')
+    }
+  }, [activeServiceId, currentService])
+
+  useEffect(() => {
     pollStatus()
     return () => {
       if (pollTimerRef.current) clearTimeout(pollTimerRef.current)
@@ -127,6 +152,8 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
       const body: any = { force, mode: modeToUse }
       if (targetIds && targetIds.length > 0) {
         body.api_ids = targetIds
+      } else {
+        body.service = activeServiceId
       }
       const res = await fetch('/api/docs/sync/batch', {
         method: 'POST',
@@ -136,13 +163,14 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
       const json = await res.json()
       if (json.status === 'success') {
         const modeLabel = modeToUse === 'html' ? '静态网页 HTML' : modeToUse === 'api' ? '动态接口 API' : '智能混合'
+        const serviceLabel = currentService.name
         showToast({
           type: 'info',
           message: targetIds
             ? `已启动对所选 ${targetIds.length} 项接口的异步同步任务 [${modeLabel}]`
             : force
-            ? `已启动全量覆盖批量同步任务 [${modeLabel}]`
-            : `已启动增量批量同步任务 [${modeLabel}]`,
+            ? `已启动 ${serviceLabel} 全量覆盖批量同步任务 [${modeLabel}]`
+            : `已启动 ${serviceLabel} 增量批量同步任务 [${modeLabel}]`,
         })
         pollStatus()
       }
@@ -251,44 +279,60 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
     onNavigateToSandbox?.(targetApi)
   }
 
+  // 获取清洗后的分类层级路径
+  const getCleanPath = (a: ApiMeta): string[] => {
+    let p = (a.path && a.path.length > 0)
+      ? [...a.path]
+      : [a.category || '其它分类', a.subcategory].filter(Boolean) as string[]
+    if (p.length > 1 && (p[0] === currentService.name || p[0] === currentService.shortName || p[0] === '云直播 (CSS)' || p[0] === '云直播')) {
+      p = p.slice(1)
+    }
+    return p
+  }
+
   // 一级分类提取与计数
   const level1Categories = useMemo(() => {
     const map = new Map<string, number>()
-    apis.forEach((a) => {
-      const c = a.category || '其它'
+    currentServiceApis.forEach((a) => {
+      const p = getCleanPath(a)
+      const c = p[0] || a.category || '其它'
       map.set(c, (map.get(c) || 0) + 1)
     })
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }))
-  }, [apis])
+  }, [currentServiceApis, activeServiceId])
 
   // 当前所选一级分类下的二级分类列表与计数
   const level2Categories = useMemo(() => {
     if (selectedLevel1 === 'all') return []
     const map = new Map<string, number>()
-    apis.forEach((a) => {
-      if (a.category === selectedLevel1) {
-        const sub = a.path && a.path.length > 1 ? a.path[1] : a.subcategory || a.category
+    currentServiceApis.forEach((a) => {
+      const p = getCleanPath(a)
+      const c = p[0] || a.category || '其它'
+      if (c === selectedLevel1) {
+        const sub = p.length > 1 ? p[1] : a.subcategory || c
         map.set(sub, (map.get(sub) || 0) + 1)
       }
     })
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }))
-  }, [apis, selectedLevel1])
+  }, [currentServiceApis, selectedLevel1, activeServiceId])
 
   // 当前所选二级分类下的三级分类列表与计数 (若存在)
   const level3Categories = useMemo(() => {
     if (selectedLevel1 === 'all' || selectedLevel2 === 'all') return []
     const map = new Map<string, number>()
-    apis.forEach((a) => {
-      if (a.category === selectedLevel1) {
-        const sub = a.path && a.path.length > 1 ? a.path[1] : a.subcategory || a.category
-        if (sub === selectedLevel2 && a.path && a.path.length > 2) {
-          const sub3 = a.path[2]
+    currentServiceApis.forEach((a) => {
+      const p = getCleanPath(a)
+      const c = p[0] || a.category || '其它'
+      if (c === selectedLevel1) {
+        const sub = p.length > 1 ? p[1] : a.subcategory || c
+        if (sub === selectedLevel2 && p.length > 2) {
+          const sub3 = p[2]
           map.set(sub3, (map.get(sub3) || 0) + 1)
         }
       }
     })
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }))
-  }, [apis, selectedLevel1, selectedLevel2])
+  }, [currentServiceApis, selectedLevel1, selectedLevel2, activeServiceId])
 
   const handleSelectLevel1 = (cat: string) => {
     setSelectedLevel1(cat)
@@ -308,10 +352,11 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
       { count: number; subcategories: Map<string, { count: number; subcategories3: Map<string, number> }> }
     >()
 
-    apis.forEach((a) => {
-      const l1 = a.category || (a.path && a.path[0]) || '其它'
-      const l2 = a.path && a.path.length > 1 ? a.path[1] : a.subcategory || null
-      const l3 = a.path && a.path.length > 2 ? a.path[2] : null
+    currentServiceApis.forEach((a) => {
+      const p = getCleanPath(a)
+      const l1 = p[0] || a.category || '其它'
+      const l2 = p.length > 1 ? p[1] : a.subcategory || null
+      const l3 = p.length > 2 ? p[2] : null
 
       if (!tree.has(l1)) {
         tree.set(l1, { count: 0, subcategories: new Map() })
@@ -386,11 +431,11 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
       })
 
     return { tree, options }
-  }, [apis])
+  }, [currentServiceApis, activeServiceId])
 
   // 筛选接口列表
   const filteredApis = useMemo(() => {
-    return apis.filter((a) => {
+    return currentServiceApis.filter((a) => {
       // 搜索词匹配
       if (search.trim()) {
         const q = search.trim().toLowerCase()
@@ -402,27 +447,28 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
         if (!matchName && !matchCmd && !matchDocId && !matchCat && !matchPath) return false
       }
 
+      const p = getCleanPath(a)
       // 一级分类匹配
-      const itemL1 = a.category || (a.path && a.path[0]) || '其它'
+      const itemL1 = p[0] || a.category || '其它'
       if (selectedLevel1 !== 'all' && itemL1 !== selectedLevel1) {
         return false
       }
 
       // 二级分类匹配
       if (selectedLevel2 !== 'all') {
-        const sub = a.path && a.path.length > 1 ? a.path[1] : a.subcategory || a.category
+        const sub = p.length > 1 ? p[1] : a.subcategory || itemL1
         if (sub !== selectedLevel2) return false
       }
 
       // 三级分类匹配
       if (selectedLevel3 !== 'all') {
-        const sub3 = a.path && a.path.length > 2 ? a.path[2] : null
+        const sub3 = p.length > 2 ? p[2] : null
         if (sub3 !== selectedLevel3) return false
       }
 
       return true
     })
-  }, [apis, search, selectedLevel1, selectedLevel2, selectedLevel3])
+  }, [currentServiceApis, search, selectedLevel1, selectedLevel2, selectedLevel3, activeServiceId])
 
   // 复选框全选控制
   const isAllSelected = useMemo(() => {
@@ -451,100 +497,141 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
 
   return (
     <div className="flex h-full w-full flex-col bg-slate-50 dark:bg-slate-950 overflow-hidden relative">
-      {/* 顶部统一 Header (与批量调用、AI智能体高度/样式对齐: 标称 min-h-[56px] py-2.5 px-4 sm:px-6) */}
-      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 sm:gap-4 select-none min-h-[56px]">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800/80 shadow-2xs shrink-0">
-            <BookOpen className="h-4 w-4" />
-          </div>
-          <div className="min-w-0">
-            <div className="flex items-center gap-2">
-              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 truncate">
-                腾讯云 IM 官方 API 文档中心
-              </h2>
-              <Badge
-                variant="outline"
-                className="bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border-blue-200 dark:border-blue-800 font-mono text-[9px] py-0 px-1.5 shrink-0"
+      {/* 文档中心紧凑功能工具条 (Toolbar Strip: 标称 42px，无多余 Logo 与大横幅堆叠) */}
+      <div className="shrink-0 px-4 sm:px-6 py-1.5 bg-white dark:bg-slate-900 border-b border-slate-200/80 dark:border-slate-800 shadow-2xs flex flex-wrap items-center justify-between gap-3 select-none min-h-[42px]">
+        {/* 左侧：规范中心与接口文档库视图切换器 (API 3.0) 或 模块状态标识 */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          {currentService.protocol === 'api3' ? (
+            <div className="flex items-center gap-1 p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 text-xs font-semibold">
+              <button
+                onClick={() => setDocViewMode('apis')}
+                className={`px-3 py-1 rounded-md transition-all cursor-pointer ${
+                  docViewMode === 'apis'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
               >
-                REST API 166 全量
-              </Badge>
+                接口文档库 ({currentServiceApis.length})
+              </button>
+              <button
+                onClick={() => setDocViewMode('common_specs')}
+                className={`flex items-center gap-1.5 px-3 py-1 rounded-md transition-all cursor-pointer ${
+                  docViewMode === 'common_specs'
+                    ? 'bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-2xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+                }`}
+              >
+                <span>公共规范中心</span>
+                <Badge
+                  variant="outline"
+                  className="text-[9px] py-0 px-1 bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border-blue-200 dark:border-blue-800"
+                >
+                  3.0 标准 (9篇)
+                </Badge>
+              </button>
             </div>
-            <p className="text-[10px] text-slate-500 dark:text-slate-400 truncate">
-              自动化抓取官方原生文档，支持参数字典、多场景请求体、应答结构及错误码智能解析
-            </p>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2 text-xs">
+              <span className="px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 font-semibold border border-slate-200/80 dark:border-slate-700">
+                REST API 接口文档库 ({currentServiceApis.length})
+              </span>
+            </div>
+          )}
         </div>
 
-        {/* 全局同步按钮组 */}
-        <div className="flex items-center gap-2">
-          {/* 数据源模式选择器 */}
-          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-lg px-2.5 h-8 text-xs">
-            <span className="text-slate-500 dark:text-slate-400 font-medium">数据源:</span>
-            <select
-              value={syncMode}
-              onChange={(e) => setSyncMode(e.target.value as any)}
-              className="bg-transparent text-slate-800 dark:text-slate-200 outline-none cursor-pointer font-semibold"
-              title="切换数据源抓取方式：动态接口极速拉取；静态网页直接抓取原生 HTML（防频控限制）"
-            >
-              <option value="auto" className="dark:bg-slate-800">智能混合</option>
-              <option value="html" className="dark:bg-slate-800">静态网页 (HTML)</option>
-              <option value="api" className="dark:bg-slate-800">动态接口 (API)</option>
-            </select>
-          </div>
+        {/* 右侧：针对当前激活视图的专属操作工具栏 (Contextual Actions) */}
+        <div className="flex items-center gap-2 shrink-0">
+          {docViewMode === 'apis' ? (
+            <div className="flex items-center gap-2">
+              {/* 数据源模式选择器 */}
+              <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 border border-slate-200/90 dark:border-slate-700 rounded-lg px-2.5 h-8 text-xs">
+                <span className="text-slate-500 dark:text-slate-400 font-medium">数据源:</span>
+                <select
+                  value={syncMode}
+                  onChange={(e) => setSyncMode(e.target.value as any)}
+                  className="bg-transparent text-slate-800 dark:text-slate-200 outline-none cursor-pointer font-semibold"
+                  title="切换数据源抓取方式：动态接口极速拉取；静态网页直接抓取原生 HTML（防频控限制）"
+                >
+                  <option value="auto" className="dark:bg-slate-800">智能混合</option>
+                  <option value="html" className="dark:bg-slate-800">静态网页 (HTML)</option>
+                  <option value="api" className="dark:bg-slate-800">动态接口 (API)</option>
+                </select>
+              </div>
 
-          {syncStatus?.is_running ? (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCancelBatchSync}
-              className="h-8 text-xs border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 font-semibold cursor-pointer"
-            >
-              终止同步任务
-            </Button>
+              {syncStatus?.is_running ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleCancelBatchSync}
+                  className="h-8 text-xs border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 font-semibold cursor-pointer"
+                >
+                  终止同步任务
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleSyncTree}
+                    disabled={isSyncingTree}
+                    className="h-8 text-xs border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-semibold gap-1.5 shadow-2xs cursor-pointer"
+                    title="实时抓取腾讯云 1519 页面 window.__staticRouterHydrationData，热重载并同步全部目录树"
+                  >
+                    <RefreshCw className={`h-3.5 w-3.5 ${isSyncingTree ? 'animate-spin' : ''}`} />
+                    <span className="hidden sm:inline">{isSyncingTree ? '抓取中...' : '同步目录树'}</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleStartBatchSync(false, undefined, syncMode)}
+                    className="h-8 text-xs border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium gap-1.5 shadow-2xs cursor-pointer"
+                    title="仅同步本地尚未下载的文档"
+                  >
+                    <RefreshCw className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
+                    <span>增量同步</span>
+                  </Button>
+                  <Button
+                    size="sm"
+                    onClick={() => handleStartBatchSync(true, undefined, syncMode)}
+                    className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-1.5 shadow-xs cursor-pointer"
+                    title={`重新并发抓取当前 ${currentService.name} 全量接口的官方最新文档并结构化存储`}
+                  >
+                    <Play className="h-3.5 w-3.5 fill-white" />
+                    <span>全量覆盖同步</span>
+                  </Button>
+                </>
+              )}
+            </div>
           ) : (
-            <>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleSyncTree}
-                disabled={isSyncingTree}
-                className="h-8 text-xs border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-400 hover:bg-indigo-50 dark:hover:bg-indigo-950/40 font-semibold gap-1.5 shadow-2xs cursor-pointer"
-                title="实时抓取腾讯云 1519 页面 window.__staticRouterHydrationData，热重载并同步全部目录树"
+            <div className="flex items-center gap-2">
+              <a
+                href={currentService.docUrl || "https://cloud.tencent.com/document/api/267/20458"}
+                target="_blank"
+                rel="noreferrer"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-800/80 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 text-xs font-medium transition-colors shadow-2xs cursor-pointer"
+                title="在新窗口打开腾讯云官方 API 3.0 文档中心"
               >
-                <RefreshCw className={`h-3.5 w-3.5 ${isSyncingTree ? 'animate-spin' : ''}`} />
-                <span className="hidden sm:inline">{isSyncingTree ? '抓取中...' : '同步目录树'}</span>
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => handleStartBatchSync(false, undefined, syncMode)}
-                className="h-8 text-xs border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium gap-1.5 shadow-2xs cursor-pointer"
-                title="仅同步本地尚未下载的文档"
-              >
-                <RefreshCw className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                <span>增量同步</span>
-              </Button>
-              <Button
-                size="sm"
-                onClick={() => handleStartBatchSync(true, undefined, syncMode)}
-                className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-1.5 shadow-xs cursor-pointer"
-                title="重新并发抓取全量 166 个接口的官方最新文档并结构化存储"
-              >
-                <Play className="h-3.5 w-3.5 fill-white" />
-                <span>全量覆盖同步</span>
-              </Button>
-            </>
+                <span>官方规范文档</span>
+                <ExternalLink className="h-3 w-3 opacity-70" />
+              </a>
+            </div>
           )}
         </div>
       </div>
 
-      {/* 指标卡片与实时同步进度区域 */}
+      {docViewMode === 'common_specs' ? (
+        <CommonSpecsViewer />
+      ) : (
+        <>
+          {/* 指标卡片与实时同步进度区域 */}
       <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-slate-50/70 dark:bg-slate-950/70 border-b border-slate-200/60 dark:border-slate-800/60 space-y-2.5">
         <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
           <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
-            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">REST API 总数</span>
+            <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+              {currentService.name} 接口总数
+            </span>
             <div className="flex items-baseline gap-1 font-mono font-bold text-slate-900 dark:text-slate-100 text-sm">
-              <span>{summary?.total_apis || 166}</span>
+              <span>{summary?.total_apis ?? currentServiceApis.length}</span>
               <span className="text-[10px] text-slate-400 font-normal">个接口</span>
             </div>
           </div>
@@ -663,7 +750,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
               className="h-8 text-xs rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-850 px-2.5 text-slate-700 dark:text-slate-200 focus:outline-none focus:ring-1 focus:ring-blue-500 cursor-pointer font-medium max-w-[270px]"
               title="选择任意层级分类进行筛选（支持一、二、三级联动）"
             >
-              <option value="all" className="dark:bg-slate-800">全部分类层级 ({apis.length})</option>
+              <option value="all" className="dark:bg-slate-800">全部分类层级 ({currentServiceApis.length})</option>
               {categoryHierarchy.options.map((opt) => (
                 <option
                   key={opt.id}
@@ -771,7 +858,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                 : 'bg-white dark:bg-slate-850 border border-slate-200 dark:border-slate-750 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800'
             }`}
           >
-            全部 ({apis.filter((a) => a.category === selectedLevel1).length})
+            全部 ({currentServiceApis.filter((a) => (getCleanPath(a)[0] || a.category) === selectedLevel1).length})
           </button>
           {level2Categories.map((sub) => (
             <button
@@ -1004,6 +1091,8 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
           </table>
         </div>
       </div>
+        </>
+      )}
 
       {/* 独立完整文档查看抽屉 (Side Drawer) */}
       {viewingApi && (

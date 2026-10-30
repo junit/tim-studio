@@ -1,0 +1,21 @@
+{
+  "doc_id": 32653,
+  "api_id": "live_DescribeLiveCerts",
+  "title": "已下线接口 (原文档 32653)",
+  "doc_url": "https://cloud.tencent.com/document/api/267/32653",
+  "sync_time": "2026-10-29 19:32:13",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "该接口已在腾讯云官方下线，官方文档已重定向至 API 概览页面:  https://cloud.tencent.com/document/product/267/20456 。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [],
+  "request_examples": [],
+  "response_body_fields": [],
+  "response_examples": [],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

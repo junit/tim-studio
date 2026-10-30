@@ -14,6 +14,7 @@ DOCS_DIR = os.path.join(STORAGE_DIR, "docs")
 BATCH_PRESETS = [
     {
         "id": "preset_c2c_withdraw",
+        "service_type": "im",
         "title": "批量撤回违规单聊消息",
         "tag": "高频应急",
         "tag_color": "rose",
@@ -47,6 +48,7 @@ BATCH_PRESETS = [
     },
     {
         "id": "preset_group_msg_recall",
+        "service_type": "im",
         "title": "批量撤回群聊违规消息",
         "tag": "群组应急",
         "tag_color": "rose",
@@ -77,6 +79,7 @@ BATCH_PRESETS = [
     },
     {
         "id": "preset_nospeaking",
+        "service_type": "im",
         "title": "批量全局禁言 / 解禁用户",
         "tag": "安全治理",
         "tag_color": "amber",
@@ -110,6 +113,7 @@ BATCH_PRESETS = [
     },
     {
         "id": "preset_delete_member",
+        "service_type": "im",
         "title": "批量踢出群成员 (清理死粉/违规)",
         "tag": "社群治理",
         "tag_color": "blue",
@@ -137,6 +141,7 @@ BATCH_PRESETS = [
     },
     {
         "id": "preset_portrait_set",
+        "service_type": "im",
         "title": "批量同步用户资料 (昵称/头像)",
         "tag": "账号同步",
         "tag_color": "emerald",
@@ -164,6 +169,7 @@ BATCH_PRESETS = [
     },
     {
         "id": "preset_destroy_group",
+        "service_type": "im",
         "title": "批量解散过期/违规群聊",
         "tag": "业务清理",
         "tag_color": "slate",
@@ -181,6 +187,65 @@ BATCH_PRESETS = [
             {
                 "group_id": "@TGS#1EXPIRED_GROUP_02",
                 "remark": "沙箱内测群清理"
+            }
+        ],
+        "has_today_data": False,
+    },
+    {
+        "id": "preset_live_drop_stream",
+        "service_type": "live",
+        "title": "云直播：批量断开违规直播推流",
+        "tag": "直播应急",
+        "tag_color": "rose",
+        "api_id": "live_DropLiveStream",
+        "command": "DropLiveStream",
+        "description": "监控发现主播推流违规或音视频异常时，指定 StreamName 与推流域名批量断流",
+        "filename": "live_drop_stream_template.csv",
+        "columns": ["domain_name", "app_name", "stream_name", "remark"],
+        "recommended_delay": 0.05,
+        "sample_rows": [
+            {
+                "domain_name": "push.yourdomain.com",
+                "app_name": "live",
+                "stream_name": "room_1001",
+                "remark": "涉嫌违规内容紧急断流"
+            },
+            {
+                "domain_name": "push.yourdomain.com",
+                "app_name": "live",
+                "stream_name": "room_1002",
+                "remark": "推流码率严重超标异常"
+            }
+        ],
+        "has_today_data": False,
+    },
+    {
+        "id": "preset_live_check_state",
+        "service_type": "live",
+        "title": "云直播：批量对账查询流在线状态",
+        "tag": "直播监控",
+        "tag_color": "amber",
+        "api_id": "live_DescribeLiveStreamState",
+        "command": "DescribeLiveStreamState",
+        "description": "大促或开播活动期间，批量查询各直播间流在线/断流状态 (active/inactive/forbid)",
+        "filename": "live_check_state_template.csv",
+        "columns": ["domain_name", "app_name", "stream_name"],
+        "recommended_delay": 0.05,
+        "sample_rows": [
+            {
+                "domain_name": "play.yourdomain.com",
+                "app_name": "live",
+                "stream_name": "room_1001"
+            },
+            {
+                "domain_name": "play.yourdomain.com",
+                "app_name": "live",
+                "stream_name": "room_1002"
+            },
+            {
+                "domain_name": "play.yourdomain.com",
+                "app_name": "live",
+                "stream_name": "room_1003"
             }
         ],
         "has_today_data": False,

@@ -15,48 +15,89 @@ from .bot_manager import BotManager
 from .constants import HIGH_RISK_API_KEYWORDS
 
 
-class TimCallTool(Tool):
-    name = "tim_call"
-    description = "调用腾讯云 IM 166 个 REST 接口中的任意一个。支持服务路径如 'group_open_http_svc/get_group_info' 或 'openim/sendmsg'。直接返回官方接口的 JSON 响应。"
+class CloudCallTool(Tool):
+    name = "cloud_call"
+    description = (
+        "统一调用腾讯云产品接口（涵盖云直播 API 3.0、即时通信 IM REST 及任意平台已注册的多云产品接口）。"
+        "直接传入 Action 名称（如 'CreateCommonMixStream', 'DescribeLiveStreamState', 'DropLiveStream'）"
+        "或 IM 服务路径（如 'openim/sendmsg', 'group_open_http_svc/get_group_info'），"
+        "并传入入参 Payload JSON 字典，返回官方接口的结构化响应。"
+    )
     inputs = {
-        "api_path": {
+        "action_or_path": {
             "type": "string",
-            "description": "接口路径，如 'group_open_http_svc/get_group_info', 'openim/sendmsg', 或 'profile/portrait_set'"
+            "description": "接口 Action 名称或服务路径，例如 'CreateCommonMixStream', 'DescribeLiveStreamState', 'DropLiveStream', 或 'openim/sendmsg'"
         },
         "payload": {
             "type": "object",
-            "description": "请求参数 JSON 字典，完全符合腾讯云官方 IM REST API 文档规范"
+            "description": "请求参数 JSON 字典，遵循腾讯云官方 API 规范"
+        },
+        "service": {
+            "type": "string",
+            "description": "可选。云服务标识，如 'live' (云直播), 'im' (即时通信)。若缺省则由系统智能推导",
+            "nullable": True
         }
     }
     output_type = "object"
 
     def __init__(
         self,
-        tim_client: TimClient,
         approval_requester: Optional[Any] = None,
-        bot_manager: Optional[BotManager] = None
+        bot_manager: Optional[BotManager] = None,
+        tim_client: Optional[TimClient] = None,
+        cloud_client: Optional[Any] = None
     ):
         super().__init__()
-        self.tim_client = tim_client
         self.approval_requester = approval_requester
         self.bot_manager = bot_manager
+        self.tim_client = tim_client
+        self.cloud_client = cloud_client
 
-    def forward(self, api_path: str, payload: dict) -> dict:
+    def forward(self, action_or_path: str, payload: Any, service: Optional[str] = None) -> dict:
+        target_name = (action_or_path or "").strip()
+
+        # 容错清洗：若模型传入 JSON 字符串形式的 payload，自动安全解析为字典
+        clean_payload = payload
+        if isinstance(clean_payload, str):
+            try:
+                clean_payload = json.loads(clean_payload.strip())
+            except Exception:
+                try:
+                    import ast
+                    parsed = ast.literal_eval(clean_payload.strip())
+                    if isinstance(parsed, dict):
+                        clean_payload = parsed
+                except Exception:
+                    pass
+        if not isinstance(clean_payload, dict):
+            clean_payload = clean_payload or {}
+
         high_risk_kws = self.bot_manager.get_high_risk_keywords() if self.bot_manager else HIGH_RISK_API_KEYWORDS
-        is_high_risk = any(k in (api_path or "").lower() for k in high_risk_kws)
+        is_high_risk = any(k in target_name.lower() for k in high_risk_kws)
+
         if is_high_risk and self.approval_requester:
             target_desc = []
-            if isinstance(payload, dict):
-                if "GroupId" in payload:
-                    target_desc.append(f"群组 ID: {payload['GroupId']}")
-                if "GroupIdList" in payload:
-                    target_desc.append(f"群组列表: {len(payload['GroupIdList'])} 个群")
-                if "Accounts" in payload:
-                    target_desc.append(f"目标账号: {payload['Accounts']}")
-                if "UserID" in payload:
-                    target_desc.append(f"用户 ID: {payload['UserID']}")
-                if "Account" in payload:
-                    target_desc.append(f"账号: {payload['Account']}")
+            if isinstance(clean_payload, dict):
+                # Live 云直播破坏性操作标识提取
+                if "StreamName" in clean_payload:
+                    target_desc.append(f"直播流: {clean_payload['StreamName']}")
+                if "DomainName" in clean_payload:
+                    target_desc.append(f"域名: {clean_payload['DomainName']}")
+                if "AppName" in clean_payload:
+                    target_desc.append(f"应用名: {clean_payload['AppName']}")
+                if "ResumeTime" in clean_payload:
+                    target_desc.append(f"解禁时间: {clean_payload['ResumeTime']}")
+                # IM 即时通信破坏性操作标识提取
+                if "GroupId" in clean_payload:
+                    target_desc.append(f"群组 ID: {clean_payload['GroupId']}")
+                if "GroupIdList" in clean_payload:
+                    target_desc.append(f"群组列表: {len(clean_payload['GroupIdList'])} 个群")
+                if "Accounts" in clean_payload:
+                    target_desc.append(f"目标账号: {clean_payload['Accounts']}")
+                if "UserID" in clean_payload:
+                    target_desc.append(f"用户 ID: {clean_payload['UserID']}")
+                if "Account" in clean_payload:
+                    target_desc.append(f"账号: {clean_payload['Account']}")
 
             summary_str = "，".join(target_desc) if target_desc else "未指定具体目标标识"
             approval_id = f"appr_{int(time.time() * 1000)}"
@@ -64,9 +105,9 @@ class TimCallTool(Tool):
             # 触发人机协同门禁挂起并等待授权
             decision = self.approval_requester({
                 "approval_id": approval_id,
-                "api_path": api_path,
-                "payload": payload,
-                "warning": f"检测到不可逆破坏性操作：{api_path}",
+                "api_path": target_name,
+                "payload": clean_payload,
+                "warning": f"检测到不可逆破坏性操作：{target_name}",
                 "target_summary": summary_str,
                 "timeout_seconds": 300
             })
@@ -75,108 +116,192 @@ class TimCallTool(Tool):
                 return {
                     "ActionStatus": "CANCELLED",
                     "ErrorCode": -999,
-                    "ErrorInfo": f"⚠️ 操作已安全取消：用户拒绝了「{api_path}」高危调用的执行授权。未产生任何不可逆修改。"
+                    "ErrorInfo": f"⚠️ 操作已安全取消：用户拒绝了「{target_name}」高危调用的执行授权。未产生任何不可逆修改。"
                 }
 
         try:
-            res = self.tim_client.invoke("", api_path, payload)
+            from ..registry import registry
+            from ..cloud_client import UniversalCloudClient
+
+            api_meta = registry.get_api(target_name)
+            cloud_client = self.cloud_client or UniversalCloudClient()
+
+            if api_meta:
+                res = cloud_client.invoke_api(api_meta, clean_payload)
+            else:
+                # 智能兜底推断
+                svc = (service or "").lower().strip()
+                if svc == "live" or target_name.startswith("live_") or (len(target_name) > 0 and target_name[0].isupper()):
+                    res = cloud_client.tc3_client.invoke(
+                        service="live",
+                        action=target_name.replace("live_", ""),
+                        version="2018-08-01",
+                        payload=clean_payload
+                    )
+                else:
+                    if self.tim_client:
+                        res = self.tim_client.invoke("", target_name, clean_payload)
+                    else:
+                        res = cloud_client.tim_client.invoke("", target_name, clean_payload)
+
             if is_high_risk and isinstance(res, dict):
                 res["_security_notice"] = {
                     "is_high_risk": True,
                     "user_approved": True if self.approval_requester else False,
-                    "warning": f"⚠️ 警告: 接口 '{api_path}' 属于破坏性高危操作（解散群/删除账号/批量清理），已完成安全审计记录。"
+                    "warning": f"⚠️ 警告: 接口 '{target_name}' 属于破坏性高危操作（解散群/删除账号/批量清理/直播断流禁推），已完成安全审计记录。"
                 }
             return res
         except Exception as e:
             return {
                 "ActionStatus": "FAIL",
                 "ErrorCode": -99,
-                "ErrorInfo": f"调用接口 {api_path} 异常: {str(e)}"
+                "ErrorInfo": f"调用接口 {target_name} 异常: {str(e)}"
             }
 
 
-class TimSearchApisTool(Tool):
-    name = "tim_search_apis"
-    description = "在腾讯云 IM 全部 166 个 REST API 知识库中按关键词检索相关接口，返回匹配的接口 ID、名称、路径及功能简介。"
+class TimCallTool(CloudCallTool):
+    """向后兼容别名：老技能或旧 Prompt 调用 tim_call 时无缝代理至 CloudCallTool"""
+    name = "tim_call"
+    description = "【向后兼容】调用腾讯云接口。等价于 cloud_call。"
+    inputs = {
+        "api_path": {
+            "type": "string",
+            "description": "接口路径或 Action 名称"
+        },
+        "payload": {
+            "type": "object",
+            "description": "请求参数 JSON 字典"
+        }
+    }
+
+    def __init__(
+        self,
+        tim_client: Optional[TimClient] = None,
+        approval_requester: Optional[Any] = None,
+        bot_manager: Optional[BotManager] = None,
+        cloud_client: Optional[Any] = None
+    ):
+        super().__init__(
+            approval_requester=approval_requester,
+            bot_manager=bot_manager,
+            tim_client=tim_client,
+            cloud_client=cloud_client
+        )
+
+    def forward(self, api_path: str, payload: dict) -> dict:
+        return super().forward(api_path, payload)
+
+
+class CloudSearchApisTool(Tool):
+    name = "cloud_search_apis"
+    description = (
+        "在腾讯云全量 API 知识库（涵盖云直播 CSS、即时通信 IM 及所有已挂载的多云业务标准库）中检索相关接口。"
+        "返回匹配的接口 ID、名称、所属服务、Action/路径及功能简介。"
+    )
     inputs = {
         "keyword": {
             "type": "string",
-            "description": "搜索关键词，支持中文功能、接口名、英文指令名，例如 '禁言', '撤回', 'forbid_send_msg', 'group'"
+            "description": "搜索关键词，支持中文功能名、Action 名称、路径指令或领域词，如 '混流', '断流', '禁言', 'StreamState', '撤回'"
+        },
+        "service": {
+            "type": "string",
+            "description": "可选过滤服务：'live' (云直播), 'im' (即时通信), 'all' (全量搜索，默认)",
+            "nullable": True
         }
     }
     output_type = "array"
 
-    def __init__(self, catalog_path: Optional[str] = None):
-        super().__init__()
-        if not catalog_path:
-            catalog_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tim_full_catalog.json"))
-        self.catalog = []
-        if os.path.exists(catalog_path):
-            with open(catalog_path, "r", encoding="utf-8") as f:
-                self.catalog = json.load(f)
+    def forward(self, keyword: str, service: Optional[str] = "all") -> list:
+        from ..registry import registry
+        registry.discover()
 
-    def forward(self, keyword: str) -> list:
-        kw = keyword.lower().strip()
+        kw = (keyword or "").lower().strip()
+        svc = (service or "all").lower().strip()
         matches = []
-        for item in self.catalog:
-            name = item.get("name", "").lower()
-            cmd = item.get("full_command", "").lower()
-            desc = item.get("description", "").lower()
-            cat = item.get("category", "").lower()
-            if kw in name or kw in cmd or kw in desc or kw in cat:
+
+        for api in registry._ordered_apis:
+            st = getattr(api, "service_type", "im") or "im"
+            if svc and svc != "all" and st != svc:
+                continue
+
+            name = getattr(api, "name", "").lower()
+            cmd = getattr(api, "command", "").lower()
+            act = getattr(api, "action", "").lower()
+            desc = getattr(api, "description", "").lower()
+            cat = getattr(api, "category", "").lower()
+            subcat = getattr(api, "subcategory", "").lower()
+
+            if kw in name or kw in cmd or kw in act or kw in desc or kw in cat or kw in subcat:
                 matches.append({
-                    "api_id": item.get("api_id"),
-                    "name": item.get("name"),
-                    "category": item.get("category"),
-                    "path": "/".join(item.get("path", [])),
-                    "full_command": item.get("full_command"),
-                    "description": item.get("description", "")[:200]
+                    "api_id": api.api_id,
+                    "service": st,
+                    "name": api.name,
+                    "action_or_command": getattr(api, "action", "") or api.command,
+                    "category": f"{api.category} / {api.subcategory}" if getattr(api, "subcategory", None) else api.category,
+                    "description": (api.description or "")[:200]
                 })
-        return matches[:25]
+
+        return matches[:30]
 
 
-class TimGetDocTool(Tool):
-    name = "tim_get_doc"
-    description = "获取指定腾讯云 IM REST API 的详细文档规范、入参定义和示例请求体。"
+class TimSearchApisTool(CloudSearchApisTool):
+    """向后兼容别名"""
+    name = "tim_search_apis"
+    description = "【向后兼容】按关键词检索相关接口。等价于 cloud_search_apis。"
+
+
+class CloudGetDocTool(Tool):
+    name = "cloud_get_doc"
+    description = (
+        "获取指定腾讯云接口的完整官方文档规范、入参字段类型、复杂结构体定义、默认值与示例请求体。"
+        "支持传入 Action 名称（如 'CreateCommonMixStream', 'DescribeLiveStreamState'）、command 路径（如 'openim/sendmsg'）或 api_id。"
+    )
     inputs = {
-        "api_path": {
+        "api_identifier": {
             "type": "string",
-            "description": "接口的 command 路径（如 'group_open_http_svc/get_group_info'）或 api_id（如 'tim_2284'）"
+            "description": "接口标识符：可以是 Action 名称（如 'CreateCommonMixStream'）、接口路径（如 'openim/sendmsg'）或 api_id"
         }
     }
     output_type = "object"
 
-    def __init__(self, catalog_path: Optional[str] = None):
-        super().__init__()
-        if not catalog_path:
-            catalog_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "tim_full_catalog.json"))
-        self.catalog = []
-        if os.path.exists(catalog_path):
-            with open(catalog_path, "r", encoding="utf-8") as f:
-                self.catalog = json.load(f)
+    def forward(self, api_identifier: str) -> dict:
+        from ..registry import registry
+        registry.discover()
+
+        target = (api_identifier or "").strip()
+        api = registry.get_api(target)
+
+        if not api:
+            return {"error": f"未找到接口文档: '{api_identifier}'。请先使用 cloud_search_apis 搜索匹配的接口名。"}
+
+        fields_data = [f.to_dict() if hasattr(f, "to_dict") else f for f in getattr(api, "fields", [])]
+        return {
+            "api_id": api.api_id,
+            "service": getattr(api, "service_type", "im"),
+            "name": api.name,
+            "action_or_command": getattr(api, "action", "") or api.command,
+            "category": getattr(api, "category", ""),
+            "subcategory": getattr(api, "subcategory", ""),
+            "doc_url": getattr(api, "doc_url", ""),
+            "description": getattr(api, "description", ""),
+            "sample_payload": getattr(api, "sample_payload", {}),
+            "fields": fields_data
+        }
+
+
+class TimGetDocTool(CloudGetDocTool):
+    """向后兼容别名"""
+    name = "tim_get_doc"
+    description = "【向后兼容】获取接口文档规范。等价于 cloud_get_doc。"
+    inputs = {
+        "api_path": {
+            "type": "string",
+            "description": "接口标识符"
+        }
+    }
 
     def forward(self, api_path: str) -> dict:
-        target = api_path.strip().lower()
-        if target.startswith("v4/"):
-            target = target[3:]
-        for item in self.catalog:
-            api_id = item.get("api_id", "").lower()
-            full_cmd = item.get("full_command", "").lower()
-            if full_cmd.startswith("v4/"):
-                full_cmd = full_cmd[3:]
-            if target == api_id or target == full_cmd or target in full_cmd:
-                return {
-                    "api_id": item.get("api_id"),
-                    "name": item.get("name"),
-                    "category": item.get("category"),
-                    "subcategory": item.get("subcategory"),
-                    "full_command": item.get("full_command"),
-                    "doc_url": item.get("doc_url"),
-                    "description": item.get("description"),
-                    "sample_payload": item.get("sample_payload"),
-                    "fields": item.get("fields", [])
-                }
-        return {"error": f"未找到接口文档: {api_path}"}
+        return super().forward(api_path)
 
 
 class EnhancePromptTool(Tool):
@@ -365,6 +490,51 @@ class ListSkillsTool(Tool):
         ]
 
 
+def build_sandbox_scope(
+    caller_tool: Any,
+    search_tool: Optional[Any] = None,
+    doc_tool: Optional[Any] = None,
+    cloud_client: Optional[Any] = None,
+    tim_client: Optional[Any] = None,
+    extra_scope: Optional[Dict[str, Any]] = None,
+) -> Dict[str, Any]:
+    """
+    通用沙箱环境作用域构建工厂 (Sandbox Scope Factory)
+    动态根据已注册服务批量挂载快捷调用宏 ({service}_call)，自动消除硬编码
+    """
+    from ..registry import registry
+    from ..live_util import generate_live_push_url, generate_live_play_urls
+
+    scope: Dict[str, Any] = {
+        "cloud_call": caller_tool.forward,
+        "search_apis": search_tool.forward if search_tool else None,
+        "get_doc": doc_tool.forward if doc_tool else None,
+        "gen_live_push_url": generate_live_push_url,
+        "gen_live_play_url": generate_live_play_urls,
+    }
+
+    if cloud_client is not None:
+        scope["cloud_client"] = cloud_client
+    if tim_client is not None:
+        scope["tim_client"] = tim_client
+
+    # 动态为所有已注册服务挂载快捷调用宏，如 live_call, im_call, trtc_call, vod_call 等
+    registry.discover()
+    for svc in registry.list_services():
+        svc_id = svc.get("id")
+        if not svc_id:
+            continue
+        scope[f"{svc_id}_call"] = (lambda s=svc_id: lambda action_or_path, payload=None: caller_tool.forward(action_or_path, payload or {}, service=s))()
+
+    # 向后兼容老指令别名
+    scope["tim_call"] = scope.get("im_call") or (lambda path, payload=None: caller_tool.forward(path, payload or {}, service="im"))
+
+    if extra_scope:
+        scope.update(extra_scope)
+
+    return scope
+
+
 class RunSkillTool(Tool):
     name = "run_skill"
     description = "运行当前 BOT 已沉淀的某个专属技能。"
@@ -381,31 +551,78 @@ class RunSkillTool(Tool):
     }
     output_type = "object"
 
-    def __init__(self, bot_id: str, bot_manager: BotManager, tim_client: TimClient):
+    def __init__(
+        self,
+        bot_id: str,
+        bot_manager: BotManager,
+        tim_client: TimClient,
+        cloud_client: Optional[Any] = None,
+        approval_requester: Optional[Any] = None
+    ):
         super().__init__()
         self.bot_id = bot_id
         self.bot_manager = bot_manager
         self.tim_client = tim_client
+        self.approval_requester = approval_requester
+        if cloud_client is not None:
+            self.cloud_client = cloud_client
+        else:
+            from ..cloud_client import UniversalCloudClient
+            self.cloud_client = UniversalCloudClient()
 
-    def forward(self, name: str, kwargs: Optional[dict] = None) -> dict:
+    def forward(self, name: str, kwargs: Optional[Any] = None) -> dict:
         skill = self.bot_manager.get_skill(self.bot_id, name)
         if not skill:
             return {"error": f"未找到技能: {name}"}
-        args = kwargs or {}
-        # 安全运行沙箱执行该技能
-        local_scope: Dict[str, Any] = {
-            "tim_client": self.tim_client,
-            "tim_call": lambda path, payload: self.tim_client.invoke("", path, payload),
-            "args": args,
-            "kwargs": args,
-            "result": None
-        }
+
+        # 容错清洗：若 kwargs 为 JSON 字符串，安全反序列化
+        args = kwargs
+        if isinstance(args, str):
+            try:
+                args = json.loads(args.strip())
+            except Exception:
+                try:
+                    import ast
+                    parsed = ast.literal_eval(args.strip())
+                    if isinstance(parsed, dict):
+                        args = parsed
+                except Exception:
+                    args = {}
+        if not isinstance(args, dict):
+            args = args or {}
+
+        # 构造带有风控审计的调用工具实例
+        caller_tool = CloudCallTool(
+            approval_requester=self.approval_requester,
+            bot_manager=self.bot_manager,
+            tim_client=self.tim_client,
+            cloud_client=self.cloud_client
+        )
+
+        # 安全运行沙箱执行该技能 (使用统一工厂装载动态服务宏)
+        local_scope = build_sandbox_scope(
+            caller_tool=caller_tool,
+            cloud_client=self.cloud_client,
+            tim_client=self.tim_client,
+            extra_scope={
+                "args": args,
+                "kwargs": args,
+                "result": None
+            }
+        )
 
         import concurrent.futures
         def _exec_target():
             exec(skill.code, local_scope)
             if "execute" in local_scope and callable(local_scope["execute"]):
-                return local_scope["execute"](self.tim_client, **args)
+                import inspect
+                sig = inspect.signature(local_scope["execute"])
+                params = list(sig.parameters.keys())
+                if len(params) > 0 and params[0] in ("client", "cloud_client"):
+                    return local_scope["execute"](self.cloud_client, **args)
+                elif len(params) > 0 and params[0] == "tim_client":
+                    return local_scope["execute"](self.tim_client, **args)
+                return local_scope["execute"](**args)
             return local_scope.get("result", "Skill executed successfully")
 
         try:
@@ -443,7 +660,7 @@ class CreateBotTool(Tool):
         },
         "base_prompt": {
             "type": "string",
-            "description": "智能体系统设定提示词（约200字，专业严谨人设，结合166 API与沙箱能力）。若不提供将根据名称和目标自动生成",
+            "description": "智能体系统设定提示词（约200字，专业严谨人设，结合腾讯云多业务全量接口与沙箱能力）。若不提供将根据名称和目标自动生成",
             "nullable": True
         },
         "suggested_prompts": {
@@ -784,11 +1001,25 @@ def build_bot_tools(
     tim_client: TimClient,
     engine: Optional[Any] = None,
     call_chain: Optional[List[str]] = None,
-    approval_requester: Optional[Any] = None
+    approval_requester: Optional[Any] = None,
+    cloud_client: Optional[Any] = None
 ) -> List[Tool]:
-    """为指定 BOT 组装能力工具集"""
+    """为指定 BOT 组装能力工具集（涵盖云直播 API 3.0 与即时通信 IM REST API）"""
     tools = [
-        TimCallTool(tim_client, approval_requester=approval_requester, bot_manager=bot_manager),
+        CloudCallTool(
+            approval_requester=approval_requester,
+            bot_manager=bot_manager,
+            tim_client=tim_client,
+            cloud_client=cloud_client
+        ),
+        CloudSearchApisTool(),
+        CloudGetDocTool(),
+        TimCallTool(
+            tim_client,
+            approval_requester=approval_requester,
+            bot_manager=bot_manager,
+            cloud_client=cloud_client
+        ),
         TimSearchApisTool(),
         TimGetDocTool(),
         EnhancePromptTool(bot_id, bot_manager),
@@ -797,7 +1028,13 @@ def build_bot_tools(
         DeleteMemoryTool(bot_id, bot_manager),
         SaveSkillTool(bot_id, bot_manager),
         ListSkillsTool(bot_id, bot_manager),
-        RunSkillTool(bot_id, bot_manager, tim_client),
+        RunSkillTool(
+            bot_id,
+            bot_manager,
+            tim_client,
+            cloud_client=cloud_client,
+            approval_requester=approval_requester
+        ),
         ListAgentsTool(bot_manager),
         CallAgentTool(bot_id, bot_manager, engine, call_chain),
         ReadFileTool(bot_id, bot_manager),

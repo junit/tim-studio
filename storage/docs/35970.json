@@ -1,0 +1,140 @@
+{
+  "doc_id": 35970,
+  "api_id": "live_DescribeGroupProIspPlayInfoList",
+  "title": "查询按省份和运营商分组的下行播放数据",
+  "doc_url": "https://cloud.tencent.com/document/api/267/35970",
+  "sync_time": "2026-10-29 19:32:21",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口为监控数据接口，数据采集及统计方式与计费数据不同，仅供运营分析使用，不能用于计费对账参考。\n查询按省份和运营商分组的下行播放数据。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeGroupProIspPlayInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。示例值：2019-03-29 09:00:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。时间跨度在（0,3小时]，支持最近1个月数据查询。示例值：2019-03-29 09:10:00"
+    },
+    {
+      "name": "PlayDomains.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "播放域名，默认为不填，表示求总体数据。示例值：[\"live.com\"]"
+    },
+    {
+      "name": "ProvinceNames.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "省份列表，默认不填，则返回各省份的数据。示例值：[\"Beijing\"]"
+    },
+    {
+      "name": "IspNames.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "运营商列表，默认不填，则返回整个运营商的数据。示例值：[\"China Mobile\"]"
+    },
+    {
+      "name": "MainlandOrOversea",
+      "type": "String",
+      "required": "选填",
+      "description": "国内还是国外，如果为空，查询所有地区数据；如果为“Mainland”，查询国内数据；如果为“Oversea”，则查询国外数据。示例值：Mainland"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeGroupProIspPlayInfoList\n<公共请求参数>\n\n{\n    \"EndTime\": \"2019-03-29T09:10:00+08:00\",\n    \"StartTime\": \"2019-03-29T09:00:00+08:00\"\n}",
+      "clean_json": "{\n  \"EndTime\": \"2019-03-29T09:10:00+08:00\",\n  \"StartTime\": \"2019-03-29T09:00:00+08:00\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of GroupProIspDataInfo",
+      "description": "数据内容。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"DetailInfoList\": [\n                    {\n                        \"Bandwidth\": 863.073,\n                        \"Flux\": 6473.05,\n                        \"Online\": 540,\n                        \"Request\": 449,\n                        \"Time\": \"2019-03-29T09:00:00+08:00\"\n                    },\n                    {\n                        \"Bandwidth\": 891.49,\n                        \"Flux\": 6686.173,\n                        \"Online\": 524,\n                        \"Request\": 455,\n                        \"Time\": \"2019-03-29T09:05:00+08:00\"\n                    },\n                    {\n                        \"Bandwidth\": 847.715,\n                        \"Flux\": 6357.859,\n                        \"Online\": 612,\n                        \"Request\": 578,\n                        \"Time\": \"2019-03-29T09:10:00+08:00\"\n                    }\n                ],\n                \"IspName\": \"电信\",\n                \"ProvinceName\": \"广东省\"\n            },\n            {\n                \"DetailInfoList\": [\n                    {\n                        \"Bandwidth\": 213.405,\n                        \"Flux\": 1600.537,\n                        \"Online\": 132,\n                        \"Request\": 184,\n                        \"Time\": \"2019-03-29T09:00:00+08:00\"\n                    },\n                    {\n                        \"Bandwidth\": 215.738,\n                        \"Flux\": 1618.032,\n                        \"Online\": 125,\n                        \"Request\": 122,\n                        \"Time\": \"2019-03-29T09:05:00+08:00\"\n                    },\n                    {\n                        \"Bandwidth\": 226.96,\n                        \"Flux\": 1702.203,\n                        \"Online\": 131,\n                        \"Request\": 131,\n                        \"Time\": \"2019-03-29T09:10:00+08:00\"\n                    }\n                ],\n                \"IspName\": \"联通\",\n                \"ProvinceName\": \"广东省\"\n            }\n        ],\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"DetailInfoList\": [\n          {\n            \"Bandwidth\": 863.073,\n            \"Flux\": 6473.05,\n            \"Online\": 540,\n            \"Request\": 449,\n            \"Time\": \"2019-03-29T09:00:00+08:00\"\n          },\n          {\n            \"Bandwidth\": 891.49,\n            \"Flux\": 6686.173,\n            \"Online\": 524,\n            \"Request\": 455,\n            \"Time\": \"2019-03-29T09:05:00+08:00\"\n          },\n          {\n            \"Bandwidth\": 847.715,\n            \"Flux\": 6357.859,\n            \"Online\": 612,\n            \"Request\": 578,\n            \"Time\": \"2019-03-29T09:10:00+08:00\"\n          }\n        ],\n        \"IspName\": \"电信\",\n        \"ProvinceName\": \"广东省\"\n      },\n      {\n        \"DetailInfoList\": [\n          {\n            \"Bandwidth\": 213.405,\n            \"Flux\": 1600.537,\n            \"Online\": 132,\n            \"Request\": 184,\n            \"Time\": \"2019-03-29T09:00:00+08:00\"\n          },\n          {\n            \"Bandwidth\": 215.738,\n            \"Flux\": 1618.032,\n            \"Online\": 125,\n            \"Request\": 122,\n            \"Time\": \"2019-03-29T09:05:00+08:00\"\n          },\n          {\n            \"Bandwidth\": 226.96,\n            \"Flux\": 1702.203,\n            \"Online\": 131,\n            \"Request\": 131,\n            \"Time\": \"2019-03-29T09:10:00+08:00\"\n          }\n        ],\n        \"IspName\": \"联通\",\n        \"ProvinceName\": \"广东省\"\n      }\n    ],\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

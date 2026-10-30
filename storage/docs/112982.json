@@ -1,0 +1,131 @@
+{
+  "doc_id": 112982,
+  "api_id": "live_AddCasterOutputInfo",
+  "title": "新增导播台推流信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/112982",
+  "sync_time": "2026-10-29 19:32:09",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用来新增导播台推流信息。导播台主监启动后，将会将主监画面推向该接口设置的地址。\n默认接口请求频率限制：200次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：AddCasterOutputInfo。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "CasterId",
+      "type": "Integer",
+      "required": "必填",
+      "description": "导播台ID示例值：63501"
+    },
+    {
+      "name": "OutputInfo",
+      "type": "CasterOutputInfo",
+      "required": "必填",
+      "description": "导播台推流参数信息。"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: AddCasterOutputInfo\n<公共请求参数>\n\n{\n    \"CasterId\": 63501,\n    \"OutputInfo\": {\n        \"OutputIndex\": 1,\n        \"OutputUrl\": \"rtmp://example.third.push.domain/live/push_stream_id\"\n    }\n}",
+      "clean_json": "{\n  \"CasterId\": 63501,\n  \"OutputInfo\": {\n    \"OutputIndex\": 1,\n    \"OutputUrl\": \"rtmp://example.third.push.domain/live/push_stream_id\"\n  }\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"3c140219-cfe9-470e-b241-907877d6fb03\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation.CasterNotFound",
+      "description": "导播台不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.OutputAlreadyExist",
+      "description": "新增的输出已经存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.InvalidUrl",
+      "description": "url非法。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserNotExist",
+      "description": "用户未注册直播。",
+      "solution": ""
+    },
+    {
+      "code": "UnknownParameter",
+      "description": "未知参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "UnsupportedOperation",
+      "description": "操作不支持。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

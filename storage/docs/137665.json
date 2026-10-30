@@ -1,0 +1,110 @@
+{
+  "doc_id": 137665,
+  "api_id": "live_CreateLiveAvatarCloneFigure",
+  "title": "创建数字人直播间克隆形象",
+  "doc_url": "https://cloud.tencent.com/document/api/267/137665",
+  "sync_time": "2026-10-29 19:32:25",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n调用该接口，用于创建数字人直播间/AIGC直播间话术。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：CreateLiveAvatarCloneFigure。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "SceneType",
+      "type": "String",
+      "required": "必填",
+      "description": "形象克隆场景类型枚举值：PHOTO： 图生数字人GREEN_SCREEN： 绿幕数字人REAL_SHOT： 实景数字人示例值：PHOTO"
+    },
+    {
+      "name": "FigureName",
+      "type": "String",
+      "required": "必填",
+      "description": "克隆的形象的名字示例值：电子女主播"
+    },
+    {
+      "name": "MaterialUrl",
+      "type": "String",
+      "required": "必填",
+      "description": "克隆的形象的url示例值：https://wsh-test-1303333058.cos.ap-guangzhou.myqcloud.com/%E7%94%B5%E5%AD%90%E4%BA%A7%E5%93%81%E5%A5%B3%E4%B8%BB%E6%92%AD.png"
+    },
+    {
+      "name": "Gender",
+      "type": "String",
+      "required": "选填",
+      "description": "克隆的形象的性别枚举值：MALE： 男FEMALE： 女UNHNOWN： 不知道示例值：FEMALE"
+    },
+    {
+      "name": "IdentityWrittenUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "授权pdf示例值：https://wsh-test-1303333058.cos.ap-guangzhou.myqcloud.com/%E6%95%B0%E5%AD%97%E4%BA%BA%E6%B5%8B%E8%AF%95/%E6%8E%88%E6%9D%83%E4%B9%A6-%E5%BC%A0%E4%B8%89V1.pdf"
+    },
+    {
+      "name": "IdentityVideoUrl",
+      "type": "String",
+      "required": "选填",
+      "description": "授权视频示例值：https://virtualhuman-cos-prod-1251316161.cos.accelerate.myqcloud.com/customer-pipeline/3397/e0db4b1e-11be-480c-994a-88f06d44d87e/idcard/identity_7501541565984051200.pdf"
+    },
+    {
+      "name": "PhotoVersion",
+      "type": "Integer",
+      "required": "选填",
+      "description": "图生视频时，动作训练幅度大小枚举值：0： 只有头部轻微动1： 头部跟身体均动示例值：0"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: CreateLiveAvatarCloneFigure\n<公共请求参数>\n\n{\n    \"SceneType\": \"PHOTO\",\n    \"FigureName\": \"电子女主播\",\n    \"MaterialUrl\": \"https://wsh-test-1303333058.cos.ap-guangzhou.myqcloud.com/%E7%94%B5%E5%AD%90%E4%BA%A7%E5%93%81%E5%A5%B3%E4%B8%BB%E6%92%AD.png\",\n    \"Gender\": \"FEMALE\"\n}",
+      "clean_json": "{\n  \"SceneType\": \"PHOTO\",\n  \"FigureName\": \"电子女主播\",\n  \"MaterialUrl\": \"https://wsh-test-1303333058.cos.ap-guangzhou.myqcloud.com/%E7%94%B5%E5%AD%90%E4%BA%A7%E5%93%81%E5%A5%B3%E4%B8%BB%E6%92%AD.png\",\n  \"Gender\": \"FEMALE\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "TaskId",
+      "type": "String",
+      "description": "该图克隆形象生成的任务id示例值：7501977621938212864"
+    },
+    {
+      "name": "Status",
+      "type": "String",
+      "description": "该克隆形象返回的状态枚举值：SUBMITTING： 已受理CHECKING： 检查中QUEUE： 排队中MAKING： 训练中CONFIRMING： 效果确认SUCCESS： 成功FAIL： 失败示例值：SUBMITTING"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"Status\": \"SUBMITTING\",\n        \"TaskId\": \"7501977621938212864\",\n        \"RequestId\": \"08bdc698-230c-491a-a302-520d7eb57b3f\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"Status\": \"SUBMITTING\",\n    \"TaskId\": \"7501977621938212864\",\n    \"RequestId\": \"08bdc698-230c-491a-a302-520d7eb57b3f\"\n  }\n}"
+    }
+  ],
+  "error_codes": [],
+  "callbacks": [],
+  "notes": []
+}

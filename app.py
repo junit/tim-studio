@@ -34,14 +34,17 @@ from core.task_runner import (
     task_runner,
 )
 from core.tim_client import TimClient
+from core.cloud_client import UniversalCloudClient
+from core.live_util import generate_live_push_url, generate_live_play_urls, parse_live_stream_url
 from core.doc_syncer import doc_sync_manager
 from core.tree_syncer import sync_catalog_from_live_tree, fetch_official_hydration_tree
+from core.common_specs_syncer import common_specs_manager
 from apis.agent import router as agent_router
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
 
-app = FastAPI(title="Tencent Cloud IM Visual Management Studio", version="1.0.0")
+app = FastAPI(title="TC Studio (Nova) - Tencent Cloud Multi-Service Architecture Studio", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
@@ -91,10 +94,21 @@ class EnvironmentItem(BaseModel):
     name: str = "未命名环境"
     tag: Optional[str] = "DEV"
     remark: Optional[str] = ""
+    # 腾讯云 IM 专属配置
     sdkappid: int = 0
     secret_key: Optional[str] = ""
     admin_user: str = "administrator"
     domain: str = "console.tim.qq.com"
+    # 腾讯云 API 3.0 通用凭据 (云直播 / TRTC / VOD / COS 等通用)
+    tc_secret_id: Optional[str] = ""
+    tc_secret_key: Optional[str] = ""
+    tc_region: Optional[str] = "ap-guangzhou"
+    tc_endpoint: Optional[str] = "live.tencentcloudapi.com"
+    # 云直播 (CSS) 专属配置 (推拉流域名与鉴权防盗链 Key)
+    live_push_domain: Optional[str] = ""
+    live_play_domain: Optional[str] = ""
+    live_push_key: Optional[str] = ""
+    live_play_key: Optional[str] = ""
     delay_sec: float = 0.05
 
 
@@ -104,6 +118,7 @@ class SwitchEnvRequest(BaseModel):
 
 class TestConnRequest(BaseModel):
     env_id: Optional[str] = None
+    service: Optional[str] = None
 
 
 @app.get("/api/environments")
@@ -176,28 +191,85 @@ def update_config(body: ConfigUpdate):
 def test_connectivity(req: Optional[TestConnRequest] = None):
     cfg = load_config()
     env_id = req.env_id if req else None
-    if env_id:
-        target = next((e for e in cfg["environments"] if e.get("id") == env_id), None)
-        client = TimClient(config=target)
-    else:
-        client = TimClient()
+    target = next((e for e in cfg["environments"] if e.get("id") == env_id), None) if env_id else cfg
+    client = UniversalCloudClient(config=target)
+
+    req_service = (req.service if req and req.service else "").lower()
+    has_im = bool(target.get("sdkappid") and target.get("secret_key"))
+    has_tc = bool(target.get("tc_secret_id") and target.get("tc_secret_key"))
+
+    if not req_service:
+        req_service = "live" if (has_tc and not has_im) else "im"
+
     try:
-        res = client.test_connection()
+        res = client.test_connection(service=req_service)
+
         is_ok = (res.get("ActionStatus") == "OK" and res.get("ErrorCode") == 0)
         return {
             "status": "success" if is_ok else "fail",
             "is_ok": is_ok,
             "cost_ms": res.get("_cost_ms", 0),
+            "service": req_service,
             "response": res
         }
     except Exception as e:
-        return {"status": "error", "is_ok": False, "message": str(e)}
+        return {"status": "error", "is_ok": False, "service": req_service, "message": str(e)}
 
 
-# ---------------- API 注册与调试工作台 ----------------
+# ---------------- 多服务与 API 注册工作台 ----------------
+@app.get("/api/services")
+def get_supported_services():
+    """获取所有已支持的腾讯云产品服务列表 (IM、云直播等)"""
+    return {"status": "success", "data": registry.list_services()}
+
+
 @app.get("/api/apis")
-def get_registered_apis():
-    return {"status": "success", "data": registry.list_apis()}
+def get_registered_apis(service: Optional[str] = None):
+    return {"status": "success", "data": registry.list_apis(service_type=service)}
+
+
+class LiveSignUrlRequest(BaseModel):
+    domain: Optional[str] = None
+    stream_name: str
+    key: Optional[str] = None
+    expire_seconds: Optional[int] = 86400
+    app_name: Optional[str] = "live"
+    type: Optional[str] = "both"  # "push", "play", "both"
+
+
+@app.post("/api/live/sign-url")
+def api_generate_live_url(req: LiveSignUrlRequest):
+    """生成腾讯云直播推流与播放防盗链鉴权地址 (txSecret & txTime)"""
+    cfg = load_config()
+    push_domain = req.domain or cfg.get("live_push_domain") or "push.yourdomain.com"
+    play_domain = req.domain or cfg.get("live_play_domain") or "play.yourdomain.com"
+    push_key = req.key or cfg.get("live_push_key")
+    play_key = req.key or cfg.get("live_play_key")
+
+    push_info = generate_live_push_url(
+        domain=push_domain,
+        stream_name=req.stream_name,
+        key=push_key,
+        expire_seconds=req.expire_seconds or 86400,
+        app_name=req.app_name or "live"
+    )
+
+    play_info = generate_live_play_urls(
+        domain=play_domain,
+        stream_name=req.stream_name,
+        key=play_key,
+        expire_seconds=req.expire_seconds or 86400,
+        app_name=req.app_name or "live"
+    )
+
+    return {
+        "status": "success",
+        "data": {
+            "stream_name": req.stream_name,
+            "push": push_info,
+            "play": play_info
+        }
+    }
 
 
 class ApiInvokeRequest(BaseModel):
@@ -211,56 +283,40 @@ def invoke_single_api(api_id: str, req: ApiInvokeRequest):
     if not api_meta:
         raise HTTPException(status_code=404, detail=f"API {api_id} 未注册")
 
-    client = TimClient()
+    client = UniversalCloudClient()
     payload = api_meta.build_payload(req.payload)
 
-    # 预览模式：执行入参校验与报文结构生成，不发网络请求
+    # 预览模式：执行入参校验与请求报文结构生成，不发网络请求
     if req.dry_run:
-        cfg = client.config
-        sdkappid = cfg.get("sdkappid", 1400000000)
-        admin_user = cfg.get("admin_user", "administrator")
-        domain = cfg.get("domain", "console.tim.qq.com")
-        rand = 12345678
-        usersig = "eJx1j...mock_usersig_for_preview"
-        try:
-            usersig = client.get_usersig()
-        except Exception:
-            pass
-
-        full_cmd = (
-            api_meta.command
-            if api_meta.command.startswith("v4/")
-            else f"v4/{api_meta.service_name}/{api_meta.command}"
-        )
-        preview_url = (
-            f"https://{domain}/{full_cmd}"
-            f"?sdkappid={sdkappid}&identifier={admin_user}&usersig={usersig}&random={rand}&contenttype=json"
-        )
-
+        preview_data = client.generate_preview(api_meta, payload)
         return {
             "status": "success",
             "dry_run": True,
             "api_id": api_id,
             "service_name": api_meta.service_name,
+            "service_type": getattr(api_meta, "service_type", "im"),
             "command": api_meta.command,
             "sent_payload": payload,
-            "preview_url": preview_url,
+            "preview_url": preview_data.get("preview_url", ""),
+            "curl_command": preview_data.get("curl_command", ""),
+            "headers": preview_data.get("headers", {}),
             "response": {
                 "ActionStatus": "OK",
                 "ErrorCode": 0,
                 "ErrorInfo": "",
                 "_dry_run": True,
-                "_message": "【预览模式】未向腾讯云发起真实网络请求。请求入参校验通过，报文结构已成功生成。"
+                "_message": "【预览模式】未向腾讯云发起真实网络请求。请求入参校验通过，报文结构与签名凭据已成功生成。"
             },
             "cost_ms": 1
         }
 
-    resp = client.invoke(api_meta.service_name, api_meta.command, payload)
+    resp = client.invoke_api(api_meta, payload)
     return {
         "status": "success",
         "dry_run": False,
         "api_id": api_id,
         "service_name": api_meta.service_name,
+        "service_type": getattr(api_meta, "service_type", "im"),
         "command": api_meta.command,
         "sent_payload": payload,
         "response": resp,
@@ -273,11 +329,14 @@ class BatchSyncRequest(BaseModel):
     force: bool = False
     api_ids: Optional[List[str]] = None
     mode: Optional[str] = "auto"  # 'auto' | 'html' | 'api'
+    service: Optional[str] = None  # 'im' | 'live' | 'all'
 
 
 @app.get("/api/docs/summary")
-def get_docs_summary():
+def get_docs_summary(service: Optional[str] = Query(None)):
     apis_list = registry.list_apis()
+    if service and service != "all":
+        apis_list = [a for a in apis_list if (a.get("service_type") or "im") == service]
     summary = doc_sync_manager.get_summary(apis_list)
     return {"status": "success", "data": summary}
 
@@ -294,6 +353,8 @@ def start_batch_docs_sync(req: BatchSyncRequest = BatchSyncRequest()):
     if req.api_ids:
         target_set = set(req.api_ids)
         target_apis = [a for a in all_apis if a.get("api_id") in target_set]
+    elif req.service and req.service != "all":
+        target_apis = [a for a in all_apis if (a.get("service_type") or "im") == req.service]
     else:
         target_apis = all_apis
 
@@ -314,6 +375,18 @@ def sync_official_tree():
         return {"status": "success", "data": res}
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"同步官方目录树失败: {str(e)}")
+
+
+@app.post("/api/live/catalog/sync")
+def sync_official_live_catalog():
+    """动态同步腾讯云官方直播 (CSS) 260+ 全量 API"""
+    try:
+        from scripts.sync_live_catalog import sync_all_live_apis
+        catalog = sync_all_live_apis()
+        registry.reload()
+        return {"status": "success", "count": len(catalog)}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"同步云直播官方接口失败: {str(e)}")
 
 
 @app.get("/api/docs/tree/raw")
@@ -366,6 +439,47 @@ def sync_single_api_doc(api_id: str, mode: str = Query("auto")):
         raise HTTPException(status_code=500, detail=f"同步官方文档失败: {str(e)}")
 
 
+# ---------------- 腾讯云 API 3.0 公共规范与数据结构 ----------------
+@app.get("/api/common-specs")
+def get_common_specs(service: str = Query("live"), category: Optional[str] = Query(None)):
+    specs = common_specs_manager.get_specs(service=service)
+    if category:
+        if category in specs:
+            return {"status": "success", "data": specs[category]}
+        elif category in specs.get("invocation", {}):
+            return {"status": "success", "data": specs["invocation"][category]}
+        raise HTTPException(status_code=404, detail=f"Category '{category}' 未在公共规范中找到")
+    return {"status": "success", "data": specs}
+
+
+@app.get("/api/common-specs/error-lookup")
+def lookup_common_error(code: str = Query(..., description="错误码，如 FailedOperation.StreamNotExist")):
+    err = common_specs_manager.lookup_error(code)
+    if not err:
+        return {"status": "not_found", "message": f"未在官方错误码库中找到 {code}", "data": None}
+    return {"status": "success", "data": err}
+
+
+@app.post("/api/common-specs/sync")
+def sync_common_specs(service: str = Query("live")):
+    try:
+        specs = common_specs_manager.sync_all(service=service)
+        return {
+            "status": "success",
+            "message": "公共规范同步完成",
+            "data": {
+                "service": service,
+                "updated_at": specs.get("updated_at"),
+                "total_docs": specs.get("total_docs"),
+                "structs_count": specs.get("structs", {}).get("total_count", 0),
+                "errors_count": specs.get("errors", {}).get("total_count", 0),
+                "countries_count": specs.get("mappings", {}).get("countries_count", 0),
+            },
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"同步公共规范失败: {str(e)}")
+
+
 # ---------------- 批处理任务 ----------------
 @app.post("/api/batch/upload")
 async def upload_batch_file(file: UploadFile = File(...)):
@@ -413,9 +527,12 @@ async def upload_batch_file(file: UploadFile = File(...)):
 
 
 @app.get("/api/batch/presets")
-def get_batch_presets():
-    """获取常用运维场景预设清单"""
+def get_batch_presets(service: Optional[str] = None):
+    """获取常用运维场景预设清单，支持按 service 过滤"""
     from core.batch_presets import BATCH_PRESETS
+    if service:
+        filtered = [p for p in BATCH_PRESETS if p.get("service_type", "im") == service]
+        return {"status": "success", "data": filtered}
     return {"status": "success", "data": BATCH_PRESETS}
 
 
@@ -620,7 +737,7 @@ def delete_all_history():
 if __name__ == "__main__":
     import uvicorn
     print("\n" + "=" * 60)
-    print("🚀 腾讯云 IM 可视化控制台启动中...")
+    print("🚀 TC Studio (Nova) - 腾讯云多业务云架构控制台启动中...")
     print("👉 请在浏览器打开: http://127.0.0.1:8000")
     print("=" * 60 + "\n")
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)

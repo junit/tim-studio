@@ -1,0 +1,92 @@
+{
+  "doc_id": 138610,
+  "api_id": "live_DescribeAuditTemplates",
+  "title": "获取审核模板列表",
+  "doc_url": "https://cloud.tencent.com/document/api/267/138610",
+  "sync_time": "2026-10-29 19:32:16",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n返回当前用户的审核模板列表。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeAuditTemplates。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "WithTextAudit",
+      "type": "Boolean",
+      "required": "选填",
+      "description": "是否过滤出文本审核，false不过滤，true过滤。示例值：true"
+    },
+    {
+      "name": "PageNum",
+      "type": "Integer",
+      "required": "选填",
+      "description": "页码。示例值：2"
+    },
+    {
+      "name": "PageSize",
+      "type": "Integer",
+      "required": "选填",
+      "description": "每页数量。取值范围：[5, 100]示例值：10"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeAuditTemplates\n<公共请求参数>\n\n{\n    \"WithTextAudit\": false,\n    \"PageNum\": 1,\n    \"PageSize\": 10\n}",
+      "clean_json": "{\n  \"WithTextAudit\": false,\n  \"PageNum\": 1,\n  \"PageSize\": 10\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "AuditTemplates",
+      "type": "Array of AuditTemplate",
+      "description": "审核模板列表。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"AuditTemplates\": [\n            {\n                \"AudioInterval\": 15,\n                \"AuditAudio\": false,\n                \"AuditImage\": true,\n                \"AuditText\": 0,\n                \"CosBucket\": \"2\",\n                \"CosFilePath\": \"/Audit/{Year}-{Month}-{Day}/{StreamID}-Audit-{Hour}-{Minute}-{Second}{Ext}\",\n                \"CosRegion\": \"ap-guangzhou\",\n                \"Description\": \"\",\n                \"EnableFailoverCos\": false,\n                \"FailoverCosBucket\": \"\",\n                \"FailoverCosRegion\": \"\",\n                \"SceneInfos\": [\n                    {\n                        \"BizInfos\": [\n                            {\n                                \"BizType\": \"1_1_7_8390211\",\n                                \"Status\": true,\n                                \"StrategyConfig\": \"{\\\"ability\\\":{\\\"asr_text\\\":true,\\\"audio\\\":true},\\\"service_config\\\":{\\\"callback_info\\\":{},\\\"codec_info\\\":{}},\\\"ignore_word_conf\\\":{\\\"model_disable\\\":false,\\\"rule_disable\\\":false,\\\"keyword_disable\\\":false},\\\"user_text_libs\\\":[]}\",\n                                \"StrategyType\": \"ShortAudio\"\n                            }\n                        ],\n                        \"SceneID\": \"LiveAudit\"\n                    }\n                ],\n                \"SnapshotInterval\": 2,\n                \"TemplateId\": 8390211,\n                \"TemplateName\": \"qwe\"\n            }\n        ],\n        \"RequestId\": \"23171f70-25d8-4c72-9342-51439526af6d\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"AuditTemplates\": [\n      {\n        \"AudioInterval\": 15,\n        \"AuditAudio\": false,\n        \"AuditImage\": true,\n        \"AuditText\": 0,\n        \"CosBucket\": \"2\",\n        \"CosFilePath\": \"/Audit/{Year}-{Month}-{Day}/{StreamID}-Audit-{Hour}-{Minute}-{Second}{Ext}\",\n        \"CosRegion\": \"ap-guangzhou\",\n        \"Description\": \"\",\n        \"EnableFailoverCos\": false,\n        \"FailoverCosBucket\": \"\",\n        \"FailoverCosRegion\": \"\",\n        \"SceneInfos\": [\n          {\n            \"BizInfos\": [\n              {\n                \"BizType\": \"1_1_7_8390211\",\n                \"Status\": true,\n                \"StrategyConfig\": \"{\\\"ability\\\":{\\\"asr_text\\\":true,\\\"audio\\\":true},\\\"service_config\\\":{\\\"callback_info\\\":{},\\\"codec_info\\\":{}},\\\"ignore_word_conf\\\":{\\\"model_disable\\\":false,\\\"rule_disable\\\":false,\\\"keyword_disable\\\":false},\\\"user_text_libs\\\":[]}\",\n                \"StrategyType\": \"ShortAudio\"\n              }\n            ],\n            \"SceneID\": \"LiveAudit\"\n          }\n        ],\n        \"SnapshotInterval\": 2,\n        \"TemplateId\": 8390211,\n        \"TemplateName\": \"qwe\"\n      }\n    ],\n    \"RequestId\": \"23171f70-25d8-4c72-9342-51439526af6d\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

@@ -11,6 +11,15 @@ export interface Environment {
   domain: string
   delay_sec: number
   has_secret?: boolean
+  tc_secret_id?: string
+  tc_secret_key?: string
+  tc_region?: string
+  tc_endpoint?: string
+  live_push_domain?: string
+  live_play_domain?: string
+  live_push_key?: string
+  live_play_key?: string
+  has_tc_secret?: boolean
 }
 
 export interface TimConfig {
@@ -19,6 +28,14 @@ export interface TimConfig {
   admin_user: string
   domain: string
   delay_sec: number
+  tc_secret_id?: string
+  tc_secret_key?: string
+  tc_region?: string
+  tc_endpoint?: string
+  live_push_domain?: string
+  live_play_domain?: string
+  live_push_key?: string
+  live_play_key?: string
 }
 
 interface ConfigState {
@@ -41,7 +58,7 @@ interface ConfigState {
   saveEnvironment: (env: Partial<Environment>) => Promise<{ success: boolean; data?: Environment; message?: string }>
   deleteEnvironment: (envId: string) => Promise<{ success: boolean; message?: string }>
   updateConfig: (cfg: Partial<TimConfig>) => Promise<boolean>
-  testConnection: (envId?: string) => Promise<void>
+  testConnection: (envId?: string, service?: string) => Promise<void>
 }
 
 export const useConfigStore = create<ConfigState>((set, get) => ({
@@ -77,6 +94,13 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
             admin_user: active_env.admin_user,
             domain: active_env.domain,
             delay_sec: active_env.delay_sec,
+            tc_secret_id: active_env.tc_secret_id,
+            tc_secret_key: active_env.tc_secret_key,
+            tc_region: active_env.tc_region,
+            live_push_domain: active_env.live_push_domain,
+            live_play_domain: active_env.live_play_domain,
+            live_push_key: active_env.live_push_key,
+            live_play_key: active_env.live_play_key,
           } : get().config,
           isLoading: false,
         })
@@ -188,13 +212,16 @@ export const useConfigStore = create<ConfigState>((set, get) => ({
     return false
   },
 
-  testConnection: async (envId?: string) => {
+  testConnection: async (envId?: string, service?: string) => {
     set({ isTesting: true, testResult: null })
     try {
       const res = await fetch('/api/config/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(envId ? { env_id: envId } : {}),
+        body: JSON.stringify({
+          ...(envId ? { env_id: envId } : {}),
+          ...(service ? { service } : {}),
+        }),
       })
       const json = await res.json()
       set({

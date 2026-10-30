@@ -1,0 +1,309 @@
+{
+  "doc_id": 78655,
+  "api_id": "live_ModifyLiveDomainCertBindings",
+  "title": "批量绑定证书对应的播放域名",
+  "doc_url": "https://cloud.tencent.com/document/api/267/78655",
+  "sync_time": "2026-10-29 19:32:13",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n批量绑定证书对应的播放域名，并更新启用状态。\n新建自有证书将自动上传至腾讯云ssl。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：ModifyLiveDomainCertBindings。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "DomainInfos.N",
+      "type": "Array of LiveCertDomainInfo",
+      "required": "必填",
+      "description": "要绑定证书的播放域名/状态 信息列表。如果CloudCertId和证书公钥私钥对均不传，且域名列表已有绑定规则，只批量更新域名https规则的启用状态，并把未上传至腾讯云ssl的已有自有证书上传。"
+    },
+    {
+      "name": "CloudCertId",
+      "type": "String",
+      "required": "选填",
+      "description": "腾讯云ssl的证书Id。见 https://cloud.tencent.com/document/api/400/41665示例值：Kf2ymCv"
+    },
+    {
+      "name": "CertificatePublicKey",
+      "type": "String",
+      "required": "选填",
+      "description": "证书公钥。CloudCertId和公钥私钥对二选一，若CloudCertId将会舍弃公钥和私钥参数，否则将自动先把公钥私钥对上传至ssl新建证书，并使用上传成功后返回的CloudCertId。示例值：NXpT4oZAQ0JLclP1I9EbV8daGk9j86hd1oWJlmGMuz-Qc"
+    },
+    {
+      "name": "CertificatePrivateKey",
+      "type": "String",
+      "required": "选填",
+      "description": "证书私钥。CloudCertId和公钥私钥对二选一，若传CloudCertId将会舍弃公钥和私钥参数，否则将自动先把公钥私钥对上传至ssl新建证书，并使用上传成功后返回的CloudCertId。示例值：lb7KhNmJL8wS7XXIZeFreu353WIeYtQX8xz4OOLwWR2pwamXsH5rLGVSVSDMnpjhd6q7RMbxJeNyByL3WpytvXgA1bn4w"
+    },
+    {
+      "name": "CertificateAlias",
+      "type": "String",
+      "required": "选填",
+      "description": "上传至ssl证书中心的备注信息，只有新建证书时有效。传CloudCertId时会忽略。示例值：Kf2ymCv"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: ModifyLiveDomainCertBindings\n<公共请求参数>\n\n{\n    \"CloudCertId\": \"hZy2N9vF\",\n    \"DomainInfos\": [\n        {\n            \"DomainName\": \"abc.tst.com.cn\",\n            \"Status\": 1\n        }\n    ]\n}",
+      "clean_json": "{\n  \"CloudCertId\": \"hZy2N9vF\",\n  \"DomainInfos\": [\n    {\n      \"DomainName\": \"abc.tst.com.cn\",\n      \"Status\": 1\n    }\n  ]\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "MismatchedDomainNames",
+      "type": "Array of String",
+      "description": "DomainNames 入参中，与证书不匹配的域名列表，将会跳过处理。示例值：5000.liveplay.com"
+    },
+    {
+      "name": "Errors",
+      "type": "Array of BatchDomainOperateErrors",
+      "description": "操作失败的域名及错误码，错误信息，包括MismatchedDomainNames中的域名。"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"cb91d382-e9be-4688-9008-d57088271b5f\",\n        \"MismatchedDomainNames\": [],\n        \"Errors\": []\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"cb91d382-e9be-4688-9008-d57088271b5f\",\n    \"MismatchedDomainNames\": [],\n    \"Errors\": []\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.AuthError",
+      "description": "请检查是否有权限。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CannotBeDeletedIssued",
+      "description": "该证书已颁发，不能删除。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CannotBeDeletedWithinHour",
+      "description": "免费证书申请1小时内不允许删除。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CertificateExists",
+      "description": "证书已存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CertificateInvalid",
+      "description": "证书不符合标准。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CertificateMismatch",
+      "description": "证书与私钥不对应。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.CertificateNotFound",
+      "description": "证书不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.ConfigCDNFailed",
+      "description": "下发CDN平台失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.ExceedsFreeLimit",
+      "description": "免费证书数量超出限制。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.InvalidCertificateStatusCode",
+      "description": "证书状态不正确。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.InvalidParam",
+      "description": "参数有误。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.NetworkError",
+      "description": "当前 CA 机构访问繁忙，请稍后重试。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.NoProjectPermission",
+      "description": "您没有该项目的操作权限。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.NoRealNameAuth",
+      "description": "尚未通过实名认证。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.ConnectDbError",
+      "description": "DB 连接错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CrtDateInUsing",
+      "description": "证书使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CrtDateNotFound",
+      "description": "证书不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CrtDateNotLegal",
+      "description": "证书不合法。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CrtDateOverdue",
+      "description": "证书过期。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CrtDomainNotFound",
+      "description": "没有相关域名。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.CrtKeyNotMatch",
+      "description": "证书 Key 不匹配。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.DBError",
+      "description": "DB执行错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.NetworkError",
+      "description": "内部网络错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CloudCrtIdError",
+      "description": "腾讯云证书托管 ID 错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CrtDateInUsing",
+      "description": "证书使用中。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CrtDateNotFound",
+      "description": "证书不存在。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CrtDateNotLegal",
+      "description": "证书内容不合法。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CrtDateOverdue",
+      "description": "证书过期。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CrtDomainNotFound",
+      "description": "证书没有相关域名。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CrtKeyNotMatch",
+      "description": "证书 Key 不匹配。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.CrtOrKeyNotExist",
+      "description": "证书内容或者私钥未提供。",
+      "solution": ""
+    },
+    {
+      "code": "LimitExceeded.RateLimitExceeded",
+      "description": "单位时间内接口请求频率达到限制。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.CrtDateNotFound",
+      "description": "证书不存在。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.CrtDomainNotFound",
+      "description": "未找到证书信息。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.DomainNotExist",
+      "description": "域名不存在或不匹配。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

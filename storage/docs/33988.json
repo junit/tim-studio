@@ -1,0 +1,183 @@
+{
+  "doc_id": 33988,
+  "api_id": "live_DescribeProvinceIspPlayInfoList",
+  "title": "按省份运营商查询播放信息",
+  "doc_url": "https://cloud.tencent.com/document/api/267/33988",
+  "sync_time": "2026-10-29 19:32:22",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口为监控数据接口，数据采集及统计方式与计费数据不同，仅供运营分析使用，不能用于计费对账参考。\n查询某省份某运营商下行播放数据，包括带宽，流量，请求数，并发连接数信息。\n默认接口请求频率限制：10次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：DescribeProvinceIspPlayInfoList。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口不需要传递此参数。"
+    },
+    {
+      "name": "StartTime",
+      "type": "String",
+      "required": "必填",
+      "description": "起始时间点，使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。示例值：2019-02-01 00:00:00"
+    },
+    {
+      "name": "EndTime",
+      "type": "String",
+      "required": "必填",
+      "description": "结束时间点，使用UTC格式时间，例如：2019-01-08T10:00:00Z。注意：北京时间值为 UTC 时间值 + 8 小时，格式按照 ISO 8601 标准表示，详见 ISO 日期格式说明。注：EndTime 和 StartTime 只支持最近1天的数据查询。示例值：2019-02-02 00:00:00"
+    },
+    {
+      "name": "Granularity",
+      "type": "Integer",
+      "required": "必填",
+      "description": "支持如下粒度：1：1分钟粒度（跨度不支持超过1天）示例值：1"
+    },
+    {
+      "name": "StatType",
+      "type": "String",
+      "required": "必填",
+      "description": "统计指标类型：“Bandwidth”：带宽“FluxPerSecond”：平均流量“Flux”：流量“Request”：请求数示例值：Bandwidth"
+    },
+    {
+      "name": "PlayDomains.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "播放域名列表。示例值：[\"5000.playdomain.com\\n\"]"
+    },
+    {
+      "name": "ProvinceNames.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "要查询的省份（地区）英文名称列表，如 Beijing。示例值：[\"Beijing\"]"
+    },
+    {
+      "name": "IspNames.N",
+      "type": "Array of String",
+      "required": "选填",
+      "description": "要查询的运营商英文名称列表，如 China Mobile ，如果为空，查询所有运营商的数据。示例值：[\"China Mobile\"]"
+    },
+    {
+      "name": "MainlandOrOversea",
+      "type": "String",
+      "required": "选填",
+      "description": "地域，可选值：Mainland，Oversea，China，Foreign，Global（默认值）；如果为空，查询总的数据；如果为“Mainland”，查询中国大陆的数据；如果为“Oversea”，则查询中国大陆以外的数据；如果为China，查询中国的数据（包括港澳台）；如果为Foreign，查询国外的数据（不包括港澳台）。示例值：Mainland"
+    },
+    {
+      "name": "IpType",
+      "type": "String",
+      "required": "选填",
+      "description": "ip类型：“Ipv6”：Ipv6数据如果为空，查询总的数据；示例值：Ipv6"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: DescribeProvinceIspPlayInfoList\n<公共请求参数>\n\n{\n    \"StatType\": \"Bandwidth\",\n    \"EndTime\": \"2019-02-02T00:00:00+08:00\",\n    \"StartTime\": \"2019-02-01T00:00:00+08:00\",\n    \"PlayDomains\": [\n        \"5000.playdomain.com\"\n    ],\n    \"Granularity\": \"1\"\n}",
+      "clean_json": "{\n  \"StatType\": \"Bandwidth\",\n  \"EndTime\": \"2019-02-02T00:00:00+08:00\",\n  \"StartTime\": \"2019-02-01T00:00:00+08:00\",\n  \"PlayDomains\": [\n    \"5000.playdomain.com\"\n  ],\n  \"Granularity\": \"1\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "DataInfoList",
+      "type": "Array of PlayStatInfo",
+      "description": "播放信息列表。示例值：见DataInfoList"
+    },
+    {
+      "name": "StatType",
+      "type": "String",
+      "description": "统计的类型，和输入参数保持一致。示例值：Bandwidth"
+    },
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"DataInfoList\": [\n            {\n                \"Time\": \"2019-02-01T00:00:00+08:00\",\n                \"Value\": 500\n            }\n        ],\n        \"StatType\": \"Bandwidth\",\n        \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"DataInfoList\": [\n      {\n        \"Time\": \"2019-02-01T00:00:00+08:00\",\n        \"Value\": 500\n      }\n    ],\n    \"StatType\": \"Bandwidth\",\n    \"RequestId\": \"8e50cdb5-56dc-408b-89b0-31818958d424\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError",
+      "description": "内部错误。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.HasNotLivingStream",
+      "description": "无在线流。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.InvalidRequest",
+      "description": "无效的请求。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.QueryProIspPlayInfoError",
+      "description": "按省份运营商查询播放信息失败。",
+      "solution": ""
+    },
+    {
+      "code": "InternalError.QueryUploadInfoFailed",
+      "description": "查询 upload 信息失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameterValue",
+      "description": "参数取值错误。",
+      "solution": ""
+    },
+    {
+      "code": "MissingParameter",
+      "description": "缺少参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

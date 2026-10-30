@@ -1,0 +1,140 @@
+{
+  "doc_id": 93514,
+  "api_id": "live_StopLiveStreamMonitor",
+  "title": "停止直播流监播任务",
+  "doc_url": "https://cloud.tencent.com/document/api/267/93514",
+  "sync_time": "2026-10-29 19:32:07",
+  "status": "synced",
+  "source_mode": "api",
+  "requested_mode": "auto",
+  "overview": "接口请求域名： live.tencentcloudapi.com 。\n该接口用来停止直播流监播任务。\n默认接口请求频率限制：20次/秒。\n推荐使用 API Explorer\n点击调试\nAPI Explorer 提供了在线调用、签名验证、SDK 代码生成和快速检索接口等能力。您可查看每次调用的请求内容和返回结果以及自动生成 SDK 调用示例。",
+  "rate_limit": "",
+  "request_url_sample": "",
+  "url_params": [],
+  "request_body_fields": [
+    {
+      "name": "Action",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：StopLiveStreamMonitor。"
+    },
+    {
+      "name": "Version",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，本接口取值：2018-08-01。"
+    },
+    {
+      "name": "Region",
+      "type": "String",
+      "required": "公共参数",
+      "description": "公共参数，此参数为可选参数。"
+    },
+    {
+      "name": "MonitorId",
+      "type": "String",
+      "required": "必填",
+      "description": "监播ID示例值：xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx"
+    }
+  ],
+  "request_examples": [
+    {
+      "title": "输入示例",
+      "content": "POST / HTTP/1.1\nHost: live.tencentcloudapi.com\nContent-Type: application/json\nX-TC-Action: StopLiveStreamMonitor\n<公共请求参数>\n\n{\n    \"MonitorId\": \"1bd5af00-5be5-4e4d-aa75-340ba0f35586\"\n}",
+      "clean_json": "{\n  \"MonitorId\": \"1bd5af00-5be5-4e4d-aa75-340ba0f35586\"\n}"
+    }
+  ],
+  "response_body_fields": [
+    {
+      "name": "RequestId",
+      "type": "String",
+      "description": "唯一请求 ID，由服务端生成，每次请求都会返回（若请求因其他原因未能抵达服务端，则该次请求不会获得 RequestId）。定位问题时需要提供该次请求的 RequestId。"
+    }
+  ],
+  "response_examples": [
+    {
+      "title": "输出示例",
+      "content": "{\n    \"Response\": {\n        \"RequestId\": \"f0d37553-319f-407d-a998-2047d7e5cbb7\"\n    }\n}",
+      "clean_json": "{\n  \"Response\": {\n    \"RequestId\": \"f0d37553-319f-407d-a998-2047d7e5cbb7\"\n  }\n}"
+    }
+  ],
+  "error_codes": [
+    {
+      "code": "AuthFailure",
+      "description": "CAM签名/鉴权错误。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation",
+      "description": "操作失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.ConflictAction",
+      "description": "任务接口执行冲突。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.DatabaseNotAccessible",
+      "description": "数据库访问异常。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.MonitorIsActive",
+      "description": "监播任务处于启动状态。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.MonitorLimitExceeded",
+      "description": "监播任务超出限制。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.MonitorNotExist",
+      "description": "监播任务不存在。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.StartTaskFailed",
+      "description": "启动监播任务失败。",
+      "solution": ""
+    },
+    {
+      "code": "FailedOperation.StopTaskFailed",
+      "description": "停止监播任务失败。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter",
+      "description": "参数错误。",
+      "solution": ""
+    },
+    {
+      "code": "InvalidParameter.NotAllowUseLVB",
+      "description": "该APPID未开通LVB服务。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.ForbidService",
+      "description": "用户被禁用。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.FreezeService",
+      "description": "用户服务被冻结。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.StopService",
+      "description": "账号停服，请先冲正开通服务后再操作。",
+      "solution": ""
+    },
+    {
+      "code": "ResourceNotFound.UserDisableService",
+      "description": "用户主动停服。",
+      "solution": ""
+    }
+  ],
+  "callbacks": [],
+  "notes": []
+}

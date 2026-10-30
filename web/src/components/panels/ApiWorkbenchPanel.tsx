@@ -18,6 +18,7 @@ import {
   FileCode,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Info,
   Maximize2,
   Minimize2,
@@ -43,24 +44,60 @@ import { JsonCodeEditor } from '@/components/common/JsonCodeEditor'
 
 export type FieldTypeCategory = 'string' | 'number' | 'boolean' | 'list' | 'json'
 
-export function getFieldTypeCategory(typeStr?: string): FieldTypeCategory {
-  const t = (typeStr || '').toLowerCase().trim()
+export function getFieldTypeCategory(typeStr?: string, val?: any): FieldTypeCategory {
+  // If actual runtime value is non-empty, use it as ground truth
+  if (val !== undefined && val !== null) {
+    if (typeof val === 'boolean') return 'boolean'
+    if (typeof val === 'number') return 'number'
+    if (Array.isArray(val)) return 'list'
+    if (typeof val === 'object') return 'json'
+  }
+
+  const raw = (typeStr || '').trim()
+  const t = raw.toLowerCase()
   if (t === 'boolean' || t === 'bool') return 'boolean'
+  if (t.includes('array') || t.includes('list') || raw.endsWith('[]')) return 'list'
   if (
     t === 'number' ||
     t === 'int' ||
     t === 'integer' ||
     t === 'float' ||
-    t === 'double'
+    t === 'double' ||
+    t.includes('int64') ||
+    t.includes('uint')
   )
     return 'number'
-  if (t === 'list' || t === 'array') return 'list'
-  if (t === 'json' || t === 'object' || t === 'dict') return 'json'
+  if (
+    t === 'json' ||
+    t === 'object' ||
+    t === 'dict' ||
+    t === 'map' ||
+    (raw.length > 0 &&
+      raw[0] === raw[0].toUpperCase() &&
+      raw !== 'String' &&
+      raw !== 'Integer' &&
+      raw !== 'Float' &&
+      raw !== 'Boolean')
+  )
+    return 'json'
   return 'string'
 }
 
 export function isComplexListField(field: ApiField, val: any): boolean {
   if (Array.isArray(val) && val.some((x) => typeof x === 'object' && x !== null))
+    return true
+  if (
+    Array.isArray(field.default) &&
+    field.default.some((x: any) => typeof x === 'object' && x !== null)
+  )
+    return true
+  const rawType = (field.type || '').toLowerCase()
+  if (
+    rawType.includes('object') ||
+    rawType.includes('param') ||
+    rawType.includes('info') ||
+    rawType.includes('item')
+  )
     return true
   if (
     field.name === 'MsgBody' ||
@@ -72,7 +109,15 @@ export function isComplexListField(field: ApiField, val: any): boolean {
     field.name === 'ExtensionList' ||
     field.name === 'AddFriendItem' ||
     field.name === 'UserTags' ||
-    field.name === 'ProfileItem'
+    field.name === 'ProfileItem' ||
+    field.name === 'InputStreamList' ||
+    field.name === 'InputList' ||
+    field.name === 'AdaptiveChildren' ||
+    field.name === 'DomainInfos' ||
+    field.name === 'Images' ||
+    field.name === 'Keywords' ||
+    field.name === 'ImageInfos' ||
+    field.name === 'VideoInfos'
   )
     return true
   if (field.placeholder?.includes('JSON 数组')) return true
@@ -94,7 +139,9 @@ export function sanitizePayloadTypes(
 
   for (const [key, val] of Object.entries(result)) {
     const field = fieldMap.get(key)
-    const category = field ? getFieldTypeCategory(field.type) : null
+    const category = field
+      ? getFieldTypeCategory(field.type, val)
+      : getFieldTypeCategory(undefined, val)
 
     if (category === 'number') {
       if (val === '' || val === null || val === undefined) {
@@ -110,42 +157,651 @@ export function sanitizePayloadTypes(
         result[key] = Boolean(val)
       }
     } else if (category === 'list') {
+      let listVal: any[] = []
       if (typeof val === 'string') {
         const trimmed = val.trim()
         if (trimmed.startsWith('[') && trimmed.endsWith(']')) {
           try {
-            result[key] = JSON.parse(trimmed)
+            listVal = JSON.parse(trimmed)
           } catch {
-            result[key] = trimmed
+            listVal = trimmed
               .slice(1, -1)
               .split(/[,，]/)
               .map((s) => s.trim())
               .filter(Boolean)
           }
         } else if (trimmed === '') {
-          result[key] = []
+          listVal = []
         } else {
-          result[key] = trimmed
+          listVal = trimmed
             .split(/[,，]/)
             .map((s) => s.trim())
             .filter(Boolean)
         }
-      } else if (!Array.isArray(val) && val !== undefined && val !== null) {
-        result[key] = [val]
+      } else if (Array.isArray(val)) {
+        listVal = val
+      } else if (val !== undefined && val !== null) {
+        listVal = [val]
       }
+
+      // Recursively sanitize objects inside list (parse stringified nested objects)
+      result[key] = listVal.map((item) => {
+        if (typeof item === 'object' && item !== null) {
+          const cleanedItem: Record<string, any> = { ...item }
+          for (const [subKey, subVal] of Object.entries(cleanedItem)) {
+            if (typeof subVal === 'string') {
+              const subTrim = subVal.trim()
+              if (
+                (subTrim.startsWith('{') && subTrim.endsWith('}')) ||
+                (subTrim.startsWith('[') && subTrim.endsWith(']'))
+              ) {
+                try {
+                  cleanedItem[subKey] = JSON.parse(subTrim)
+                } catch {}
+              }
+            }
+          }
+          return cleanedItem
+        }
+        return item
+      })
     } else if (category === 'json') {
       if (typeof val === 'string') {
-        try {
-          result[key] = JSON.parse(val)
-        } catch {}
+        const trimmed = val.trim()
+        if (trimmed === '' || trimmed === '{}') {
+          result[key] = {}
+        } else {
+          try {
+            result[key] = JSON.parse(trimmed)
+          } catch {
+            // Keep original string if cannot parse
+          }
+        }
+      } else if (val === null || val === undefined) {
+        delete result[key]
       }
     } else if (category === 'string') {
       if (val !== undefined && val !== null && typeof val !== 'string') {
-        result[key] = String(val)
+        // CRITICAL: Never turn an object into "[object Object]"
+        if (typeof val === 'object') {
+          result[key] = val
+        } else {
+          result[key] = String(val)
+        }
       }
     }
   }
   return result
+}
+
+interface NestedObjectEditorProps {
+  parentKey: string
+  structName?: string
+  subFieldsDef?: ApiField[]
+  value: any
+  onChange: (val: any) => void
+}
+
+const NestedObjectEditor: React.FC<NestedObjectEditorProps> = ({
+  parentKey,
+  structName,
+  subFieldsDef,
+  value,
+  onChange,
+}) => {
+  const [mode, setMode] = useState<'form' | 'json'>('form')
+  const [newPropKey, setNewPropKey] = useState('')
+  const [showAddProp, setShowAddProp] = useState(false)
+  const [rawText, setRawText] = useState(() => {
+    try {
+      return typeof value === 'object' && value !== null
+        ? JSON.stringify(value, null, 2)
+        : String(value || '{}')
+    } catch {
+      return '{}'
+    }
+  })
+  const [error, setError] = useState<string | null>(null)
+
+  // 规范化对象值
+  const objValue: Record<string, any> = useMemo(() => {
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      return value
+    }
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const p = JSON.parse(value.trim())
+        if (typeof p === 'object' && p !== null && !Array.isArray(p)) return p
+      } catch {}
+    }
+    return {}
+  }, [value])
+
+  const subFields = subFieldsDef || []
+  const subFieldMap = useMemo(() => {
+    const map = new Map<string, ApiField>()
+    subFields.forEach((sf) => map.set(sf.name, sf))
+    return map
+  }, [subFields])
+
+  const displayKeys = useMemo(() => {
+    const keys = new Set<string>()
+    subFields.forEach((sf) => keys.add(sf.name))
+    Object.keys(objValue).forEach((k) => keys.add(k))
+    return Array.from(keys)
+  }, [subFields, objValue])
+
+  useEffect(() => {
+    if (mode === 'form') {
+      try {
+        setRawText(JSON.stringify(objValue, null, 2))
+        setError(null)
+      } catch {}
+    }
+  }, [objValue, mode])
+
+  const handleSubFieldChange = (subKey: string, rawVal: string) => {
+    const sf = subFieldMap.get(subKey)
+    const category = sf
+      ? getFieldTypeCategory(sf.type, rawVal)
+      : getFieldTypeCategory(undefined, rawVal)
+
+    let finalVal: any = rawVal
+    if (category === 'number') {
+      if (rawVal === '') {
+        finalVal = undefined
+      } else {
+        const num = Number(rawVal)
+        finalVal = isNaN(num) ? rawVal : num
+      }
+    } else if (category === 'boolean') {
+      finalVal = rawVal === 'true'
+    }
+
+    const next = { ...objValue }
+    if (finalVal === undefined) {
+      delete next[subKey]
+    } else {
+      next[subKey] = finalVal
+    }
+    onChange(next)
+  }
+
+  const handleDeleteSubKey = (subKey: string) => {
+    const next = { ...objValue }
+    delete next[subKey]
+    onChange(next)
+  }
+
+  const handleAddSubProperty = () => {
+    const k = newPropKey.trim()
+    if (!k) return
+    const next = { ...objValue, [k]: '' }
+    onChange(next)
+    setNewPropKey('')
+    setShowAddProp(false)
+  }
+
+  const handleRawChange = (text: string) => {
+    setRawText(text)
+    try {
+      const parsed = JSON.parse(text)
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        setError(null)
+        onChange(parsed)
+      } else {
+        setError('必须是 JSON 对象格式 (如 {"key": "val"})')
+      }
+    } catch (e: any) {
+      setError(e.message)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-lg border border-purple-200/80 dark:border-purple-900/50 bg-purple-50/20 dark:bg-purple-950/20 p-2.5">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[11px] font-mono font-semibold text-purple-700 dark:text-purple-300 flex items-center gap-1">
+            <span className="text-[9px] bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-1 py-0.2 rounded font-mono font-bold">
+              &#123; &#125;
+            </span>
+            {structName ? `${parentKey} (${structName})` : parentKey}
+          </span>
+          <span className="text-[10px] text-slate-400 dark:text-slate-500">
+            ({displayKeys.length} 个参数)
+          </span>
+        </div>
+
+        <div className="flex items-center gap-2">
+          {mode === 'form' && (
+            <button
+              type="button"
+              onClick={() => setShowAddProp(!showAddProp)}
+              className="text-[10px] text-purple-600 dark:text-purple-400 hover:text-purple-700 hover:underline flex items-center gap-0.5 cursor-pointer"
+            >
+              <Plus className="w-3 h-3" />
+              添加属性
+            </button>
+          )}
+          <div className="flex items-center bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded p-0.5 text-[9px]">
+            <button
+              type="button"
+              onClick={() => setMode('form')}
+              className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                mode === 'form'
+                  ? 'bg-purple-600 text-white font-semibold'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              表单
+            </button>
+            <button
+              type="button"
+              onClick={() => setMode('json')}
+              className={`px-1.5 py-0.5 rounded transition-all cursor-pointer ${
+                mode === 'json'
+                  ? 'bg-purple-600 text-white font-semibold'
+                  : 'text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200'
+              }`}
+            >
+              JSON
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {showAddProp && (
+        <div className="flex items-center gap-1.5 p-1.5 bg-white dark:bg-slate-850 border border-purple-200 dark:border-purple-800 rounded-md">
+          <Input
+            value={newPropKey}
+            onChange={(e) => setNewPropKey(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                handleAddSubProperty()
+              }
+            }}
+            placeholder="输入属性名 (例如 WatermarkId)"
+            className="h-6 text-xs font-mono bg-slate-50 dark:bg-slate-900 border-slate-200 dark:border-slate-700"
+            autoFocus
+          />
+          <Button
+            size="sm"
+            onClick={handleAddSubProperty}
+            className="h-6 text-[10px] bg-purple-600 hover:bg-purple-500 text-white px-2 cursor-pointer"
+          >
+            确定
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            onClick={() => {
+              setShowAddProp(false)
+              setNewPropKey('')
+            }}
+            className="h-6 text-[10px] px-1.5 text-slate-400 cursor-pointer"
+          >
+            取消
+          </Button>
+        </div>
+      )}
+
+      {mode === 'form' ? (
+        displayKeys.length === 0 ? (
+          <div className="py-2 text-center text-xs text-slate-400 dark:text-slate-500 bg-white/60 dark:bg-slate-850/60 rounded border border-dashed border-purple-200 dark:border-purple-900/40">
+            暂无属性，点击右上角「添加属性」或切换为 JSON
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 bg-white dark:bg-slate-850 p-2 rounded-md border border-slate-200/80 dark:border-slate-800">
+            {displayKeys.map((subK) => {
+              const sf = subFieldMap.get(subK)
+              const curVal = objValue[subK]
+              const category = sf
+                ? getFieldTypeCategory(sf.type, curVal)
+                : getFieldTypeCategory(undefined, curVal)
+              const isRequired = sf?.required ?? false
+
+              return (
+                <div key={subK} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[10px] font-medium text-slate-600 dark:text-slate-300 font-mono flex items-center gap-1">
+                      <span>{sf?.label || subK}</span>
+                      {isRequired && <span className="text-rose-500 font-bold">*</span>}
+                      {sf && sf.label !== subK && (
+                        <span className="text-slate-400 font-normal">({subK})</span>
+                      )}
+                    </label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-[9px] font-mono px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-400">
+                        {category}
+                      </span>
+                      {!isRequired && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteSubKey(subK)}
+                          className="text-slate-300 hover:text-rose-500 p-0.5 rounded transition-colors cursor-pointer"
+                          title={`移除属性 ${subK}`}
+                        >
+                          <Trash2 className="w-2.5 h-2.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                  {category === 'boolean' ? (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSubFieldChange(subK, 'true')}
+                        className={`px-2 py-0.5 text-xs rounded border transition-all ${
+                          curVal === true
+                            ? 'bg-emerald-600 text-white border-emerald-600 font-semibold'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        True
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSubFieldChange(subK, 'false')}
+                        className={`px-2 py-0.5 text-xs rounded border transition-all ${
+                          curVal === false
+                            ? 'bg-rose-600 text-white border-rose-600 font-semibold'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700'
+                        }`}
+                      >
+                        False
+                      </button>
+                    </div>
+                  ) : category === 'number' ? (
+                    <Input
+                      type="number"
+                      value={curVal === undefined || curVal === null ? '' : String(curVal)}
+                      onChange={(e) => handleSubFieldChange(subK, e.target.value)}
+                      placeholder={sf?.placeholder || sf?.help_text?.slice(0, 30) || `请输入数值`}
+                      className="h-7 text-xs font-mono bg-slate-50/70 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus-visible:ring-purple-500"
+                    />
+                  ) : (
+                    <Input
+                      value={
+                        curVal !== undefined && curVal !== null
+                          ? typeof curVal === 'object'
+                            ? JSON.stringify(curVal)
+                            : String(curVal)
+                          : ''
+                      }
+                      onChange={(e) => handleSubFieldChange(subK, e.target.value)}
+                      placeholder={sf?.placeholder || sf?.help_text?.slice(0, 30) || `请输入 ${subK}`}
+                      className="h-7 text-xs font-mono bg-slate-50/70 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus-visible:ring-purple-500"
+                    />
+                  )}
+                  {sf?.help_text && (
+                    <span className="text-[9px] text-slate-400 dark:text-slate-500 line-clamp-1" title={sf.help_text}>
+                      {sf.help_text}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      ) : (
+        <div className="flex flex-col gap-1">
+          <textarea
+            value={rawText}
+            onChange={(e) => handleRawChange(e.target.value)}
+            rows={Math.min(6, Math.max(3, rawText.split('\n').length))}
+            className="w-full text-xs font-mono p-2 border border-purple-300 dark:border-purple-700 rounded-md bg-white dark:bg-slate-900 text-slate-800 dark:text-slate-100 focus:outline-none focus:ring-1 focus:ring-purple-500"
+            placeholder='{\n  "ImageLayer": 1\n}'
+          />
+          {error && <span className="text-[10px] text-rose-500 font-mono">{error}</span>}
+        </div>
+      )}
+    </div>
+  )
+}
+
+interface StructuredObjectFormProps {
+  field: ApiField
+  value: any
+  placeholder?: string
+  onChange: (val: any) => void
+}
+
+const StructuredObjectForm: React.FC<StructuredObjectFormProps> = ({
+  field,
+  value,
+  placeholder,
+  onChange,
+}) => {
+  const [mode, setMode] = useState<'form' | 'json'>('form')
+
+  const objValue: Record<string, any> = useMemo(() => {
+    if (typeof value === 'object' && value !== null && !Array.isArray(value)) {
+      return value
+    }
+    if (typeof value === 'string' && value.trim()) {
+      try {
+        const p = JSON.parse(value.trim())
+        if (typeof p === 'object' && p !== null && !Array.isArray(p)) return p
+      } catch {}
+    }
+    return {}
+  }, [value])
+
+  const subFields = field.sub_fields || []
+  const hasSubFields = subFields.length > 0
+
+  const displayedKeys = useMemo(() => {
+    const keys = new Set<string>()
+    subFields.forEach((sf) => keys.add(sf.name))
+    Object.keys(objValue).forEach((k) => keys.add(k))
+    return Array.from(keys)
+  }, [subFields, objValue])
+
+  const subFieldMap = useMemo(() => {
+    const map = new Map<string, ApiField>()
+    subFields.forEach((sf) => map.set(sf.name, sf))
+    return map
+  }, [subFields])
+
+  const handleSubFieldChange = (key: string, val: any) => {
+    const sf = subFieldMap.get(key)
+    const category = sf ? getFieldTypeCategory(sf.type, val) : getFieldTypeCategory(undefined, val)
+
+    let finalVal: any = val
+    if (category === 'number') {
+      if (val === '') {
+        finalVal = undefined
+      } else {
+        const num = Number(val)
+        finalVal = isNaN(num) ? val : num
+      }
+    } else if (category === 'boolean') {
+      finalVal = Boolean(val)
+    }
+
+    const next = { ...objValue }
+    if (finalVal === undefined) {
+      delete next[key]
+    } else {
+      next[key] = finalVal
+    }
+    onChange(next)
+  }
+
+  const [jsonText, setJsonText] = useState(() => {
+    try {
+      return JSON.stringify(objValue, null, 2)
+    } catch {
+      return '{}'
+    }
+  })
+  const [jsonErr, setJsonErr] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (mode === 'form') {
+      try {
+        setJsonText(JSON.stringify(objValue, null, 2))
+        setJsonErr(null)
+      } catch {}
+    }
+  }, [objValue, mode])
+
+  const handleJsonChange = (text: string) => {
+    setJsonText(text)
+    try {
+      const parsed = JSON.parse(text)
+      if (typeof parsed === 'object' && parsed !== null && !Array.isArray(parsed)) {
+        setJsonErr(null)
+        onChange(parsed)
+      } else {
+        setJsonErr('必须是 JSON 对象格式 (以 { 开头，} 结尾)')
+      }
+    } catch (e: any) {
+      setJsonErr(e.message)
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-purple-200/80 dark:border-purple-900/60 bg-purple-50/25 dark:bg-purple-950/20 p-3 shadow-2xs">
+      <div className="flex items-center justify-between pb-1.5 border-b border-purple-100 dark:border-purple-900/40">
+        <div className="flex items-center gap-2">
+          <span className="font-mono text-[10px] font-bold bg-purple-100 dark:bg-purple-900/60 text-purple-700 dark:text-purple-300 px-1.5 py-0.5 rounded flex items-center gap-1">
+            &#123; &#125; {field.struct_name || 'Object'}
+          </span>
+          <span className="text-xs font-semibold text-slate-700 dark:text-slate-300">
+            {field.label || field.name}
+          </span>
+          {hasSubFields && (
+            <span className="text-[10px] text-slate-400 dark:text-slate-500 font-mono">
+              ({subFields.length} 个官方参数)
+            </span>
+          )}
+        </div>
+
+        <div className="flex items-center gap-1 bg-slate-200/70 dark:bg-slate-800 p-0.5 rounded-lg text-[10px]">
+          <button
+            type="button"
+            onClick={() => setMode('form')}
+            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+              mode === 'form'
+                ? 'bg-white dark:bg-slate-700 text-purple-700 dark:text-purple-300 shadow-2xs font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            可视化表单
+          </button>
+          <button
+            type="button"
+            onClick={() => setMode('json')}
+            className={`px-2 py-0.5 rounded font-medium transition-all cursor-pointer ${
+              mode === 'json'
+                ? 'bg-white dark:bg-slate-700 text-purple-700 dark:text-purple-300 shadow-2xs font-semibold'
+                : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
+            }`}
+          >
+            JSON 代码
+          </button>
+        </div>
+      </div>
+
+      {mode === 'form' ? (
+        displayedKeys.length === 0 ? (
+          <div className="py-3 text-center text-xs text-slate-400 dark:text-slate-500 bg-white dark:bg-slate-900 rounded-lg border border-dashed border-slate-200 dark:border-slate-800">
+            对象暂无字段内容，切换至 JSON 代码视图可自定义写入
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-3 pt-1">
+            {displayedKeys.map((key) => {
+              const sf = subFieldMap.get(key)
+              const curVal = objValue[key]
+              const category = sf ? getFieldTypeCategory(sf.type, curVal) : getFieldTypeCategory(undefined, curVal)
+              const isRequired = sf?.required ?? false
+
+              return (
+                <div key={key} className="flex flex-col gap-1">
+                  <div className="flex items-center justify-between">
+                    <label className="text-[11px] font-medium text-slate-700 dark:text-slate-300 flex items-center gap-1">
+                      <span>{sf?.label || key}</span>
+                      {isRequired && <span className="text-rose-500 font-bold">*</span>}
+                      {sf && sf.label !== key && (
+                        <span className="text-[10px] text-slate-400 font-mono font-normal">
+                          ({key})
+                        </span>
+                      )}
+                    </label>
+                    <span className="text-[9px] font-mono px-1 rounded bg-slate-100 dark:bg-slate-800 text-slate-500">
+                      {category}
+                    </span>
+                  </div>
+
+                  {category === 'boolean' ? (
+                    <div className="flex items-center gap-1.5">
+                      <button
+                        type="button"
+                        onClick={() => handleSubFieldChange(key, true)}
+                        className={`px-2.5 py-1 text-xs rounded border transition-all cursor-pointer ${
+                          curVal === true
+                            ? 'bg-emerald-600 text-white border-emerald-600 font-semibold'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        ✓ True
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleSubFieldChange(key, false)}
+                        className={`px-2.5 py-1 text-xs rounded border transition-all cursor-pointer ${
+                          curVal === false
+                            ? 'bg-rose-600 text-white border-rose-600 font-semibold'
+                            : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border-slate-200 dark:border-slate-700 hover:bg-slate-50'
+                        }`}
+                      >
+                        ✕ False
+                      </button>
+                    </div>
+                  ) : category === 'number' ? (
+                    <Input
+                      type="number"
+                      value={curVal === undefined || curVal === null ? '' : String(curVal)}
+                      onChange={(e) => handleSubFieldChange(key, e.target.value)}
+                      placeholder={sf?.placeholder || sf?.help_text?.slice(0, 40) || `请输入数值`}
+                      className="h-8 text-xs font-mono bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus-visible:ring-purple-500"
+                    />
+                  ) : (
+                    <Input
+                      value={curVal === undefined || curVal === null ? '' : typeof curVal === 'object' ? JSON.stringify(curVal) : String(curVal)}
+                      onChange={(e) => handleSubFieldChange(key, e.target.value)}
+                      placeholder={sf?.placeholder || sf?.help_text?.slice(0, 40) || `请输入 ${key}`}
+                      className="h-8 text-xs font-mono bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus-visible:ring-purple-500"
+                    />
+                  )}
+                  {sf?.help_text && (
+                    <span className="text-[10px] text-slate-400 dark:text-slate-500 line-clamp-1" title={sf.help_text}>
+                      {sf.help_text}
+                    </span>
+                  )}
+                </div>
+              )
+            })}
+          </div>
+        )
+      ) : (
+        <div className="w-full">
+          <JsonCodeEditor
+            value={jsonText}
+            onChange={handleJsonChange}
+            error={jsonErr}
+            height="180px"
+            minHeight="120px"
+            showLineNumbers={true}
+            label={`${field.label || field.name} JSON`}
+            hideStats={true}
+          />
+        </div>
+      )}
+    </div>
+  )
 }
 
 interface DynamicListFormProps {
@@ -184,39 +840,67 @@ const DynamicListForm: React.FC<DynamicListFormProps> = ({
     return []
   }, [value])
 
-  // 是否为对象列表（如 CheckItem, ExtensionList, MemberList 等）
+  // 是否为对象列表（如 CheckItem, ExtensionList, MemberList, InputStreamList 等）
   const isObjectList = useMemo(() => {
     if (items.some((x) => typeof x === 'object' && x !== null)) return true
-    if (
-      field.name === 'CheckItem' ||
-      field.name === 'DeleteItem' ||
-      field.name === 'ExtensionList' ||
-      field.name === 'RecentContactItem' ||
-      field.name === 'MemberList' ||
-      field.name === 'MsgSeqList' ||
-      field.name === 'FollowItem' ||
-      field.name === 'GroupContactItem' ||
-      field.name === 'AddFriendItem' ||
-      field.name === 'AuditItemList' ||
-      field.name === 'UserAttrs' ||
-      field.name === 'UserTags' ||
-      field.name === 'TopicPermissionList'
-    )
-      return true
     if (
       Array.isArray(field.default) &&
       field.default.some((x) => typeof x === 'object' && x !== null)
     )
       return true
+    const fn = field.name
+    if (
+      fn.endsWith('List') ||
+      fn.endsWith('Infos') ||
+      fn.endsWith('Params') ||
+      fn.endsWith('Items') ||
+      fn === 'CheckItem' ||
+      fn === 'DeleteItem' ||
+      fn === 'ExtensionList' ||
+      fn === 'RecentContactItem' ||
+      fn === 'MemberList' ||
+      fn === 'MsgSeqList' ||
+      fn === 'FollowItem' ||
+      fn === 'GroupContactItem' ||
+      fn === 'AddFriendItem' ||
+      fn === 'AuditItemList' ||
+      fn === 'UserAttrs' ||
+      fn === 'UserTags' ||
+      fn === 'TopicPermissionList' ||
+      fn === 'InputStreamList' ||
+      fn === 'InputList' ||
+      fn === 'AdaptiveChildren' ||
+      fn === 'DomainInfos' ||
+      fn === 'Images' ||
+      fn === 'Keywords' ||
+      fn === 'ImageInfos' ||
+      fn === 'VideoInfos'
+    ) {
+      if (
+        fn === 'GroupIdList' ||
+        fn === 'To_Account' ||
+        fn === 'Account' ||
+        fn === 'StorageDays' ||
+        fn === 'Labels' ||
+        fn === 'TranscodeTemplateIds'
+      ) {
+        return false
+      }
+      return true
+    }
     return false
   }, [items, field])
 
   // 是否为 MsgBody
   const isMsgBody = field.name === 'MsgBody'
 
+  const itemSchemaFields = field.item_schema?.fields || []
+
   // 探测对象属性键名列表
   const objectKeys = useMemo(() => {
     const keysSet = new Set<string>()
+    // 优先采用官方元数据定义的结构体字段
+    itemSchemaFields.forEach((f) => keysSet.add(f.name))
     for (const it of items) {
       if (typeof it === 'object' && it !== null) {
         Object.keys(it).forEach((k) => keysSet.add(k))
@@ -237,10 +921,36 @@ const DynamicListForm: React.FC<DynamicListFormProps> = ({
       } else if (field.name === 'MemberList') keysSet.add('Member_Account')
       else if (field.name === 'MsgSeqList') keysSet.add('MsgSeq')
       else if (field.name === 'FollowItem') keysSet.add('To_Account')
-      else keysSet.add('Value')
+      else if (field.name === 'InputStreamList') {
+        keysSet.add('InputStreamName')
+        keysSet.add('LayoutParams')
+      } else if (field.name === 'InputList') {
+        keysSet.add('InputStreamName')
+        keysSet.add('InputUrl')
+      } else keysSet.add('Value')
     }
     return Array.from(keysSet)
-  }, [items, field])
+  }, [items, field, itemSchemaFields])
+
+  // 分析每个属性是否为嵌套结构（对象或数组）
+  const objectPropertyTypes = useMemo(() => {
+    const propTypes = new Map<string, { isObject: boolean; subKeys: string[] }>()
+    for (const it of items) {
+      if (typeof it === 'object' && it !== null) {
+        for (const [k, v] of Object.entries(it)) {
+          if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+            const existing = propTypes.get(k) || { isObject: true, subKeys: [] }
+            const subSet = new Set(existing.subKeys)
+            Object.keys(v).forEach((sk) => subSet.add(sk))
+            propTypes.set(k, { isObject: true, subKeys: Array.from(subSet) })
+          } else if (!propTypes.has(k)) {
+            propTypes.set(k, { isObject: false, subKeys: [] })
+          }
+        }
+      }
+    }
+    return propTypes
+  }, [items])
 
   // 基础列表操作
   const handleUpdatePrimitive = (index: number, newVal: string) => {
@@ -273,14 +983,60 @@ const DynamicListForm: React.FC<DynamicListFormProps> = ({
   // 对象列表操作
   const handleUpdateObjectField = (index: number, key: string, val: any) => {
     const next = [...items]
-    next[index] = { ...(next[index] || {}), [key]: val }
+    let finalVal = val
+    if (typeof val === 'string') {
+      const trimmed = val.trim()
+      if (
+        (trimmed.startsWith('{') && trimmed.endsWith('}')) ||
+        (trimmed.startsWith('[') && trimmed.endsWith(']'))
+      ) {
+        try {
+          finalVal = JSON.parse(trimmed)
+        } catch {
+          finalVal = val
+        }
+      }
+    }
+    next[index] = { ...(next[index] || {}), [key]: finalVal }
     onChange(next)
   }
 
   const handleAddObject = () => {
     const newObj: Record<string, any> = {}
     objectKeys.forEach((k) => {
-      newObj[k] = ''
+      const schemaF = itemSchemaFields.find((f) => f.name === k)
+      const propInfo = objectPropertyTypes.get(k)
+      if (schemaF?.sub_fields && schemaF.sub_fields.length > 0) {
+        const subObj: Record<string, any> = {}
+        schemaF.sub_fields.forEach((sf) => {
+          if (sf.name === 'ImageLayer') {
+            subObj[sf.name] = items.length + 1
+          } else if (sf.type === 'number') {
+            subObj[sf.name] = sf.placeholder ? Number(sf.placeholder) || 0 : 0
+          } else if (sf.type === 'boolean') {
+            subObj[sf.name] = false
+          } else {
+            subObj[sf.name] = sf.placeholder || ''
+          }
+        })
+        newObj[k] = subObj
+      } else if (propInfo?.isObject) {
+        const subObj: Record<string, any> = {}
+        if (propInfo.subKeys.length > 0) {
+          propInfo.subKeys.forEach((sk) => {
+            const sampleVal = items[0]?.[k]?.[sk]
+            subObj[sk] =
+              typeof sampleVal === 'number'
+                ? sk.includes('Layer')
+                  ? items.length + 1
+                  : 0
+                : ''
+          })
+        }
+        newObj[k] = subObj
+      } else {
+        newObj[k] = ''
+      }
     })
     onChange([...items, newObj])
   }
@@ -396,19 +1152,17 @@ const DynamicListForm: React.FC<DynamicListFormProps> = ({
       </div>
 
       {mode === 'json' ? (
-        <div className="flex flex-col gap-1">
-          <textarea
+        <div className="w-full">
+          <JsonCodeEditor
             value={rawJsonDraft}
-            onChange={(e) => handleRawJsonChange(e.target.value)}
-            rows={5}
-            className="w-full rounded-lg border border-slate-300 dark:border-slate-700 bg-slate-950 p-2.5 font-mono text-xs text-emerald-400 focus:outline-none focus:ring-1 focus:ring-orange-500"
-            spellCheck={false}
+            onChange={handleRawJsonChange}
+            error={rawJsonErr}
+            height="180px"
+            minHeight="120px"
+            showLineNumbers={true}
+            label={`${field.label || field.name} 数组 JSON`}
+            hideStats={true}
           />
-          {rawJsonErr && (
-            <span className="text-[10px] text-rose-500 font-mono">
-              ⚠️ JSON 格式异常: {rawJsonErr}
-            </span>
-          )}
         </div>
       ) : isMsgBody ? (
         /* MsgBody 动态表单 */
@@ -544,52 +1298,106 @@ const DynamicListForm: React.FC<DynamicListFormProps> = ({
               </Button>
             </div>
           ) : (
-            items.map((item, idx) => (
-              <div
-                key={idx}
-                className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 p-2.5 shadow-2xs flex flex-col gap-2"
-              >
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
-                    #{idx + 1}
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleRemoveObject(idx)}
-                    className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors"
-                    title="删除此项"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
+            items.map((item, idx) => {
+              // 聚合当前元素的所有属性，分离基础类型属性与嵌套复杂对象
+              const currentItemKeys = Array.from(
+                new Set([...objectKeys, ...Object.keys(item || {})])
+              )
+              const primitiveKeys = currentItemKeys.filter(
+                (k) =>
+                  !objectPropertyTypes.get(k)?.isObject &&
+                  (typeof item[k] !== 'object' || item[k] === null || Array.isArray(item[k]))
+              )
+              const nestedObjectKeys = currentItemKeys.filter(
+                (k) =>
+                  objectPropertyTypes.get(k)?.isObject ||
+                  (typeof item[k] === 'object' && item[k] !== null && !Array.isArray(item[k]))
+              )
 
+              return (
                 <div
-                  className={`grid gap-2 ${
-                    objectKeys.length > 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
-                  }`}
+                  key={idx}
+                  className="rounded-lg border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-850 p-2.5 shadow-2xs flex flex-col gap-2.5"
                 >
-                  {objectKeys.map((k) => (
-                    <div key={k} className="flex flex-col gap-1">
-                      <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 font-mono">
-                        {k}
-                      </label>
-                      <Input
-                        value={
-                          typeof item[k] === 'object'
-                            ? JSON.stringify(item[k])
-                            : item[k] !== undefined
-                            ? String(item[k])
-                            : ''
-                        }
-                        onChange={(e) => handleUpdateObjectField(idx, k, e.target.value)}
-                        placeholder={`请输入 ${k}`}
-                        className="h-7 text-xs font-mono bg-slate-50/60 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus-visible:ring-orange-500"
-                      />
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-mono font-bold bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 px-1.5 py-0.5 rounded">
+                        #{idx + 1}
+                      </span>
+                      {field.name === 'InputStreamList' && item.InputStreamName && (
+                        <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400 font-medium">
+                          {item.InputStreamName}
+                        </span>
+                      )}
                     </div>
-                  ))}
+                    <button
+                      type="button"
+                      onClick={() => handleRemoveObject(idx)}
+                      className="p-1 text-slate-400 hover:text-rose-600 rounded transition-colors cursor-pointer"
+                      title="删除此项"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+
+                  {/* 基础字段网格 */}
+                  {primitiveKeys.length > 0 && (
+                    <div
+                      className={`grid gap-2 ${
+                        primitiveKeys.length > 1 ? 'grid-cols-1 md:grid-cols-2' : 'grid-cols-1'
+                      }`}
+                    >
+                      {primitiveKeys.map((k) => {
+                        const schemaF = itemSchemaFields.find((f) => f.name === k)
+                        return (
+                          <div key={k} className="flex flex-col gap-1">
+                            <label className="text-[10px] font-medium text-slate-500 dark:text-slate-400 font-mono flex items-center gap-1">
+                              <span>{schemaF?.label || k}</span>
+                              {schemaF?.required && <span className="text-rose-500 font-bold">*</span>}
+                              {schemaF && schemaF.label !== k && (
+                                <span className="text-slate-400 font-normal">({k})</span>
+                              )}
+                            </label>
+                            <Input
+                              value={
+                                item[k] !== undefined && item[k] !== null
+                                  ? Array.isArray(item[k])
+                                    ? JSON.stringify(item[k])
+                                    : String(item[k])
+                                  : ''
+                              }
+                              onChange={(e) => handleUpdateObjectField(idx, k, e.target.value)}
+                              placeholder={schemaF?.placeholder || schemaF?.help_text?.slice(0, 30) || `请输入 ${k}`}
+                              className="h-7 text-xs font-mono bg-slate-50/60 dark:bg-slate-900 border-slate-200 dark:border-slate-700 text-slate-800 dark:text-slate-100 focus-visible:ring-blue-500"
+                            />
+                            {schemaF?.help_text && (
+                              <span className="text-[9px] text-slate-400 dark:text-slate-500 line-clamp-1" title={schemaF.help_text}>
+                                {schemaF.help_text}
+                              </span>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+
+                  {/* 嵌套复杂对象 (如 LayoutParams, CropParams 等) */}
+                  {nestedObjectKeys.map((k) => {
+                    const schemaF = itemSchemaFields.find((f) => f.name === k)
+                    return (
+                      <NestedObjectEditor
+                        key={k}
+                        parentKey={k}
+                        structName={schemaF?.struct_name}
+                        subFieldsDef={schemaF?.sub_fields}
+                        value={item[k]}
+                        onChange={(val) => handleUpdateObjectField(idx, k, val)}
+                      />
+                    )
+                  })}
                 </div>
-              </div>
-            ))
+              )
+            })
           )}
 
           <div className="flex items-center justify-between pt-1">
@@ -1012,7 +1820,21 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
       })
     }
 
-    return [...predefined, ...extraFields]
+    const normalizedPredefined = predefined.map((f) => {
+      const currentVal = formData?.[f.name] ?? f.default
+      if (currentVal !== undefined && currentVal !== null) {
+        if (typeof currentVal === 'object') {
+          if (Array.isArray(currentVal) && f.type !== 'list') {
+            return { ...f, type: 'list' }
+          } else if (!Array.isArray(currentVal) && f.type !== 'json') {
+            return { ...f, type: 'json' }
+          }
+        }
+      }
+      return f
+    })
+
+    return [...normalizedPredefined, ...extraFields]
   }, [activeApi?.fields, formData])
 
   // ESC 快捷键关闭文档放大弹窗
@@ -1262,15 +2084,30 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
     }
   }
 
+  const isApi3 = Boolean(activeApi?.service_type && activeApi.service_type !== 'im')
+  const endpointHost = isApi3
+    ? (config.tc_endpoint || activeApi?.endpoint || `${activeApi?.service_name || 'live'}.tencentcloudapi.com`)
+    : (config.domain || 'console.tim.qq.com')
+
   // 拼接完整的 URL
   const fullCommand = useMemo(() => {
     if (!activeApi) return ''
+    if (isApi3) {
+      return activeApi.command
+    }
     if (activeApi.command?.startsWith('v4/')) return activeApi.command
     const svc = activeApi.service_name ? `${activeApi.service_name}/` : ''
     return `v4/${svc}${activeApi.command}`
-  }, [activeApi])
+  }, [activeApi, isApi3])
 
-  const fullUrl = `https://${config.domain || 'console.tim.qq.com'}/${fullCommand}`
+  const fullUrl = useMemo(() => {
+    if (!activeApi) return ''
+    if (isApi3) {
+      // 腾讯云 API 3.0 POST 规范中，URL 路径统一为根路径 /，Action 通过 Header (X-TC-Action) 传递
+      return `https://${endpointHost}/`
+    }
+    return `https://${endpointHost}/${fullCommand}`
+  }, [activeApi, isApi3, endpointHost, fullCommand])
 
   // 生成标准的 cURL 调用命令
   const curlCommand = useMemo(() => {
@@ -1279,11 +2116,21 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
       bodyMode === 'json'
         ? jsonText
         : JSON.stringify(sanitizePayloadTypes(formData, activeApi?.fields), null, 2)
+
+    if (isApi3) {
+      const endpoint = config.tc_endpoint || activeApi.endpoint || `${activeApi.service_name || 'live'}.tencentcloudapi.com`
+      const action = activeApi.action || activeApi.command
+      const version = activeApi.version || '2018-08-01'
+      const region = config.tc_region || 'ap-guangzhou'
+      const secId = config.tc_secret_id || 'YOUR_SECRET_ID'
+      return `curl -X POST "https://${endpoint}" \\\n  -H "Content-Type: application/json; charset=utf-8" \\\n  -H "X-TC-Action: ${action}" \\\n  -H "X-TC-Version: ${version}" \\\n  -H "X-TC-Region: ${region}" \\\n  -H "X-TC-Timestamp: $(date +%s)" \\\n  -H "Authorization: TC3-HMAC-SHA256 Credential=${secId}/..." \\\n  -d '${currentPayload}'`
+    }
+
     const sdkappid = config.sdkappid || 1400000000
     const admin = config.admin_user || 'administrator'
     const queryUrl = `${fullUrl}?sdkappid=${sdkappid}&identifier=${admin}&usersig=USER_SIG_HERE&random=99999999&contenttype=json`
     return `curl -X POST "${queryUrl}" \\\n  -H "Content-Type: application/json;charset=utf-8" \\\n  -d '${currentPayload}'`
-  }, [fullUrl, activeApi, bodyMode, jsonText, formData, config])
+  }, [fullUrl, activeApi, isApi3, bodyMode, jsonText, formData, config])
 
   const handleCopyCurl = () => {
     navigator.clipboard.writeText(curlCommand)
@@ -1304,39 +2151,127 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
     }
   }, [invokeResponse])
 
-  // 腾讯云 IM 官方 5 大标准 URL Query 入参
-  const standardQueryParams = [
-    {
-      key: 'sdkappid',
-      value: String(config.sdkappid || 1400000000),
-      desc: '腾讯云 IM 应用 SDKAppID',
-      required: true,
-    },
-    {
-      key: 'identifier',
-      value: config.admin_user || 'administrator',
-      desc: 'App 管理员用户账号',
-      required: true,
-    },
-    {
-      key: 'usersig',
-      value: 'eJx1j... (系统自动根据密钥实时计算并附带)',
-      desc: '管理员安全鉴权签名',
-      required: true,
-    },
-    {
-      key: 'random',
-      value: '99999999 (32位无符号整数，实时随机生成)',
-      desc: '请求随机数，用于防重放机制',
-      required: true,
-    },
-    {
-      key: 'contenttype',
-      value: 'json',
-      desc: '固定报文类型 (json)',
-      required: true,
-    },
-  ]
+  // 根据当前 API 服务协议类型（腾讯云 API 3.0 vs 即时通信 IM REST）动态生成请求头表 (Headers)
+  const effectiveHeaders = useMemo(() => {
+    if (isApi3 && activeApi) {
+      const endpoint = config.tc_endpoint || activeApi.endpoint || `${activeApi.service_name || 'live'}.tencentcloudapi.com`
+      const action = activeApi.action || activeApi.command
+      const version = activeApi.version || '2018-08-01'
+      const region = config.tc_region || 'ap-guangzhou'
+      const secId = config.tc_secret_id
+        ? `${config.tc_secret_id.slice(0, 8)}...${config.tc_secret_id.slice(-4)}`
+        : '未配置 (请在环境配置中填写)'
+
+      return [
+        {
+          key: 'Content-Type',
+          value: 'application/json; charset=utf-8',
+          desc: '报文编码类型 (必选)。API 3.0 POST 统一采用 UTF-8 编码的 JSON 格式',
+          required: true,
+        },
+        {
+          key: 'Host',
+          value: endpoint,
+          desc: '目标服务器域名 (必选)。API 3.0 服务接入点',
+          required: true,
+        },
+        {
+          key: 'X-TC-Action',
+          value: action,
+          desc: `操作的接口名称 (必选)。例如 ${action}`,
+          required: true,
+        },
+        {
+          key: 'X-TC-Version',
+          value: version,
+          desc: `操作的 API 版本 (必选)。本产品当前固定为 ${version}`,
+          required: true,
+        },
+        {
+          key: 'X-TC-Timestamp',
+          value: '$(date +%s) (当前 UNIX 秒级时间戳)',
+          desc: '当前 UNIX 时间戳 (必选)。记录发起 API 请求的时间，与服务器时间差不能超过5分钟',
+          required: true,
+        },
+        {
+          key: 'X-TC-Region',
+          value: region,
+          desc: '地域参数 (根据接口要求传递)。用来标识希望操作哪个地域的数据',
+          required: false,
+        },
+        {
+          key: 'Authorization',
+          value: `TC3-HMAC-SHA256 Credential=${secId}/..., SignedHeaders=content-type;host;x-tc-action, Signature=...`,
+          desc: 'HTTP 标准身份认证头部 (必选)。由 TC3-HMAC-SHA256 签名算法根据密钥、时间戳与报文哈希自动计算',
+          required: true,
+        },
+        {
+          key: 'X-TC-Language',
+          value: 'zh-CN',
+          desc: '指定接口返回语言 (可选)。取值：zh-CN (中文) 或 en-US (英文)',
+          required: false,
+        },
+      ]
+    }
+
+    // 默认即时通信 IM 服务端通信标准协议请求头
+    return [
+      {
+        key: 'Content-Type',
+        value: 'application/json;charset=utf-8',
+        desc: '腾讯云 IM 要求必须为 UTF-8 编码的 JSON 报文',
+        required: true,
+      },
+      {
+        key: 'Accept',
+        value: 'application/json',
+        desc: '期望返回 JSON 格式结果',
+        required: true,
+      },
+    ]
+  }, [isApi3, activeApi, config])
+
+  // 根据当前 API 服务协议类型动态生成 URL Query 参数表 (Params)
+  const effectiveQueryParams = useMemo(() => {
+    if (isApi3 && activeApi) {
+      // 腾讯云 API 3.0 v3 规范：POST application/json 请求无 URL Query 参数，系统公共参数全部通过 Headers 传递
+      return []
+    }
+
+    // 默认即时通信 IM 官方 5 大标准 URL Query 入参
+    return [
+      {
+        key: 'sdkappid',
+        value: String(config.sdkappid || 1400000000),
+        desc: '腾讯云 IM 应用 SDKAppID',
+        required: true,
+      },
+      {
+        key: 'identifier',
+        value: config.admin_user || 'administrator',
+        desc: 'App 管理员用户账号',
+        required: true,
+      },
+      {
+        key: 'usersig',
+        value: 'eJx1j... (系统自动根据密钥实时计算并附带)',
+        desc: '管理员安全鉴权签名',
+        required: true,
+      },
+      {
+        key: 'random',
+        value: '99999999 (32位无符号整数，实时随机生成)',
+        desc: '请求随机数，用于防重放机制',
+        required: true,
+      },
+      {
+        key: 'contenttype',
+        value: 'json',
+        desc: '固定报文类型 (json)',
+        required: true,
+      },
+    ]
+  }, [isApi3, activeApi, config])
 
   if (tabs.length === 0 || !activeApi || !currentTab) {
     const recentApis = getRecentApis().slice(0, 6)
@@ -1518,7 +2453,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                     ref={searchInputRef}
                     value={tabSearchQuery}
                     onChange={(e) => setTabSearchQuery(e.target.value)}
-                    placeholder="搜索标签页或 166 个 REST 接口..."
+                    placeholder={`搜索标签页或全量 ${apis.length || '所有'} 个接口...`}
                     className="w-full bg-transparent text-xs text-slate-800 dark:text-slate-200 placeholder:text-slate-400 dark:placeholder:text-slate-500 focus:outline-none"
                   />
                   {tabSearchQuery && (
@@ -1730,16 +2665,23 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
             {/* URL Endpoint Display */}
             <div className="flex-1 flex items-center px-2.5 sm:px-3 py-1.5 font-mono text-xs text-slate-800 dark:text-slate-200 truncate min-w-0">
               <span className="text-slate-400 dark:text-slate-500 select-none">https://</span>
-              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">{config.domain || 'console.tim.qq.com'}</span>
+              <span className="font-semibold text-slate-700 dark:text-slate-300 truncate">{endpointHost}</span>
               <span className="text-slate-400 dark:text-slate-500 select-none">/</span>
-              <span className="text-blue-600 dark:text-blue-400 font-semibold truncate">{fullCommand}</span>
+              {!isApi3 && (
+                <span className="text-blue-600 dark:text-blue-400 font-semibold truncate">{fullCommand}</span>
+              )}
+              {isApi3 && (
+                <span className="inline-flex items-center gap-1.5 ml-2 font-mono text-[10px] px-2 py-0.5 rounded bg-emerald-50 dark:bg-emerald-950/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800/60 font-semibold shrink-0">
+                  <span className="opacity-75">Action:</span>
+                  <span className="font-bold">{activeApi?.action || activeApi?.command}</span>
+                </span>
+              )}
             </div>
 
             {/* 快速复制接口完整 URL */}
             <button
               type="button"
               onClick={() => {
-                const fullUrl = `https://${config.domain || 'console.tim.qq.com'}/${fullCommand}`
                 navigator.clipboard.writeText(fullUrl)
                 showToast({
                   type: 'success',
@@ -1752,14 +2694,23 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
               <Copy className="h-3.5 w-3.5" />
             </button>
 
-            {/* Params Indicator Pill */}
+            {/* Header/Params Indicator Pill */}
             <button
-              onClick={() => handleSetRequestTab('params')}
+              onClick={() => handleSetRequestTab(isApi3 ? 'headers' : 'params')}
               className="mr-2 hidden sm:flex items-center gap-1 px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-750 text-slate-600 dark:text-slate-300 font-mono text-[11px] border border-slate-200/60 dark:border-slate-750 transition-colors cursor-pointer shrink-0"
-              title="查看与配置 Query 参数"
+              title={isApi3 ? '查看与配置 API 3.0 标准 Headers' : '查看与配置 Query 参数'}
             >
-              <span className="text-blue-600 dark:text-blue-400 font-bold">?</span>
-              <span>5 params</span>
+              {isApi3 ? (
+                <>
+                  <span className="text-emerald-600 dark:text-emerald-400 font-bold">H</span>
+                  <span>{effectiveHeaders.length} headers</span>
+                </>
+              ) : (
+                <>
+                  <span className="text-blue-600 dark:text-blue-400 font-bold">?</span>
+                  <span>{effectiveQueryParams.length} params</span>
+                </>
+              )}
             </button>
           </div>
 
@@ -1874,7 +2825,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                   >
                     <span>Params</span>
                     <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-800 px-1 rounded-full">
-                      5
+                      {effectiveQueryParams.length}
                     </span>
                   </button>
 
@@ -1887,7 +2838,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                     }`}
                   >
                     <span>Body</span>
-                    <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1 rounded">
+                    <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1 rounded font-semibold">
                       json
                     </span>
                   </button>
@@ -1901,8 +2852,14 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                     }`}
                   >
                     <span>Headers</span>
-                    <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-800 px-1 rounded-full">
-                      2
+                    <span
+                      className={`font-mono text-[10px] px-1 rounded-full ${
+                        isApi3
+                          ? 'text-emerald-700 dark:text-emerald-300 bg-emerald-100 dark:bg-emerald-950/60 font-semibold'
+                          : 'text-slate-400 dark:text-slate-500 bg-slate-200/60 dark:bg-slate-800'
+                      }`}
+                    >
+                      {effectiveHeaders.length}
                     </span>
                   </button>
 
@@ -1964,47 +2921,108 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
 
               {/* Request Tab Contents */}
               <div className="flex-1 overflow-y-auto p-4">
-                {/* 1. Params Tab (Apifox 经典 Query 参数表) */}
+                {/* 1. Params Tab (URL Query 参数) */}
                 {requestTab === 'params' && (
-                  <div className="space-y-3">
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      Query 参数将在请求时由系统根据配置自动注入到 URL 后缀中：
-                    </p>
-                    <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
-                      <table className="w-full text-left text-xs">
-                        <thead className="bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
-                          <tr>
-                            <th className="py-2 px-3 w-12 text-center">状态</th>
-                            <th className="py-2 px-3 w-36">参数名 (Key)</th>
-                            <th className="py-2 px-3">参数值 (Value)</th>
-                            <th className="py-2 px-3">说明 (Description)</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
-                          {standardQueryParams.map((p) => (
-                            <tr key={p.key} className="hover:bg-slate-50/60 dark:hover:bg-slate-850/60">
-                              <td className="py-2 px-3 text-center">
-                                <input
-                                  type="checkbox"
-                                  checked={true}
-                                  readOnly
-                                  className="rounded border-slate-300 dark:border-slate-600 text-orange-500 focus:ring-0 cursor-not-allowed opacity-75"
-                                />
-                              </td>
-                              <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
-                                {p.key}
-                              </td>
-                              <td className="py-2 px-3 text-blue-600 dark:text-blue-400 truncate max-w-xs font-medium">
-                                {p.value}
-                              </td>
-                              <td className="py-2 px-3 text-slate-500 dark:text-slate-400 font-sans text-xs">
-                                {p.desc}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
+                  <div className="space-y-4">
+                    {isApi3 ? (
+                      <div className="rounded-xl border border-blue-200/80 dark:border-blue-900/50 bg-blue-50/40 dark:bg-blue-950/20 p-4 space-y-3">
+                        <div className="flex items-start gap-3">
+                          <div className="p-1.5 rounded-lg bg-blue-100 dark:bg-blue-900/60 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0">
+                            <Info className="h-4 w-4" />
+                          </div>
+                          <div className="space-y-1.5 flex-1 min-w-0">
+                            <h4 className="text-xs font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
+                              <span>腾讯云 API 3.0 (v3 签名) 规范说明</span>
+                              <span className="font-mono text-[10px] px-1.5 py-0.2 rounded bg-blue-100 dark:bg-blue-900/60 text-blue-700 dark:text-blue-300 font-normal">
+                                POST application/json
+                              </span>
+                            </h4>
+                            <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                              依据腾讯云官方文档《
+                              <a
+                                href="https://cloud.tencent.com/document/api/267/20459"
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-blue-600 dark:text-blue-400 hover:underline font-medium inline-flex items-center gap-0.5"
+                              >
+                                <span>公共参数 (文档 20459)</span>
+                                <ExternalLink className="h-2.5 w-2.5" />
+                              </a>
+                              》，使用推荐的签名方法 v3 (TC3-HMAC-SHA256) 发起 POST 请求时：
+                            </p>
+                            <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1.5 list-disc list-inside">
+                              <li>
+                                <strong className="text-slate-700 dark:text-slate-300 font-semibold">系统公共参数</strong>：必须统一放置在 <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">HTTP Headers</strong> 请求头中传递（包括 <code className="px-1 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-[11px] font-mono">X-TC-Action</code>、<code className="px-1 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-[11px] font-mono">X-TC-Version</code>、<code className="px-1 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-[11px] font-mono">X-TC-Region</code>、<code className="px-1 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-[11px] font-mono">Authorization</code> 等）。
+                              </li>
+                              <li>
+                                <strong className="text-slate-700 dark:text-slate-300 font-semibold">URL Query 参数</strong>：POST application/json 请求结构下 <strong className="text-slate-700 dark:text-slate-300 font-semibold">无需传递 Query 参数</strong>，URL 统一指向服务根路径 <code className="px-1 py-0.5 rounded bg-slate-200/60 dark:bg-slate-800 text-[11px] font-mono">https://{endpointHost}/</code>。
+                              </li>
+                              <li>
+                                <strong className="text-slate-700 dark:text-slate-300 font-semibold">业务入参</strong>：统一在 <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">Body</strong> 标签页中传递 JSON 数据。
+                              </li>
+                            </ul>
+                            <p className="text-[11px] text-slate-400 dark:text-slate-500 pt-1">
+                              * 注：仅在已淘汰的旧版 v1 签名或 HTTP GET 结构中，公共参数才作为 URL Query 携带。
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-blue-200/50 dark:border-blue-900/30 flex items-center justify-between text-xs">
+                          <span className="text-slate-500 dark:text-slate-400">
+                            查看公共请求头规范与各字段值：
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => handleSetRequestTab('headers')}
+                            className="inline-flex items-center gap-1 font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-700 cursor-pointer"
+                          >
+                            <span>前往 Headers 标签页查看 ({effectiveHeaders.length} 项)</span>
+                            <ChevronRight className="h-3.5 w-3.5" />
+                          </button>
+                        </div>
+                      </div>
+                    ) : (
+                      <>
+                        <p className="text-[11px] text-slate-400 dark:text-slate-500">
+                          Query 参数将在请求时由系统根据配置自动注入到 URL 后缀中：
+                        </p>
+                        <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
+                          <table className="w-full text-left text-xs">
+                            <thead className="bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
+                              <tr>
+                                <th className="py-2 px-3 w-12 text-center">状态</th>
+                                <th className="py-2 px-3 w-36">参数名 (Key)</th>
+                                <th className="py-2 px-3">参数值 (Value)</th>
+                                <th className="py-2 px-3">说明 (Description)</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
+                              {effectiveQueryParams.map((p) => (
+                                <tr key={p.key} className="hover:bg-slate-50/60 dark:hover:bg-slate-850/60">
+                                  <td className="py-2 px-3 text-center">
+                                    <input
+                                      type="checkbox"
+                                      checked={true}
+                                      readOnly
+                                      className="rounded border-slate-300 dark:border-slate-600 text-orange-500 opacity-75"
+                                    />
+                                  </td>
+                                  <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                                    {p.key}
+                                  </td>
+                                  <td className="py-2 px-3 text-blue-600 dark:text-blue-400 truncate max-w-xs font-medium">
+                                    {p.value}
+                                  </td>
+                                  <td className="py-2 px-3 text-slate-500 dark:text-slate-400 font-sans text-xs">
+                                    {p.desc}
+                                  </td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
 
@@ -2015,7 +3033,10 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
                         {effectiveFields && effectiveFields.length > 0 ? (
                           effectiveFields.map((field) => {
-                            const category = getFieldTypeCategory(field.type)
+                            const category = getFieldTypeCategory(
+                              field.type,
+                              formData[field.name]
+                            )
                             const isComplexList =
                               category === 'list' &&
                               isComplexListField(field, formData[field.name])
@@ -2152,7 +3173,8 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                                     onChange={(items) => handleFieldChange(field.name, items)}
                                   />
                                 ) : category === 'json' ? (
-                                  <JsonObjectInput
+                                  <StructuredObjectForm
+                                    field={field}
                                     value={formData[field.name]}
                                     placeholder={field.placeholder}
                                     onChange={(obj) => handleFieldChange(field.name, obj)}
@@ -2221,50 +3243,59 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                 {/* 3. Headers Tab */}
                 {requestTab === 'headers' && (
                   <div className="space-y-3">
-                    <p className="text-[11px] text-slate-400 dark:text-slate-500">
-                      腾讯云 IM 服务端通信标准协议请求头：
-                    </p>
+                    <div className="flex items-center justify-between">
+                      <p className="text-[11px] text-slate-500 dark:text-slate-400">
+                        {isApi3
+                          ? '依据官方文档 (20459)，API 3.0 v3 签名的公共参数统一放置在 HTTP Headers 头部中，请求时由 TC3 签名引擎自动组装：'
+                          : '腾讯云 IM 服务端通信标准协议请求头：'}
+                      </p>
+                      {isApi3 && (
+                        <a
+                          href="https://cloud.tencent.com/document/api/267/20459"
+                          target="_blank"
+                          rel="noreferrer"
+                          className="text-[11px] text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1 font-medium"
+                        >
+                          <span>官方公共参数文档 (20459)</span>
+                          <ExternalLink className="h-3 w-3" />
+                        </a>
+                      )}
+                    </div>
                     <div className="rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden bg-white dark:bg-slate-900 shadow-2xs">
                       <table className="w-full text-left text-xs">
                         <thead className="bg-slate-50 dark:bg-slate-850 border-b border-slate-200 dark:border-slate-800 text-slate-500 dark:text-slate-400 font-semibold">
                           <tr>
                             <th className="py-2 px-3 w-12 text-center">状态</th>
-                            <th className="py-2 px-3 w-40">Header 名</th>
-                            <th className="py-2 px-3">Header 值</th>
-                            <th className="py-2 px-3">说明</th>
+                            <th className="py-2 px-3 w-44">Header 名 (Key)</th>
+                            <th className="py-2 px-3">Header 值 (Value)</th>
+                            <th className="py-2 px-3">说明 (Description)</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-mono text-[11px]">
-                          <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-850/60">
-                            <td className="py-2 px-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={true}
-                                readOnly
-                                className="rounded border-slate-300 dark:border-slate-600 text-orange-500 opacity-75"
-                              />
-                            </td>
-                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">Content-Type</td>
-                            <td className="py-2 px-3 text-blue-600 dark:text-blue-400">application/json;charset=utf-8</td>
-                            <td className="py-2 px-3 font-sans text-slate-500 dark:text-slate-400 text-xs">
-                              腾讯云 IM 要求必须为 UTF-8 编码的 JSON 报文
-                            </td>
-                          </tr>
-                          <tr className="hover:bg-slate-50/60 dark:hover:bg-slate-850/60">
-                            <td className="py-2 px-3 text-center">
-                              <input
-                                type="checkbox"
-                                checked={true}
-                                readOnly
-                                className="rounded border-slate-300 dark:border-slate-600 text-orange-500 opacity-75"
-                              />
-                            </td>
-                            <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">Accept</td>
-                            <td className="py-2 px-3 text-blue-600 dark:text-blue-400">application/json</td>
-                            <td className="py-2 px-3 font-sans text-slate-500 dark:text-slate-400 text-xs">
-                              期望返回 JSON 格式结果
-                            </td>
-                          </tr>
+                          {effectiveHeaders.map((h) => (
+                            <tr key={h.key} className="hover:bg-slate-50/60 dark:hover:bg-slate-850/60">
+                              <td className="py-2 px-3 text-center">
+                                <input
+                                  type="checkbox"
+                                  checked={true}
+                                  readOnly
+                                  className={`rounded border-slate-300 dark:border-slate-600 focus:ring-0 cursor-not-allowed opacity-75 ${
+                                    isApi3 ? 'text-emerald-500' : 'text-orange-500'
+                                  }`}
+                                />
+                              </td>
+                              <td className="py-2 px-3 font-semibold text-slate-800 dark:text-slate-200">
+                                {h.key}
+                                {h.required && <span className="text-rose-500 ml-1 font-bold">*</span>}
+                              </td>
+                              <td className="py-2 px-3 text-blue-600 dark:text-blue-400 truncate max-w-xs font-medium">
+                                {h.value}
+                              </td>
+                              <td className="py-2 px-3 text-slate-500 dark:text-slate-400 font-sans text-xs">
+                                {h.desc}
+                              </td>
+                            </tr>
+                          ))}
                         </tbody>
                       </table>
                     </div>
@@ -2319,14 +3350,14 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                             <Badge
                               variant="outline"
                               className={`font-mono text-[10px] px-2 py-0.5 font-bold shadow-2xs ${
-                                invokeResponse.response?.ActionStatus === 'OK' &&
-                                invokeResponse.response?.ErrorCode === 0
+                                (invokeResponse.response?.Response && !invokeResponse.response?.Response?.Error) ||
+                                (invokeResponse.response?.ActionStatus === 'OK' && invokeResponse.response?.ErrorCode === 0)
                                   ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-800/60 dark:bg-emerald-950/40 dark:text-emerald-400'
                                   : 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-900/60 dark:bg-rose-950/50 dark:text-rose-300'
                               }`}
                             >
-                              {invokeResponse.response?.ActionStatus === 'OK' &&
-                              invokeResponse.response?.ErrorCode === 0 ? (
+                              {(invokeResponse.response?.Response && !invokeResponse.response?.Response?.Error) ||
+                              (invokeResponse.response?.ActionStatus === 'OK' && invokeResponse.response?.ErrorCode === 0) ? (
                                 <span className="flex items-center gap-1">
                                   <CheckCircle2 className="h-3 w-3 text-emerald-600 dark:text-emerald-400" />
                                   200 OK
@@ -2334,7 +3365,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                               ) : (
                                 <span className="flex items-center gap-1">
                                   <AlertTriangle className="h-3 w-3 text-rose-600 dark:text-rose-400 shrink-0" />
-                                  FAIL (Code: {invokeResponse.response?.ErrorCode ?? invokeResponse.status_code ?? 'ERR'})
+                                  FAIL ({invokeResponse.response?.Response?.Error?.Code || (invokeResponse.response?.ErrorCode !== undefined ? `Code: ${invokeResponse.response?.ErrorCode}` : `HTTP ${invokeResponse.status_code || 'ERR'}`)})
                                 </span>
                               )}
                             </Badge>
@@ -2539,12 +3570,12 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                   </div>
 
               {/* Response Body Area */}
-              <div className="flex-1 overflow-y-auto p-4 font-mono text-xs">
+              <div className="flex-1 min-h-0 flex flex-col p-3 sm:p-4 font-mono text-xs overflow-hidden">
                 {invokeResponse ? (
-                  <div>
+                  <div className="flex-1 min-h-0 flex flex-col h-full">
                     {/* 预览模式专有详细说明条 */}
                     {invokeResponse.dry_run && (
-                      <div className="mb-3 rounded-xl bg-violet-50 dark:bg-violet-950/70 border border-violet-200 dark:border-violet-800/80 p-3 text-xs text-violet-800 dark:text-violet-200 font-sans shadow-2xs">
+                      <div className="mb-3 shrink-0 rounded-xl bg-violet-50 dark:bg-violet-950/70 border border-violet-200 dark:border-violet-800/80 p-3 text-xs text-violet-800 dark:text-violet-200 font-sans shadow-2xs">
                         <div className="flex items-center gap-2 font-bold text-violet-900 dark:text-violet-300 mb-1">
                           <Sparkles className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                           <span>【预览演练成功】已完成入参校验与结构组装，未发送网络请求</span>
@@ -2555,36 +3586,64 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                       </div>
                     )}
 
-                    {responseTab === 'pretty' && (
-                      <JsonCodeEditor
-                        value={JSON.stringify(invokeResponse.response || invokeResponse, null, 2)}
-                        readOnly={true}
-                        showLineNumbers={true}
-                        height="300px"
-                        minHeight="180px"
-                        label="格式化应答 (Response Pretty)"
-                      />
+                    {/* 腾讯云 API 3.0 官方错误码智能诊断与排查指引 (基于 Doc 30427) */}
+                    {invokeResponse.response?.Response?.Error && (
+                      <div className="mb-3 shrink-0 rounded-xl bg-rose-50/90 dark:bg-rose-950/60 border border-rose-200 dark:border-rose-900/70 p-3.5 text-xs text-rose-900 dark:text-rose-200 font-sans shadow-2xs space-y-1.5">
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-2 font-bold text-rose-900 dark:text-rose-200">
+                            <AlertTriangle className="h-4 w-4 text-rose-600 dark:text-rose-400 shrink-0" />
+                            <span>【官方错误码诊断】{invokeResponse.response.Response.Error.Code}</span>
+                          </div>
+                          <Badge variant="outline" className="font-mono text-[9px] bg-rose-100 dark:bg-rose-900/80 text-rose-700 dark:text-rose-300 border-rose-300 dark:border-rose-800">
+                            Doc ID 30427 官方规范
+                          </Badge>
+                        </div>
+                        {invokeResponse.response.Response.Error.Message && (
+                          <div className="text-[11px] font-mono text-rose-800 dark:text-rose-300 bg-white/70 dark:bg-slate-900/70 p-2 rounded border border-rose-200/50 dark:border-rose-900/40">
+                            {invokeResponse.response.Response.Error.Message}
+                          </div>
+                        )}
+                        <div className="flex items-start gap-1.5 text-[11px] text-rose-800 dark:text-rose-200 pt-0.5">
+                          <Sparkles className="h-3.5 w-3.5 text-amber-500 shrink-0 mt-0.5" />
+                          <span>
+                            建议排查：请检查当前入参（流名、域名配置、模板 ID 或时间戳）是否准确，并确认账号具有该接口权限。可在【文档中心 &gt; 公共规范中心】直接检索该错误码官方排查指引。
+                          </span>
+                        </div>
+                      </div>
                     )}
 
-                    {responseTab === 'sent' && (
-                      <div className="space-y-2">
-                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans">
-                          {invokeResponse.dry_run ? '预览模式构建出的标准发送报文包体：' : '实际发送至腾讯云 IM 网关的报文数据包：'}
-                        </p>
+                    {responseTab === 'pretty' && (
+                      <div className="flex-1 min-h-0 flex flex-col h-full">
                         <JsonCodeEditor
-                          value={JSON.stringify(invokeResponse.sent_payload || {}, null, 2)}
+                          value={JSON.stringify(invokeResponse.response || invokeResponse, null, 2)}
                           readOnly={true}
                           showLineNumbers={true}
-                          height="280px"
-                          minHeight="160px"
-                          label="发送报文 Payload"
+                          className="flex-1 h-full min-h-[160px]"
+                          label="格式化应答 (Response Pretty)"
                         />
                       </div>
                     )}
 
+                    {responseTab === 'sent' && (
+                      <div className="flex-1 min-h-0 flex flex-col space-y-2 h-full">
+                        <p className="text-[11px] text-slate-500 dark:text-slate-400 font-sans shrink-0">
+                          {invokeResponse.dry_run ? '预览模式构建出的标准发送报文包体：' : '实际发送至网关的报文数据包：'}
+                        </p>
+                        <div className="flex-1 min-h-0 flex flex-col h-full">
+                          <JsonCodeEditor
+                            value={JSON.stringify(invokeResponse.sent_payload || {}, null, 2)}
+                            readOnly={true}
+                            showLineNumbers={true}
+                            className="flex-1 h-full min-h-[160px]"
+                            label="发送报文 Payload"
+                          />
+                        </div>
+                      </div>
+                    )}
+
                     {responseTab === 'curl' && (
-                      <div className="space-y-2">
-                        <div className="flex items-center justify-between font-sans text-[11px] text-slate-500 dark:text-slate-400">
+                      <div className="flex-1 min-h-0 flex flex-col space-y-2 h-full">
+                        <div className="flex items-center justify-between font-sans text-[11px] text-slate-500 dark:text-slate-400 shrink-0">
                           <span>可在 Linux/macOS 终端中直接粘贴执行：</span>
                           <button
                             onClick={handleCopyCurl}
@@ -2593,21 +3652,22 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                             {copiedCurl ? '已复制' : '复制命令'}
                           </button>
                         </div>
-                        <pre className="text-amber-800 dark:text-amber-300 leading-relaxed overflow-x-auto whitespace-pre bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs font-mono text-xs">
+                        <pre className="flex-1 min-h-0 text-amber-800 dark:text-amber-300 leading-relaxed overflow-auto whitespace-pre bg-white dark:bg-slate-900/60 p-4 rounded-xl border border-slate-200/80 dark:border-slate-800 shadow-2xs font-mono text-xs">
                           {curlCommand}
                         </pre>
                       </div>
                     )}
 
                     {responseTab === 'raw' && (
-                      <JsonCodeEditor
-                        value={JSON.stringify(invokeResponse.response || invokeResponse)}
-                        readOnly={true}
-                        showLineNumbers={false}
-                        height="240px"
-                        minHeight="120px"
-                        label="原生应答 (RAW)"
-                      />
+                      <div className="flex-1 min-h-0 flex flex-col h-full">
+                        <JsonCodeEditor
+                          value={JSON.stringify(invokeResponse.response || invokeResponse)}
+                          readOnly={true}
+                          showLineNumbers={false}
+                          className="flex-1 h-full min-h-[160px]"
+                          label="原生应答 (RAW)"
+                        />
+                      </div>
                     )}
                   </div>
                 ) : (

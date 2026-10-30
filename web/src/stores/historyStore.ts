@@ -4,6 +4,7 @@ export interface HistoryItem {
   task_id: string
   api_id: string
   api_name?: string
+  service_type?: string
   total: number
   success: number
   failed: number
