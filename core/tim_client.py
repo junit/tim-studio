@@ -106,3 +106,11 @@ class TimClient:
         payload = {"To_Account": [admin_user]}
         res = self.invoke("openim", "querystate", payload, timeout=10)
         return res
+
+    def __call__(self, api_path: str = "", payload: dict = None, timeout: int = 15) -> dict:
+        """
+        支持将 TimClient 实例直接作为快捷函数调用
+        例如: tim_client(api_path="group_open_http_svc/get_appid_group_list", payload={...})
+        """
+        return self.invoke("", api_path, payload or {}, timeout=timeout)
+

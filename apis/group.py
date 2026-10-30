@@ -77,9 +77,15 @@ class GetGroupInfoApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        gids = input_data.get("GroupIdList")
+        gids = input_data.get("GroupIdList") or input_data.get("GroupId") or input_data.get("group_id")
         if isinstance(gids, str):
             gids = [x.strip() for x in gids.split(",") if x.strip()]
+        elif isinstance(gids, (list, tuple)):
+            gids = list(gids)
+        elif gids is not None:
+            gids = [str(gids)]
+        else:
+            gids = []
         return {"GroupIdList": gids}
 
 

@@ -68,13 +68,16 @@ class AccountDeleteApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        items = input_data.get("DeleteItem")
+        items = input_data.get("DeleteItem") or input_data.get("users") or input_data.get("user_ids")
         if isinstance(items, str):
             users = [u.strip() for u in items.split(",") if u.strip()]
             return {"DeleteItem": [{"UserID": u} for u in users]}
-        if isinstance(items, list) and items and isinstance(items[0], str):
-            return {"DeleteItem": [{"UserID": u} for u in items]}
-        return input_data
+        if isinstance(items, list) and items:
+            if isinstance(items[0], str):
+                return {"DeleteItem": [{"UserID": u} for u in items]}
+            if isinstance(items[0], dict) and "UserID" in items[0]:
+                return {"DeleteItem": items}
+        return {"DeleteItem": [{"UserID": str(items)}]} if items else input_data
 
 
 class AccountCheckApi(BaseTimApi):
@@ -96,13 +99,16 @@ class AccountCheckApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        items = input_data.get("CheckItem")
+        items = input_data.get("CheckItem") or input_data.get("users") or input_data.get("user_ids")
         if isinstance(items, str):
             users = [u.strip() for u in items.split(",") if u.strip()]
             return {"CheckItem": [{"UserID": u} for u in users]}
-        if isinstance(items, list) and items and isinstance(items[0], str):
-            return {"CheckItem": [{"UserID": u} for u in items]}
-        return input_data
+        if isinstance(items, list) and items:
+            if isinstance(items[0], str):
+                return {"CheckItem": [{"UserID": u} for u in items]}
+            if isinstance(items[0], dict) and "UserID" in items[0]:
+                return {"CheckItem": items}
+        return {"CheckItem": [{"UserID": str(items)}]} if items else input_data
 
 
 class KickApi(BaseTimApi):

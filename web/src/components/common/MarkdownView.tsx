@@ -26,6 +26,15 @@ marked.setOptions({
 
 marked.use({
   renderer: {
+    html({ text }: { text: string }) {
+      // 转义原生 HTML 标签，阻断任何潜在的 XSS 注入（如 <img src=x onerror=...>, <script> 等）
+      return text
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;')
+    },
     code({ text, lang }: { text: string; lang?: string }) {
       const cleanLang = (lang || '').trim().toLowerCase()
       const validLang = Boolean(cleanLang && hljs.getLanguage(cleanLang))

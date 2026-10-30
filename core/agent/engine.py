@@ -542,8 +542,6 @@ class AgentEngine:
         active_list = getattr(self._local, "active_stream_orchestrations", None)
         if active_list is not None and isinstance(active_list, list):
             active_list.append(record)
-        elif hasattr(self, "_active_stream_orchestrations") and isinstance(self._active_stream_orchestrations, list):
-            self._active_stream_orchestrations.append(record)
 
     def execute_subtask(
         self,
@@ -631,7 +629,7 @@ class AgentEngine:
             }
 
         def subtask_bot_open(file, mode="r", *args, **kwargs):
-            if isinstance(file, str) and not os.path.isabs(file):
+            if isinstance(file, str):
                 file = os.path.join(target_uploads_dir, os.path.basename(file))
             return open(file, mode, *args, **kwargs)
 
@@ -889,8 +887,8 @@ class AgentEngine:
             }
 
         def bot_open(file, mode="r", *args, **kwargs):
-            """智能沙箱 open：若是相对路径或文件名，自动映射至 BOT 专属产出物目录"""
-            if isinstance(file, str) and not os.path.isabs(file):
+            """智能沙箱 open：所有文件操作强制限定在 BOT 专属产出物目录"""
+            if isinstance(file, str):
                 file = os.path.join(uploads_dir, os.path.basename(file))
             return open(file, mode, *args, **kwargs)
 
@@ -916,7 +914,6 @@ class AgentEngine:
 
         # 初始化线程隔离的实时协同事件收集器
         self._local.active_stream_orchestrations = []
-        self._active_stream_orchestrations = self._local.active_stream_orchestrations
         accumulated_orchestrations = []
 
         # 4. 构建四层分级记忆与无限上下文 (Hierarchical Infinite Memory)
@@ -1104,7 +1101,7 @@ class AgentEngine:
                     final_answer = step
 
                 # 检查并派发实时协同事件 (Multi-Agent Orchestration Events)
-                orch_queue = getattr(self._local, "active_stream_orchestrations", self._active_stream_orchestrations)
+                orch_queue = getattr(self._local, "active_stream_orchestrations", None)
                 while orch_queue:
                     orch_item = orch_queue.pop(0)
                     accumulated_orchestrations.append(orch_item)
@@ -1114,7 +1111,7 @@ class AgentEngine:
                     }
 
             # 结算残余协同事件
-            orch_queue = getattr(self._local, "active_stream_orchestrations", self._active_stream_orchestrations)
+            orch_queue = getattr(self._local, "active_stream_orchestrations", None)
             while orch_queue:
                 orch_item = orch_queue.pop(0)
                 accumulated_orchestrations.append(orch_item)
@@ -1346,6 +1343,8 @@ class AgentEngine:
                 "data": {"error": err_text}
             }
             self.manager.append_history(bot_id, "assistant", f"[异常] {err_text}")
+        finally:
+            self._local.active_stream_orchestrations = None
 
 
 agent_engine = AgentEngine()

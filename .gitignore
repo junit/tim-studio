@@ -78,6 +78,10 @@ artifacts/
 ehthumbs.db
 Thumbs.db
 
+# MCP and tool cache
+.serena/
+.pi/
+
 # IDE and editors
 .idea/
 .vscode/

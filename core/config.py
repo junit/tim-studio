@@ -109,13 +109,15 @@ def load_config() -> dict:
 
 
 def save_config(new_config: dict) -> dict:
-    """持久化保存配置到 config.json (只保存 active_env_id 与 environments，无冗余字段)"""
+    """持久化保存配置到 config.json (原子写入：先写临时文件再原子替换，防止高并发写入截断损坏文件)"""
     disk_data = {
         "active_env_id": new_config.get("active_env_id", "env_default"),
         "environments": new_config.get("environments", []),
     }
-    with open(CONFIG_PATH, "w", encoding="utf-8") as f:
+    tmp_path = f"{CONFIG_PATH}.tmp"
+    with open(tmp_path, "w", encoding="utf-8") as f:
         json.dump(disk_data, f, ensure_ascii=False, indent=2)
+    os.replace(tmp_path, CONFIG_PATH)
     return new_config
 
 

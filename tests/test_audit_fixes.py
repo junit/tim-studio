@@ -175,3 +175,85 @@ def test_task_runner_isolated_item_error():
     assert task.status == "COMPLETED"
     assert task.total == 3
     assert len(task.results) == 3
+
+
+def test_tim_client_callable():
+    """验证 TimClient 支持直接作为函数调用"""
+    client = TimClient()
+    # 模拟 invoke 不真正请求网络
+    original_invoke = client.invoke
+    try:
+        client.invoke = lambda s, c, p, timeout=15: {"action": f"{s}/{c}", "payload": p, "timeout": timeout}
+        res = client(api_path="group_open_http_svc/get_appid_group_list", payload={"Limit": 10})
+        assert res["action"] == "/group_open_http_svc/get_appid_group_list"
+        assert res["payload"]["Limit"] == 10
+    finally:
+        client.invoke = original_invoke
+
+
+def test_skill_ioc_and_sandbox_hardening(tmp_path):
+    """验证 RunSkillTool 依赖注入 (cloud_call, tim_client) 与 builtins 沙箱封锁"""
+    from core.agent.bot_manager import BotManager
+    mgr = BotManager(data_dir=str(tmp_path / "data"))
+    bot = mgr.create_bot("test_ioc_bot", "IoC测试机器人")
+    runner = RunSkillTool(bot.id, mgr, TimClient())
+
+    # 1. 自动注入 tim_client
+    mgr.save_skill(bot.id, "test_ioc_skill", "测试IoC注入", "def execute(tim_client):\n    return 'injected_' + str(type(tim_client).__name__)")
+    res = runner.forward("test_ioc_skill")
+    assert res["success"] is True
+    assert res["result"] == "injected_TimClient"
+
+    # 2. 封锁 eval / exec / compile
+    mgr.save_skill(bot.id, "test_eval_block", "测试eval封锁", "execute = lambda: eval('1+1')")
+    res_eval = runner.forward("test_eval_block")
+    assert res_eval["success"] is False
+    assert "安全拦截" in res_eval["error"]
+
+    # 3. 封锁 builtins 导入
+    mgr.save_skill(bot.id, "test_builtins_block", "测试builtins封锁", "import builtins\nexecute = lambda: 1")
+    res_b = runner.forward("test_builtins_block")
+    assert res_b["success"] is False
+    assert "安全拦截" in res_b["error"]
+
+
+def test_api_aliases_resolution():
+    """验证 GetGroupInfoApi, AccountDeleteApi, AccountCheckApi 的别名兼容性"""
+    from apis.group import GetGroupInfoApi
+    from apis.account import AccountDeleteApi, AccountCheckApi
+
+    # 1. GetGroupInfoApi 别名支持
+    group_api = GetGroupInfoApi()
+    p1 = group_api.build_payload({"group_id": "@TGS#123"})
+    assert p1["GroupIdList"] == ["@TGS#123"]
+    p2 = group_api.build_payload({"GroupId": "@TGS#456,@TGS#789"})
+    assert p2["GroupIdList"] == ["@TGS#456", "@TGS#789"]
+
+    # 2. AccountDeleteApi 别名支持
+    del_api = AccountDeleteApi()
+    pd1 = del_api.build_payload({"users": "user1,user2"})
+    assert pd1["DeleteItem"] == [{"UserID": "user1"}, {"UserID": "user2"}]
+    pd2 = del_api.build_payload({"user_ids": ["u3", "u4"]})
+    assert pd2["DeleteItem"] == [{"UserID": "u3"}, {"UserID": "u4"}]
+
+    # 3. AccountCheckApi 别名支持
+    chk_api = AccountCheckApi()
+    pc1 = chk_api.build_payload({"users": "check1,check2"})
+    assert pc1["CheckItem"] == [{"UserID": "check1"}, {"UserID": "check2"}]
+
+
+def test_atomic_save_config():
+    """验证 save_config 原子持久化写入机制"""
+    from core.config import save_config, load_raw_config, CONFIG_PATH
+    orig_raw = load_raw_config()
+    try:
+        test_cfg = dict(orig_raw)
+        test_cfg["active_env_id"] = orig_raw.get("active_env_id", "env_default")
+        save_config(test_cfg)
+        loaded = load_raw_config()
+        assert loaded["active_env_id"] == test_cfg["active_env_id"]
+        # 验证临时文件已被原子替换且不残留
+        assert not os.path.exists(f"{CONFIG_PATH}.tmp")
+    finally:
+        save_config(orig_raw)
+

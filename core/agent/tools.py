@@ -593,18 +593,22 @@ class RunSkillTool(Tool):
         # 静态 AST 安全审计：拦截危险模块与沙箱逃逸属性
         try:
             parsed_ast = ast.parse(skill.code)
+            BLOCKED_MODULES = ("os", "subprocess", "sys", "shutil", "socket", "pty", "commands", "posix", "builtins")
+            BLOCKED_NAMES = ("eval", "exec", "compile")
             for node in ast.walk(parsed_ast):
                 if isinstance(node, ast.Import):
                     for alias in node.names:
                         mod = alias.name.split(".")[0]
-                        if mod in ("os", "subprocess", "sys", "shutil", "socket", "pty", "commands"):
+                        if mod in BLOCKED_MODULES:
                             return {"success": False, "error": f"安全拦截：技能代码禁止导入高危系统模块 '{alias.name}'"}
                 elif isinstance(node, ast.ImportFrom):
                     mod = (node.module or "").split(".")[0]
-                    if mod in ("os", "subprocess", "sys", "shutil", "socket", "pty", "commands"):
+                    if mod in BLOCKED_MODULES:
                         return {"success": False, "error": f"安全拦截：技能代码禁止从高危系统模块 '{node.module}' 导入"}
+                elif isinstance(node, ast.Name) and node.id in BLOCKED_NAMES:
+                    return {"success": False, "error": f"安全拦截：技能代码禁止直接调用危险内置函数 '{node.id}'"}
                 elif isinstance(node, ast.Attribute):
-                    if node.attr in ("__subclasses__", "__globals__", "__builtins__", "__bases__"):
+                    if node.attr in ("__subclasses__", "__globals__", "__builtins__", "__bases__", "__class__"):
                         return {"success": False, "error": f"安全拦截：技能代码禁止访问内省属性 '{node.attr}'"}
         except Exception as parse_err:
             return {"success": False, "error": f"技能代码语法解析失败: {str(parse_err)}"}
@@ -617,12 +621,26 @@ class RunSkillTool(Tool):
             cloud_client=self.cloud_client
         )
 
+        # 构造净化后的安全 builtins，剥离 eval/exec/compile，并对 __import__ 施加模块白名单限制
+        raw_builtins = __builtins__ if isinstance(__builtins__, dict) else getattr(__builtins__, "__dict__", {})
+        real_import = __import__
+
+        def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+            mod_name = str(name).split(".")[0]
+            if mod_name in BLOCKED_MODULES:
+                raise ImportError(f"安全拦截：禁止导入高危系统模块 '{name}'")
+            return real_import(name, globals, locals, fromlist, level)
+
+        safe_builtins = {k: v for k, v in raw_builtins.items() if k not in BLOCKED_NAMES}
+        safe_builtins["__import__"] = safe_import
+
         # 安全运行沙箱执行该技能 (使用统一工厂装载动态服务宏)
         local_scope = build_sandbox_scope(
             caller_tool=caller_tool,
             cloud_client=self.cloud_client,
             tim_client=self.tim_client,
             extra_scope={
+                "__builtins__": safe_builtins,
                 "args": args,
                 "kwargs": args,
                 "result": None
@@ -636,11 +654,20 @@ class RunSkillTool(Tool):
                 import inspect
                 sig = inspect.signature(local_scope["execute"])
                 params = list(sig.parameters.keys())
-                if len(params) > 0 and params[0] in ("client", "cloud_client"):
-                    return local_scope["execute"](self.cloud_client, **args)
-                elif len(params) > 0 and params[0] == "tim_client":
-                    return local_scope["execute"](self.tim_client, **args)
-                return local_scope["execute"](**args)
+                exec_kwargs = dict(args)
+                # 自适应依赖注入：若 execute 声明了系统上下文参数（如 cloud_call, tim_client, tim_call 等），自动完成装配
+                for p_name in params:
+                    if p_name in exec_kwargs:
+                        continue
+                    elif p_name in ("client", "cloud_client"):
+                        exec_kwargs[p_name] = self.cloud_client
+                    elif p_name in ("cloud_call", "tim_call") and p_name in local_scope:
+                        exec_kwargs[p_name] = local_scope[p_name]
+                    elif p_name == "tim_client":
+                        exec_kwargs[p_name] = self.tim_client
+                    elif p_name in local_scope:
+                        exec_kwargs[p_name] = local_scope[p_name]
+                return local_scope["execute"](**exec_kwargs)
             return local_scope.get("result", "Skill executed successfully")
 
         executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)

@@ -309,6 +309,11 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
     eventSource.onerror = (e) => {
       console.warn('SSE Disconnected', e)
+      set({ isRunning: false })
+      get().addLog('FAILED', 'SSE 连接异常中断，批处理监听已终止')
+      if (eventSource) {
+        eventSource.close()
+      }
     }
   },
 
