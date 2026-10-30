@@ -864,23 +864,84 @@ export const AgentPanel: React.FC = () => {
     }
   }
 
-  const handleExportChat = (format: 'markdown' | 'html') => {
+  const [isExporting, setIsExporting] = useState<boolean>(false)
+
+  const handleExportChat = async (format: 'markdown' | 'html') => {
     setShowExportMenu(false)
     if (messages.length === 0) {
-      showToast({ type: 'info', message: '当前会话暂无记录可导出' })
+      showToast({ type: 'info', message: '当前会话暂无记录可供导出' })
       return
     }
-    const url = `/api/agent/bots/${activeBotId}/export?format=${format}`
-    const link = document.createElement('a')
-    link.href = url
-    link.setAttribute('download', `${activeBotId}_report.${format === 'markdown' ? 'md' : 'html'}`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-    showToast({
-      type: 'success',
-      message: `正在导出 ${format === 'markdown' ? 'Markdown' : 'HTML'} 格式排障报告...`,
-    })
+
+    try {
+      setIsExporting(true)
+      showToast({
+        type: 'info',
+        message: `正在生成 ${format === 'markdown' ? 'Markdown' : 'HTML'} 格式排障报告...`,
+      })
+
+      const res = await fetch(`/api/agent/bots/${activeBotId}/export?format=${format}`)
+      if (!res.ok) {
+        let errMsg = '导出失败'
+        try {
+          const errData = await res.json()
+          errMsg = errData.detail || errMsg
+        } catch {
+          // ignore
+        }
+        showToast({ type: 'error', message: errMsg })
+        return
+      }
+
+      // 获取服务端指定的规范文件名（支持中文字符与时间戳）
+      let filename = `${activeBotId}_report_${Date.now()}.${format === 'markdown' ? 'md' : 'html'}`
+      const disposition = res.headers.get('Content-Disposition')
+      if (disposition) {
+        const utf8Match = disposition.match(/filename\*=utf-8''([^;]+)/i)
+        if (utf8Match && utf8Match[1]) {
+          filename = decodeURIComponent(utf8Match[1])
+        } else {
+          const standardMatch = disposition.match(/filename="?([^";]+)"?/i)
+          if (standardMatch && standardMatch[1]) {
+            filename = standardMatch[1]
+          }
+        }
+      }
+
+      const blob = await res.blob()
+      const blobUrl = window.URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = blobUrl
+      link.setAttribute('download', filename)
+      document.body.appendChild(link)
+      link.click()
+
+      setTimeout(() => {
+        if (document.body.contains(link)) {
+          document.body.removeChild(link)
+        }
+        window.URL.revokeObjectURL(blobUrl)
+      }, 1000)
+
+      showToast({
+        type: 'success',
+        message: `报告「${filename}」已生成并开始下载`,
+      })
+    } catch (err: any) {
+      console.error('Export chat failed:', err)
+      showToast({ type: 'error', message: `导出异常: ${err.message || '网络连接失败'}` })
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
+  const handlePreviewHtml = () => {
+    setShowExportMenu(false)
+    if (messages.length === 0) {
+      showToast({ type: 'info', message: '当前会话暂无记录可供预览' })
+      return
+    }
+    window.open(`/api/agent/bots/${activeBotId}/export?format=html&preview=true`, '_blank')
   }
 
   // 编辑智能体资料弹窗 (名称、头像、描述)
@@ -2515,35 +2576,63 @@ export const AgentPanel: React.FC = () => {
                 variant="outline"
                 size="sm"
                 onClick={() => setShowExportMenu(!showExportMenu)}
+                disabled={isExporting}
                 className="h-8 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                 title="导出会话排障记录为 Markdown 或独立 HTML 报告"
               >
-                <Download className="h-3.5 w-3.5 mr-1 text-blue-500" />
-                <span>导出报告</span>
+                {isExporting ? (
+                  <Loader2 className="h-3.5 w-3.5 mr-1 text-blue-500 animate-spin" />
+                ) : (
+                  <Download className="h-3.5 w-3.5 mr-1 text-blue-500" />
+                )}
+                <span>{isExporting ? '生成中...' : '导出报告'}</span>
               </Button>
 
               {showExportMenu && (
-                <div className="absolute right-0 top-full mt-1.5 w-52 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-1.5 z-50 text-xs space-y-1 animate-in fade-in duration-100">
-                  <button
-                    type="button"
-                    onClick={() => handleExportChat('markdown')}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-left cursor-pointer transition-colors"
-                  >
-                    <FileText className="h-4 w-4 text-blue-500 shrink-0" />
-                    <div>
-                      <div className="font-semibold">Markdown 格式 (.md)</div>
-                      <div className="text-[10px] text-slate-400">完整执行链路与排障记录</div>
-                    </div>
-                  </button>
+                <div className="absolute right-0 top-full mt-1.5 w-56 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl p-1.5 z-50 text-xs space-y-1 animate-in fade-in duration-100">
                   <button
                     type="button"
                     onClick={() => handleExportChat('html')}
-                    className="w-full flex items-center gap-2 px-2.5 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-left cursor-pointer transition-colors"
+                    disabled={isExporting}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-left cursor-pointer transition-colors"
                   >
                     <Globe className="h-4 w-4 text-emerald-500 shrink-0" />
-                    <div>
-                      <div className="font-semibold">交互式 HTML 报告 (.html)</div>
-                      <div className="text-[10px] text-slate-400">单文件离线自包含复盘报告</div>
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span>下载 HTML 报告</span>
+                        <span className="text-[10px] text-emerald-600 dark:text-emerald-400 font-mono">.html</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">单文件自包含、支持离线交互与打印</div>
+                    </div>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handlePreviewHtml}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-left cursor-pointer transition-colors"
+                  >
+                    <ExternalLink className="h-4 w-4 text-blue-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100">新标签页预览 HTML</div>
+                      <div className="text-[10px] text-slate-400 truncate">免下载直接在浏览器查看与快速打印</div>
+                    </div>
+                  </button>
+
+                  <div className="h-px bg-slate-100 dark:bg-slate-800 my-1" />
+
+                  <button
+                    type="button"
+                    onClick={() => handleExportChat('markdown')}
+                    disabled={isExporting}
+                    className="w-full flex items-center gap-2.5 px-2.5 py-2 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 text-left cursor-pointer transition-colors"
+                  >
+                    <FileText className="h-4 w-4 text-indigo-500 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="font-semibold text-slate-900 dark:text-slate-100 flex items-center justify-between">
+                        <span>下载 Markdown 报告</span>
+                        <span className="text-[10px] text-indigo-600 dark:text-indigo-400 font-mono">.md</span>
+                      </div>
+                      <div className="text-[10px] text-slate-400 truncate">完整思维链与沙箱执行原始代码</div>
                     </div>
                   </button>
                 </div>

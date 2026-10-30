@@ -860,10 +860,12 @@ def resolve_bot_approval(bot_id: str, approval_id: str, payload: ApprovalDecisio
 @router.get("/bots/{bot_id}/export")
 def export_bot_chat(
     bot_id: str,
-    format: str = Query(default="markdown")
+    format: str = Query(default="markdown"),
+    preview: bool = Query(default=False)
 ):
     """一键导出当前智能体会话排障记录（支持 Markdown 与自包含单页交互式 HTML）"""
     import io
+    import re
     import html as html_lib
     import urllib.parse
 
@@ -876,77 +878,80 @@ def export_bot_chat(
         raise HTTPException(status_code=400, detail="当前暂无会话排障记录可供导出")
 
     export_time = time.strftime("%Y-%m-%d %H:%M:%S")
+    clean_bot_name = re.sub(r'[/\\:*?"<>|]', '_', bot.name)
 
     if format.lower() == "html":
         # 生成高保真、独立可离线查看的 HTML 排障报告
         turns_html = []
         for idx, msg in enumerate(history, 1):
             role = msg.get("role", "user")
-            content = msg.get("content", "").strip()
-            meta = msg.get("metadata", {})
+            content = (msg.get("content") or "").strip()
+            meta = msg.get("metadata", {}) or {}
             ts = msg.get("timestamp", "")
 
             if role == "user":
                 atts_html = ""
-                atts = meta.get("attachments", [])
+                atts = meta.get("attachments", []) or []
                 if atts:
                     items = "".join([
-                        f"<li style='margin: 4px 0;'><span style='color: #0284c7;'>📎</span> <code>{html_lib.escape(a.get('name', ''))}</code> ({html_lib.escape(str(a.get('type', '')))}, {html_lib.escape(str(a.get('size_formatted', '')))})</li>"
-                        for a in atts
+                        f"<li style='margin: 4px 0;'><span style='color: #0284c7;'>📎</span> <code>{html_lib.escape(str(a.get('name', '')))}</code> ({html_lib.escape(str(a.get('type', '')))}, {html_lib.escape(str(a.get('size_formatted', '')))})</li>"
+                        for a in atts if isinstance(a, dict)
                     ])
                     atts_html = f"<div style='margin-top: 10px; font-size: 12px; color: #64748b;'><strong>附件:</strong><ul style='padding-left: 20px; margin: 4px 0;'>{items}</ul></div>"
 
                 turns_html.append(f"""
-                <div style="margin-bottom: 24px; padding: 16px 20px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                <div style="margin-bottom: 24px; padding: 18px 22px; border-radius: 12px; background: #f8fafc; border: 1px solid #e2e8f0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
                         <span style="font-weight: 700; color: #0f172a; font-size: 14px;">👤 用户需求 [#{idx}]</span>
-                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">{html_lib.escape(ts)}</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">{html_lib.escape(str(ts))}</span>
                     </div>
-                    <div style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap;">{html_lib.escape(content)}</div>
+                    <div class="markdown-content" data-raw="{html_lib.escape(content)}" style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap;">{html_lib.escape(content)}</div>
                     {atts_html}
                 </div>
                 """)
             else:
-                thought = meta.get("thought", "")
+                thought = meta.get("thought", "") or ""
                 thought_section = ""
                 if thought:
                     thought_section = f"""
-                    <details style="margin-bottom: 12px; background: #f1f5f9; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #475569; border-left: 3px solid #0284c7;">
+                    <details style="margin-bottom: 14px; background: #f1f5f9; padding: 10px 14px; border-radius: 8px; font-size: 12px; color: #475569; border-left: 3px solid #0284c7;">
                         <summary style="cursor: pointer; font-weight: 600; color: #0369a1;">💭 推理思考过程 (Thinking)</summary>
-                        <div style="margin-top: 8px; white-space: pre-wrap; font-family: monospace; line-height: 1.5;">{html_lib.escape(thought)}</div>
+                        <div style="margin-top: 8px; white-space: pre-wrap; font-family: monospace; line-height: 1.5; font-size: 11px;">{html_lib.escape(str(thought))}</div>
                     </details>
                     """
 
-                code_blocks = meta.get("code_blocks", [])
-                logs = meta.get("execution_logs", [])
+                code_blocks = meta.get("code_blocks", []) or []
+                logs = meta.get("execution_logs", []) or []
                 code_section = ""
                 if code_blocks:
                     c_parts = []
                     for cb in code_blocks:
+                        if not isinstance(cb, dict):
+                            continue
                         step_num = cb.get("step", 1)
-                        c_code = cb.get("code", "")
-                        matching_log = next((l for l in logs if l.get("step") == step_num), None)
+                        c_code = cb.get("code", "") or ""
+                        matching_log = next((l for l in logs if isinstance(l, dict) and l.get("step") == step_num), None)
                         log_out = matching_log.get("output", "") if matching_log else ""
                         c_parts.append(f"""
                         <div style="margin-top: 10px; border: 1px solid #e2e8f0; border-radius: 8px; overflow: hidden;">
                             <div style="background: #0f172a; color: #94a3b8; font-size: 11px; font-family: monospace; padding: 6px 12px; display: flex; justify-content: space-between;">
                                 <span>⚡ 沙箱 Python 执行 · 步骤 {step_num}</span>
                             </div>
-                            <pre style="margin: 0; padding: 12px; background: #1e293b; color: #f8fafc; font-size: 12px; overflow-x: auto; font-family: monospace;">{html_lib.escape(c_code)}</pre>
-                            {f'<div style="background: #f8fafc; padding: 10px 12px; font-size: 11px; border-top: 1px solid #e2e8f0; font-family: monospace; color: #334155;"><strong style="color: #0284c7;">执行结果:</strong><div style="white-space: pre-wrap; margin-top: 4px;">{html_lib.escape(log_out)}</div></div>' if log_out else ''}
+                            <pre style="margin: 0; padding: 12px; background: #1e293b; color: #f8fafc; font-size: 12px; overflow-x: auto; font-family: monospace; line-height: 1.4;">{html_lib.escape(str(c_code))}</pre>
+                            {f'<div style="background: #f8fafc; padding: 10px 12px; font-size: 11px; border-top: 1px solid #e2e8f0; font-family: monospace; color: #334155;"><strong style="color: #0284c7;">执行结果:</strong><div style="white-space: pre-wrap; margin-top: 4px;">{html_lib.escape(str(log_out))}</div></div>' if log_out else ''}
                         </div>
                         """)
                     code_section = "".join(c_parts)
 
                 turns_html.append(f"""
-                <div style="margin-bottom: 28px; padding: 18px 22px; border-radius: 12px; background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+                <div style="margin-bottom: 28px; padding: 20px 24px; border-radius: 12px; background: #ffffff; border: 1px solid #cbd5e1; box-shadow: 0 1px 4px rgba(0,0,0,0.05);">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #f1f5f9;">
                         <span style="font-weight: 700; color: #0284c7; font-size: 14px;">🤖 {html_lib.escape(bot.name)} 反馈 [#{idx}]</span>
-                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">{html_lib.escape(ts)}</span>
+                        <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">{html_lib.escape(str(ts))}</span>
                     </div>
                     {thought_section}
                     {code_section}
-                    <div style="margin-top: 14px; font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap;">{html_lib.escape(content)}</div>
+                    <div class="markdown-content" data-raw="{html_lib.escape(content)}" style="margin-top: 14px; font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap;">{html_lib.escape(content)}</div>
                 </div>
                 """)
 
@@ -966,7 +971,7 @@ def export_bot_chat(
             padding: 30px 20px;
         }}
         .container {{
-            max-width: 900px;
+            max-width: 920px;
             margin: 0 auto;
             background: #ffffff;
             border-radius: 16px;
@@ -974,11 +979,96 @@ def export_bot_chat(
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
             border: 1px solid #e2e8f0;
         }}
+        .header-actions {{
+            display: flex;
+            gap: 8px;
+            margin-top: 14px;
+        }}
+        .btn {{
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 14px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-weight: 600;
+            text-decoration: none;
+            cursor: pointer;
+            border: 1px solid #cbd5e1;
+            background: #ffffff;
+            color: #334155;
+            transition: all 0.15s ease;
+        }}
+        .btn:hover {{
+            background: #f8fafc;
+            border-color: #94a3b8;
+            color: #0f172a;
+        }}
+        .btn-primary {{
+            background: #0284c7;
+            color: #ffffff;
+            border-color: #0284c7;
+        }}
+        .btn-primary:hover {{
+            background: #0369a1;
+            border-color: #0369a1;
+        }}
+        .markdown-rendered h1, .markdown-rendered h2, .markdown-rendered h3 {{
+            margin-top: 18px;
+            margin-bottom: 8px;
+            font-weight: 700;
+            color: #0f172a;
+        }}
+        .markdown-rendered h1 {{ font-size: 18px; border-bottom: 1px solid #e2e8f0; padding-bottom: 6px; }}
+        .markdown-rendered h2 {{ font-size: 16px; border-bottom: 1px solid #f1f5f9; padding-bottom: 4px; }}
+        .markdown-rendered h3 {{ font-size: 14px; }}
+        .markdown-rendered p {{ margin: 8px 0; line-height: 1.6; }}
+        .markdown-rendered table {{
+            border-collapse: collapse;
+            width: 100%;
+            margin: 12px 0;
+            font-size: 12px;
+        }}
+        .markdown-rendered th, .markdown-rendered td {{
+            border: 1px solid #cbd5e1;
+            padding: 8px 12px;
+            text-align: left;
+        }}
+        .markdown-rendered th {{
+            background: #f8fafc;
+            font-weight: 600;
+            color: #334155;
+        }}
+        .markdown-rendered blockquote {{
+            margin: 12px 0;
+            padding: 8px 16px;
+            border-left: 4px solid #0284c7;
+            background: #f0f9ff;
+            color: #0369a1;
+            border-radius: 0 8px 8px 0;
+        }}
+        .markdown-rendered code {{
+            background: #f1f5f9;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            color: #0f172a;
+        }}
+        .markdown-rendered ul, .markdown-rendered ol {{
+            padding-left: 20px;
+            margin: 8px 0;
+        }}
+        .markdown-rendered li {{
+            margin: 4px 0;
+        }}
         @media print {{
             body {{ background: #fff; padding: 0; }}
             .container {{ box-shadow: none; border: none; padding: 0; max-width: 100%; }}
+            .header-actions {{ display: none !important; }}
         }}
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -999,7 +1089,15 @@ def export_bot_chat(
                 </div>
             </div>
             <div style="margin-top: 14px; font-size: 12px; color: #475569; background: #f8fafc; padding: 10px 14px; border-radius: 8px; border: 1px solid #e2e8f0;">
-                <strong>人设与定位:</strong> {html_lib.escape(bot.description or bot.base_prompt[:140])}
+                <strong>人设与定位:</strong> {html_lib.escape(bot.description or (bot.base_prompt or '')[:140])}
+            </div>
+            <div class="header-actions">
+                <button type="button" onclick="window.print()" class="btn btn-primary">
+                    🖨️ 打印报告 / 另存为 PDF
+                </button>
+                <a href="?format=markdown" class="btn">
+                    📥 下载为 Markdown (.md)
+                </a>
             </div>
         </header>
 
@@ -1011,16 +1109,31 @@ def export_bot_chat(
             本报告由 Tencent Cloud TIM Studio 智能体全流程自动化生成 · 包含全链路代码执行与沙箱结果记录
         </footer>
     </div>
+
+    <script>
+        // 自动解析 Markdown 为富文本渲染（若 CDN 可用），CDN 不可用时保留优雅纯文本
+        document.addEventListener('DOMContentLoaded', function() {{
+            if (window.marked && typeof window.marked.parse === 'function') {{
+                document.querySelectorAll('.markdown-content').forEach(function(el) {{
+                    var raw = el.getAttribute('data-raw') || el.textContent;
+                    el.innerHTML = window.marked.parse(raw);
+                    el.classList.add('markdown-rendered');
+                    el.style.whiteSpace = 'normal';
+                }});
+            }}
+        }});
+    </script>
 </body>
 </html>"""
 
         ascii_name = f"tim_report_{bot_id}_{int(time.time())}.html"
-        encoded_name = urllib.parse.quote(f"{bot.name}_排障报告_{time.strftime('%Y%m%d_%H%M%S')}.html")
+        encoded_name = urllib.parse.quote(f"{clean_bot_name}_排障报告_{time.strftime('%Y%m%d_%H%M%S')}.html")
+        disposition_type = "inline" if preview else "attachment"
         return StreamingResponse(
             io.BytesIO(html_doc.encode("utf-8")),
             media_type="text/html; charset=utf-8",
             headers={
-                "Content-Disposition": f'attachment; filename="{ascii_name}"; filename*=utf-8\'\'{encoded_name}'
+                "Content-Disposition": f'{disposition_type}; filename="{ascii_name}"; filename*=utf-8\'\'{encoded_name}'
             }
         )
 
@@ -1039,45 +1152,47 @@ def export_bot_chat(
 
     for idx, msg in enumerate(history, 1):
         role = msg.get("role", "user")
-        content = msg.get("content", "").strip()
-        meta = msg.get("metadata", {})
+        content = (msg.get("content") or "").strip()
+        meta = msg.get("metadata", {}) or {}
         ts = msg.get("timestamp", "")
 
         if role == "user":
             lines.append(f"### 👤 用户需求 [#{idx}] ({ts})\n")
             lines.append(f"{content}\n")
-            atts = meta.get("attachments", [])
+            atts = meta.get("attachments", []) or []
             if atts:
                 lines.append("**📎 上传附件列表:**")
                 for a in atts:
-                    lines.append(f"- `{a.get('name')}` ({a.get('type')}, 大小: {a.get('size_formatted', '')})")
+                    if isinstance(a, dict):
+                        lines.append(f"- `{a.get('name')}` ({a.get('type')}, 大小: {a.get('size_formatted', '')})")
                 lines.append("")
         else:
             lines.append(f"### 🤖 智能体回复 [#{idx}] ({ts})\n")
-            thought = meta.get("thought", "")
+            thought = meta.get("thought", "") or ""
             if thought:
                 lines.append("<details>\n<summary>💭 展开查看思考链推理过程</summary>\n")
                 lines.append(thought)
                 lines.append("\n</details>\n")
 
-            code_blocks = meta.get("code_blocks", [])
-            logs = meta.get("execution_logs", [])
+            code_blocks = meta.get("code_blocks", []) or []
+            logs = meta.get("execution_logs", []) or []
             if code_blocks:
                 lines.append("#### ⚙️ 沙箱 Python 代码执行与日志\n")
                 for cb in code_blocks:
-                    step_num = cb.get("step", 1)
-                    c_code = cb.get("code", "")
-                    lines.append(f"```python\n# 步骤 {step_num}\n{c_code}\n```\n")
-                    matching_log = next((l for l in logs if l.get("step") == step_num), None)
-                    if matching_log:
-                        lines.append(f"**执行结果 (步骤 {step_num}):**\n\n{matching_log.get('output', '')}\n")
+                    if isinstance(cb, dict):
+                        step_num = cb.get("step", 1)
+                        c_code = cb.get("code", "")
+                        lines.append(f"```python\n# 步骤 {step_num}\n{c_code}\n```\n")
+                        matching_log = next((l for l in logs if isinstance(l, dict) and l.get("step") == step_num), None)
+                        if matching_log:
+                            lines.append(f"**执行结果 (步骤 {step_num}):**\n\n{matching_log.get('output', '')}\n")
 
             lines.append(f"#### 🎯 智能体结论\n\n{content}\n")
             lines.append("\n---\n")
 
     md_content = "\n".join(lines)
     ascii_name = f"tim_report_{bot_id}_{int(time.time())}.md"
-    encoded_name = urllib.parse.quote(f"{bot.name}_排障报告_{time.strftime('%Y%m%d_%H%M%S')}.md")
+    encoded_name = urllib.parse.quote(f"{clean_bot_name}_排障报告_{time.strftime('%Y%m%d_%H%M%S')}.md")
     return StreamingResponse(
         io.BytesIO(md_content.encode("utf-8")),
         media_type="text/markdown; charset=utf-8",
