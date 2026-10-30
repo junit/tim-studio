@@ -18,6 +18,13 @@ import {
   HelpCircle,
   Maximize2,
   Minimize2,
+  Zap,
+  Sliders,
+  MessageSquare,
+  Calendar,
+  Box,
+  ArrowDown,
+  Activity,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -100,6 +107,26 @@ export interface DocSummary {
   is_running: boolean
 }
 
+// 指标分类与图标映射
+const getMetricIcon = (label: string, value: string) => {
+  if (/频率|QPS|次\/秒|次\/s|续流/i.test(label) || /次\/秒|QPS/i.test(value)) {
+    return { icon: Zap, color: 'text-amber-500', hint: '请求并发频控' }
+  }
+  if (/条数|消息|分/i.test(label) || /条\/分/i.test(value)) {
+    return { icon: MessageSquare, color: 'text-blue-500', hint: '按接收人数计算' }
+  }
+  if (/累计|天|日/i.test(label) || /条\/天|次\/日|次\/天/i.test(value)) {
+    return { icon: Calendar, color: 'text-purple-500', hint: '每日累计配额' }
+  }
+  if (/大小|报文|包/i.test(label) || /KB|MB/i.test(value)) {
+    return { icon: Box, color: 'text-emerald-500', hint: '单包报文上限' }
+  }
+  if (/间隔|超时|缓冲/i.test(label) || /秒|s|ms/i.test(value)) {
+    return { icon: Clock, color: 'text-indigo-500', hint: '时效与间隔约束' }
+  }
+  return { icon: Activity, color: 'text-slate-500', hint: '技术规格约束' }
+}
+
 interface ApiDocsViewerProps {
   api: ApiMeta
   onApplyExample?: (example: ExampleItem) => void
@@ -124,6 +151,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
   const [copiedKey, setCopiedKey] = useState<string | null>(null)
   const [errorSearch, setErrorSearch] = useState('')
   const [isSelfModalOpen, setIsSelfModalOpen] = useState(false)
+  const [showSimpleNotice, setShowSimpleNotice] = useState(false)
 
   // 批量同步弹窗状态
   const [showBatchModal, setShowBatchModal] = useState(false)
@@ -173,6 +201,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
         setDoc(data.data)
         setActiveReqExampleIdx(0)
         setActiveRespExampleIdx(0)
+        setShowSimpleNotice(false)
       }
     } catch (e) {
       console.error('Failed to load doc', e)
@@ -360,21 +389,56 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
       .filter((l) => l && !l.startsWith('以下视频') && l !== '﻿')
   }, [doc?.overview])
 
-  // 结构化解析频率限制与配额规则
+  // 结构化解析频率限制与配额规则 (智能分级自适应)
   const parsedRateLimit = useMemo(() => {
     if (!doc?.rate_limit) return null
     const raw = doc.rate_limit.trim()
 
-    // 核心频率标签提取 (如 200次/秒, 1000条/天, 1次/s, 每秒100次)
-    const coreMatch = raw.match(
-      /(\d+\s*次\s*\/\s*[秒sS天日分]+|\d+\s*条\s*\/\s*[秒sS天日分]+|每秒\s*\d+\s*次|\d+\s*次\s*\/\s*s)/i
+    // 1. 核心频率标签提取 (按 秒 > 分 > 天 优先级匹配)
+    let coreBadge = ''
+    const secMatch = raw.match(
+      /(\d+\s*(?:次|条)\s*\/\s*[秒sS]|每秒\s*\d+\s*次|\d+\s*QPS[^\s，。]*|\d+\s*次\s*\/\s*s)/i
     )
-    let coreBadge = coreMatch ? coreMatch[1].replace(/\s+/g, '') : ''
-    if (!coreBadge) {
-      coreBadge = raw.length <= 16 ? raw : raw.slice(0, 15) + '...'
+    if (secMatch) {
+      coreBadge = secMatch[1].replace(/\s+/g, '')
+    } else {
+      const minMatch = raw.match(/(\d+\s*(?:次|条)\s*\/\s*(?:分|分钟))/i)
+      if (minMatch) {
+        coreBadge = minMatch[1].replace(/\s+/g, '')
+      } else {
+        const dayMatch = raw.match(/(\d+\s*(?:次|条)\s*\/\s*(?:天|日))/i)
+        if (dayMatch) {
+          coreBadge = dayMatch[1].replace(/\s+/g, '')
+        } else {
+          coreBadge = raw.length <= 16 ? raw : raw.slice(0, 15) + '...'
+        }
+      }
     }
 
-    // 分离正文与注意事项
+    // 2. 智能计算推荐调用安全间隔 (Recommended Safe Delay)
+    let recommendedInterval = ''
+    const secRate = raw.match(
+      /(\d+(?:\.\d+)?)\s*(?:次\s*\/\s*秒|次\/s|QPS|次每秒)|每秒\s*(\d+(?:\.\d+)?)\s*次/i
+    )
+    if (secRate) {
+      const rVal = parseFloat(secRate[1] || secRate[2])
+      if (rVal > 0) {
+        const ms = Math.round(1000.0 / rVal)
+        recommendedInterval = ms < 1000 ? `≥ ${ms}ms` : `≥ ${(ms / 1000).toFixed(1)}s`
+      }
+    } else if (raw.includes('天') || raw.includes('日')) {
+      recommendedInterval = '建议单次 ≥ 1s'
+    }
+
+    // 3. 判断是否为多维复合规格 (是否包含日限额、每分条数、分片/报文/版本分级等复合约束)
+    const hasDaily = /\d+\s*(?:条|次)\s*\/\s*(?:天|日)|日累计/.test(raw)
+    const hasMsgRate = /\d+\s*(?:条|次)\s*\/\s*(?:分|分钟)/.test(raw)
+    const hasPayloadOrInterval = /KB|分片|最长间隔|缓冲|续流/.test(raw)
+    const hasTier = /(?:旗舰版|企业版|专业版)[：:]\s*\d+/.test(raw)
+    const rateMatches = new Set(raw.match(/\d+\s*(?:次|条)\s*\/\s*[秒sS天日分]+/g) || [])
+    const isRichSpec = hasDaily || hasMsgRate || hasPayloadOrInterval || hasTier || rateMatches.size > 1
+
+    // 4. 分离正文与注意事项
     let mainText = raw
     let noticeItems: string[] = []
     const noticeMatch = raw.match(/注意[：:](.*)/s)
@@ -386,29 +450,68 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
         .filter(Boolean)
     }
 
-    // 提取主要规则条目
-    const ruleItems = mainText
+    // 5. 提取关键配额指标
+    const metrics: Array<{ label: string; value: string }> = []
+    const metricMatches = Array.from(
+      raw.matchAll(
+        /([^：:，,。\n]{2,25})[：:]\s*([0-9]+(?:\.[0-9]+)?\s*(?:次|条|KB|秒|s)\s*(?:\/\s*(?:秒|分|分钟|天|日|s))?)/g
+      )
+    )
+    metricMatches.forEach((m) => {
+      let rawLabel = m[1].trim()
+      rawLabel = rawLabel.replace(
+        /^(默认|后台接口限制了|建议使用|体验版和开发版限制|体验版和开发版无法调整)/,
+        ''
+      )
+      rawLabel = rawLabel.replace(/^(接口|服务端)\s*/, '')
+      const val = m[2].trim()
+      if (rawLabel && !metrics.some((item) => item.label === rawLabel)) {
+        metrics.push({ label: rawLabel, value: val })
+      }
+    })
+
+    // 提取续流频率 (如: 后台接口限制了续流频率为5次/秒)
+    const streamMatch = raw.match(/续流频率[为：:]\s*([0-9]+\s*次\s*\/\s*[秒sS])/i)
+    if (streamMatch && !metrics.some((m) => m.label.includes('续流'))) {
+      metrics.unshift({ label: '续流请求频率', value: streamMatch[1].trim() })
+    }
+
+    // 补充识别大小限制 (如: 消息大小 < 128KB)
+    const sizeMatch = raw.match(/(?:消息大小|包大小|单包)\s*([<≤]?\s*\d+\s*(?:KB|MB|B))/i)
+    if (sizeMatch && !metrics.some((m) => m.label.includes('大小'))) {
+      metrics.push({ label: '消息大小上限', value: sizeMatch[1].trim() })
+    }
+
+    // 补充识别间隔限制 (如: 分片最长间隔不能超过 15 秒)
+    const intervalMatch = raw.match(/(?:分片间隔|最长间隔|推送间隔|间隔)[^0-9]{0,10}([>≥<≤]?\s*[0-9]+\s*(?:秒|s))/i)
+    if (intervalMatch && !metrics.some((m) => m.label.includes('间隔'))) {
+      metrics.push({ label: '最长间隔限制', value: `≤ ${intervalMatch[1].trim()}` })
+    }
+
+    // 6. 提取规则细项并进行去重 (剔除与指标卡片100%重复的纯数值定义句子)
+    const rawRuleItems = mainText
       .split(/[。\n]+/)
       .map((s) => s.trim())
       .filter(Boolean)
 
-    // 提取关键配额指标 (e.g. 默认接口请求频率限制：200次/秒, 默认发送消息条数限制：12000条/分钟)
-    const metricMatches = Array.from(
-      raw.matchAll(
-        /([^：:，,。\n]{2,14})[：:]\s*([0-9]+(?:\.[0-9]+)?\s*(?:次|条|KB|秒|s)\s*(?:\/\s*(?:秒|分|分钟|天|日|s))?)/g
+    const cleanRules = rawRuleItems.filter((r) => {
+      const isPureMetric = metrics.some(
+        (m) => r.includes(m.value) && r.length <= m.label.length + m.value.length + 12
       )
-    )
-    const metrics = metricMatches.map((m) => ({
-      label: m[1].trim().replace(/^(默认|后台接口限制了|建议使用)/, ''),
-      value: m[2].trim(),
-    }))
+      const cleanR = r.replace(/^.*?同时存在.*?限制[：:]\s*/, '').trim()
+      const isPureAfterSub = metrics.some(
+        (m) => cleanR.includes(m.value) && cleanR.length <= m.label.length + m.value.length + 12
+      )
+      return !isPureMetric && !isPureAfterSub
+    })
 
     return {
       raw,
       coreBadge,
-      isComplex: raw.length > 25 || noticeItems.length > 0 || ruleItems.length > 1,
+      recommendedInterval,
+      isRichSpec,
       metrics,
-      rules: ruleItems,
+      rules: cleanRules,
       notices: noticeItems,
     }
   }, [doc?.rate_limit])
@@ -553,73 +656,168 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
           </div>
           {parsedRateLimit && (
             <div
-              className="flex items-center gap-1.5 text-amber-800 dark:text-amber-300 bg-amber-50/90 dark:bg-amber-950/60 px-2 py-0.5 rounded border border-amber-200/80 dark:border-amber-800/80 font-sans text-[11px]"
+              className="flex items-center gap-1.5 text-slate-700 dark:text-slate-300 bg-slate-100/80 dark:bg-slate-800/80 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-700 font-sans text-[11px]"
               title={parsedRateLimit.raw}
             >
-              <Clock className="h-3 w-3 text-amber-600 dark:text-amber-400 shrink-0" />
-              <span className="text-amber-700 dark:text-amber-400">频率限制:</span>
-              <span className="font-mono font-bold text-amber-900 dark:text-amber-200">{parsedRateLimit.coreBadge}</span>
-              {parsedRateLimit.isComplex && (
-                <span className="text-[10px] text-amber-700 dark:text-amber-400 bg-amber-100 dark:bg-amber-900/60 px-1 py-0.2 rounded font-medium">
-                  详细规则见下方
+              <Zap className="h-3 w-3 text-amber-500 shrink-0" />
+              <span className="text-slate-500 dark:text-slate-400">调用频控:</span>
+              <span className="font-mono font-bold text-slate-900 dark:text-slate-100">
+                {parsedRateLimit.coreBadge}
+              </span>
+              {parsedRateLimit.recommendedInterval && (
+                <span className="hidden sm:inline-flex items-center text-[10px] text-emerald-700 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800/80 px-1 py-0.2 rounded font-mono font-medium">
+                  安全间隔 {parsedRateLimit.recommendedInterval}
                 </span>
               )}
+              {parsedRateLimit.isRichSpec ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    const el = document.getElementById('rate-limit-specs')
+                    if (el) el.scrollIntoView({ behavior: 'smooth' })
+                  }}
+                  className="text-[10px] text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 bg-blue-50 dark:bg-blue-950/60 border border-blue-200 dark:border-blue-800/80 px-1.5 py-0.2 rounded font-medium flex items-center gap-0.5 cursor-pointer ml-0.5"
+                >
+                  <span>多维配额</span>
+                  <ArrowDown className="h-2.5 w-2.5" />
+                </button>
+              ) : parsedRateLimit.notices.length > 0 ? (
+                <button
+                  type="button"
+                  onClick={() => setShowSimpleNotice((prev) => !prev)}
+                  className="text-[10px] text-slate-500 hover:text-blue-600 dark:text-slate-400 dark:hover:text-blue-400 underline cursor-pointer ml-1"
+                  title="点击查看调频与计费说明"
+                >
+                  {showSimpleNotice ? '收起说明' : '调频/计费说明'}
+                </button>
+              ) : null}
             </div>
           )}
         </div>
+
+        {/* 轻量级接口调频/计费说明展开面板 (仅单维接口且有注意项时可选展开，默认折叠零占地) */}
+        {showSimpleNotice && parsedRateLimit && !parsedRateLimit.isRichSpec && parsedRateLimit.notices.length > 0 && (
+          <div className="mt-2.5 p-2.5 rounded-lg bg-blue-50/50 dark:bg-slate-850 border border-blue-100 dark:border-slate-800 text-[11px] text-slate-700 dark:text-slate-300 animate-in fade-in duration-150 space-y-1">
+            <div className="flex items-center justify-between">
+              <span className="font-semibold text-blue-950 dark:text-blue-300 flex items-center gap-1">
+                <Info className="h-3 w-3 text-blue-500" />
+                接口调频与计费说明
+              </span>
+              <button
+                type="button"
+                onClick={() => setShowSimpleNotice(false)}
+                className="text-[10px] text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
+              >
+                收起
+              </button>
+            </div>
+            <ul className="list-disc list-inside space-y-0.5 text-slate-600 dark:text-slate-400 text-[11px]">
+              {parsedRateLimit.notices.map((n, idx) => (
+                <li key={idx} className="leading-relaxed">{n}</li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
 
-      {/* 频率限制与配额规则卡片 (格式化结构化呈现) */}
-      {parsedRateLimit && (
-        <div className="rounded-xl border border-amber-200/90 dark:border-amber-900/60 bg-amber-50/40 dark:bg-amber-950/30 p-4 space-y-3 shadow-2xs">
-          <div className="flex items-center justify-between">
+      {/* 接口调用规格与多维配额中心 (仅在包含复合配额/流式/日限额的复杂接口展示) */}
+      {parsedRateLimit && parsedRateLimit.isRichSpec && (
+        <div
+          id="rate-limit-specs"
+          className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-gradient-to-b from-slate-50/70 to-slate-50/20 dark:from-slate-900/60 dark:to-slate-900/20 p-4 space-y-3.5 shadow-2xs"
+        >
+          {/* 头部标题与徽章 */}
+          <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
-              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-amber-100 dark:bg-amber-900/60 text-amber-700 dark:text-amber-300">
-                <Clock className="h-3.5 w-3.5" />
+              <div className="flex h-6 w-6 items-center justify-center rounded-lg bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400">
+                <Sliders className="h-3.5 w-3.5" />
               </div>
-              <h4 className="font-bold text-xs text-amber-950 dark:text-amber-200">接口调用频率限制与配额</h4>
+              <div>
+                <h4 className="font-bold text-xs text-slate-900 dark:text-slate-100">接口调用规格与配额规范</h4>
+                <p className="text-[10px] text-slate-400 dark:text-slate-500">官方技术指标与多维度并发限额</p>
+              </div>
             </div>
-            <Badge
-              variant="outline"
-              className="bg-amber-100/80 dark:bg-amber-900/40 text-amber-800 dark:text-amber-300 border-amber-300 dark:border-amber-800 font-mono text-[10px]"
-            >
-              基准频控: {parsedRateLimit.coreBadge}
-            </Badge>
+            <div className="flex items-center gap-1.5">
+              <Badge
+                variant="outline"
+                className="bg-white dark:bg-slate-850 text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-700 font-mono text-[10px]"
+              >
+                基准频控: {parsedRateLimit.coreBadge}
+              </Badge>
+              {parsedRateLimit.recommendedInterval && (
+                <Badge
+                  variant="outline"
+                  className="bg-emerald-50 dark:bg-emerald-950/50 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 font-mono text-[10px]"
+                >
+                  并发建议: {parsedRateLimit.recommendedInterval}
+                </Badge>
+              )}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => {
+                  const tip = `接口「${api.name}」基准频控为 ${parsedRateLimit.coreBadge}，推荐调用安全间隔为 ${parsedRateLimit.recommendedInterval || '≥ 200ms'}。`
+                  handleCopyText(tip, '并发配置建议')
+                }}
+                className="h-6 px-2 text-[10px] text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-slate-200 cursor-pointer gap-1"
+                title="复制并发安全建议到剪贴板"
+              >
+                <Copy className="h-2.5 w-2.5" />
+                <span>复制建议</span>
+              </Button>
+            </div>
           </div>
 
-          {/* 关键配额指标 */}
+          {/* 关键配额指标网格 */}
           {parsedRateLimit.metrics.length > 0 && (
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-2">
-              {parsedRateLimit.metrics.map((m, idx) => (
-                <div
-                  key={idx}
-                  className="rounded-lg bg-white/95 dark:bg-slate-850 border border-amber-200/80 dark:border-amber-800/60 p-2 flex flex-col justify-between"
-                >
-                  <span className="text-[10px] text-amber-800/80 dark:text-amber-400 font-medium truncate">{m.label}</span>
-                  <span className="text-xs font-mono font-bold text-amber-950 dark:text-amber-200 mt-0.5">{m.value}</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5">
+              {parsedRateLimit.metrics.map((m, idx) => {
+                const iconInfo = getMetricIcon(m.label, m.value)
+                const IconComp = iconInfo.icon
+                return (
+                  <div
+                    key={idx}
+                    className="rounded-lg bg-white dark:bg-slate-850 border border-slate-200/80 dark:border-slate-800 p-2.5 flex flex-col justify-between shadow-2xs hover:border-slate-300 dark:hover:border-slate-700 transition-colors"
+                  >
+                    <div className="flex items-center justify-between gap-1 text-[10px] text-slate-500 dark:text-slate-400">
+                      <span className="font-medium truncate">{m.label}</span>
+                      <IconComp className={`h-3 w-3 ${iconInfo.color} shrink-0`} />
+                    </div>
+                    <div className="mt-1.5">
+                      <div className="text-xs font-mono font-bold text-slate-900 dark:text-slate-100">{m.value}</div>
+                      {iconInfo.hint && (
+                        <div className="text-[9px] text-slate-400 dark:text-slate-500 mt-0.5 truncate">{iconInfo.hint}</div>
+                      )}
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          )}
+
+          {/* 规则细项逐条展示 (去重过滤) */}
+          {parsedRateLimit.rules.length > 0 && (
+            <div className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-300 bg-white/70 dark:bg-slate-850/60 p-3 rounded-lg border border-slate-200/60 dark:border-slate-800/60">
+              <div className="text-[10px] font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider mb-1">
+                业务约束与流控规则
+              </div>
+              {parsedRateLimit.rules.map((rule, idx) => (
+                <div key={idx} className="flex items-start gap-2">
+                  <span className="text-blue-500 font-bold shrink-0 mt-0.5">•</span>
+                  <span className="leading-relaxed">{rule}</span>
                 </div>
               ))}
             </div>
           )}
 
-          {/* 规则细项逐条展示 */}
-          <div className="space-y-1.5 text-[11px] text-slate-700 dark:text-slate-300">
-            {parsedRateLimit.rules.map((rule, idx) => (
-              <div key={idx} className="flex items-start gap-2">
-                <span className="text-amber-500 font-bold shrink-0 mt-0.5">•</span>
-                <span className="leading-relaxed">{rule}</span>
-              </div>
-            ))}
-          </div>
-
           {/* 注意事项与配额调整 */}
           {parsedRateLimit.notices.length > 0 && (
-            <div className="rounded-lg bg-amber-100/60 dark:bg-amber-950/60 border border-amber-200 dark:border-amber-800/80 p-2.5 space-y-1 text-[11px] text-amber-900 dark:text-amber-200">
-              <div className="flex items-center gap-1 font-bold text-amber-950 dark:text-amber-200 text-[11px]">
-                <AlertCircle className="h-3 w-3 text-amber-700 dark:text-amber-400 shrink-0" />
-                <span>注意事项与配额调整:</span>
+            <div className="rounded-lg bg-blue-50/60 dark:bg-blue-950/30 border border-blue-200/70 dark:border-blue-900/60 p-2.5 space-y-1 text-[11px] text-slate-700 dark:text-slate-300">
+              <div className="flex items-center gap-1.5 font-bold text-blue-950 dark:text-blue-200 text-[11px]">
+                <Info className="h-3 w-3 text-blue-600 dark:text-blue-400 shrink-0" />
+                <span>注意事项与配额调整说明</span>
               </div>
-              <ul className="list-disc list-inside space-y-0.5 pl-1 text-[11px]">
+              <ul className="list-disc list-inside space-y-0.5 pl-1 text-[11px] text-slate-600 dark:text-slate-400">
                 {parsedRateLimit.notices.map((n, idx) => (
                   <li key={idx} className="leading-relaxed">
                     {n}
