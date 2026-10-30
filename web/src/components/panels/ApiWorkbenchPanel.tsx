@@ -2591,13 +2591,17 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
               }
               const cleanName = getCleanApiName(activeApi.name, activeApi.command, activeApi.action)
               return (
-                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
-                  {parts.map((seg, idx) => (
-                    <React.Fragment key={idx}>
-                      <span className="truncate">{seg}</span>
-                      <span>/</span>
-                    </React.Fragment>
-                  ))}
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium truncate min-w-0">
+                  {parts.length > 0 && (
+                    <span className="hidden sm:inline-flex items-center gap-1 truncate text-slate-400">
+                      {parts.map((seg, idx) => (
+                        <React.Fragment key={idx}>
+                          <span className="truncate">{seg}</span>
+                          <span>/</span>
+                        </React.Fragment>
+                      ))}
+                    </span>
+                  )}
                   <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
                     {cleanName}
                   </h2>

@@ -264,11 +264,11 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
         )}
       </div>
 
-      {/* Center Navigation Tabs (桌面端 Apifox / Postman 风格导航，移动端收纳到底部栏) */}
-      <nav className="hidden md:flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-950/70 p-1 border border-slate-200/60 dark:border-slate-800 shadow-inner shrink-0">
+      {/* Center Navigation Tabs (桌面端 Apifox / Postman 风格导航，屏幕小于 1024px 收纳到底部原生栏) */}
+      <nav className="hidden lg:flex items-center gap-1 rounded-xl bg-slate-100/90 dark:bg-slate-950/70 p-1 border border-slate-200/60 dark:border-slate-800 shadow-inner shrink-0">
         <button
           onClick={() => setActiveTab('sandbox')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'sandbox'
               ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
@@ -280,7 +280,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
         <button
           onClick={() => setActiveTab('docs')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'docs'
               ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
@@ -292,7 +292,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
         <button
           onClick={() => setActiveTab('batch')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'batch'
               ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
@@ -304,7 +304,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
         <button
           onClick={() => setActiveTab('agent')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'agent'
               ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
@@ -317,7 +317,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
 
         <button
           onClick={() => setActiveTab('settings')}
-          className={`flex items-center gap-1.5 rounded-lg px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
+          className={`flex items-center gap-1.5 rounded-lg px-2.5 xl:px-3.5 py-1.5 text-xs font-semibold transition-colors duration-150 cursor-pointer border ${
             activeTab === 'settings'
               ? 'bg-white dark:bg-slate-800 text-blue-600 dark:text-blue-400 shadow-xs dark:shadow-sm border-slate-200/60 dark:border-slate-700'
               : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200 hover:bg-slate-200/50 dark:hover:bg-slate-800/50 border-transparent'
@@ -474,7 +474,7 @@ export const Header: React.FC<HeaderProps> = ({ activeTab, setActiveTab }) => {
           type="button"
           onClick={toggleTheme}
           title={isDark ? '当前为深色模式，点击切换为明亮模式' : '当前为明亮模式，点击切换为深色模式'}
-          className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-850 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-amber-400 hover:bg-white dark:hover:bg-slate-750 transition-all cursor-pointer shadow-2xs"
+          className="flex h-8 w-8 items-center justify-center rounded-xl border border-slate-200/90 dark:border-slate-700/80 bg-slate-50/80 dark:bg-slate-850 text-slate-600 dark:text-slate-300 hover:text-orange-600 dark:hover:text-amber-400 hover:bg-white dark:hover:bg-slate-750 transition-all cursor-pointer shadow-2xs shrink-0"
         >
           {isDark ? (
             <Sun className="h-4 w-4 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-45" />

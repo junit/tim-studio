@@ -513,7 +513,7 @@ export const SettingsPanel: React.FC = () => {
       {/* Main Two-Column Layout */}
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
         {/* Left Column: Environment List */}
-        <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 flex flex-col shrink-0 max-h-52 md:max-h-none">
+        <div className="w-full md:w-72 lg:w-80 border-b md:border-b-0 md:border-r border-slate-200/80 dark:border-slate-800 bg-white/70 dark:bg-slate-900/80 flex flex-col shrink-0 max-h-52 md:max-h-none">
           <div className="flex items-center justify-between p-3.5 border-b border-slate-100 dark:border-slate-800">
             <div className="flex items-center gap-1.5">
               <span className="text-xs font-bold text-slate-800 dark:text-slate-200">环境清单</span>
@@ -685,25 +685,25 @@ export const SettingsPanel: React.FC = () => {
         {/* Right Column: Edit Environment Form */}
         <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
           {/* Form Header Toolbar (紧凑表单工具条，与左侧环境清单栏顶对齐) */}
-          <div className="shrink-0 px-4 sm:px-6 py-2.5 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex items-center justify-between gap-3 min-h-[48px]">
-            <div className="flex items-center gap-2 min-w-0">
+          <div className="shrink-0 px-3 sm:px-6 py-2.5 border-b border-slate-200/80 dark:border-slate-800 bg-white/80 dark:bg-slate-900/80 backdrop-blur-xs flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 min-h-[48px]">
+            <div className="flex items-center gap-2 min-w-0 flex-wrap">
               <span className="text-xs font-bold text-slate-800 dark:text-slate-100 truncate">
                 {isCreatingNew ? '新建运行环境草稿' : `配置环境: ${formData?.name || '未命名'}`}
               </span>
               {formData?.tag && (
-                <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border ${getTagBadgeStyle(formData.tag)}`}>
+                <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold border shrink-0 ${getTagBadgeStyle(formData.tag)}`}>
                   {formData.tag}
                 </span>
               )}
               {formData?.id === activeEnvId && !isCreatingNew && (
-                <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                <span className="flex items-center gap-1 text-[10px] font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/60 px-1.5 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800 whitespace-nowrap shrink-0">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
                   当前生效
                 </span>
               )}
             </div>
 
-            <div className="flex items-center gap-2 shrink-0">
+            <div className="flex items-center gap-2 shrink-0 self-end sm:self-auto">
               {formData && formData.id && !isCreatingNew && (
                 <Button
                   variant="outline"
@@ -713,7 +713,16 @@ export const SettingsPanel: React.FC = () => {
                   className="h-8 gap-1.5 text-xs text-slate-700 dark:text-slate-300 border-slate-200 dark:border-slate-750 hover:border-blue-300 dark:hover:border-blue-600 cursor-pointer shadow-2xs"
                 >
                   <RefreshCw className={`h-3.5 w-3.5 ${isTesting ? 'animate-spin text-blue-600 dark:text-blue-400' : ''}`} />
-                  <span>{isTesting ? '测速联调中...' : `测试「${currentTabService?.name || (activeServiceTab === 'live' ? '云直播' : 'IM')}」连通性`}</span>
+                  <span>
+                    {isTesting ? (
+                      '测试中...'
+                    ) : (
+                      <>
+                        <span className="hidden sm:inline">{`测试「${currentTabService?.name || (activeServiceTab === 'live' ? '云直播' : 'IM')}」连通性`}</span>
+                        <span className="sm:hidden">测试连通</span>
+                      </>
+                    )}
+                  </span>
                 </Button>
               )}
 
@@ -740,7 +749,10 @@ export const SettingsPanel: React.FC = () => {
                 ) : (
                   <>
                     <Save className="h-3.5 w-3.5" />
-                    <span>保存环境配置</span>
+                    <span>
+                      <span className="hidden sm:inline">保存环境配置</span>
+                      <span className="sm:hidden">保存</span>
+                    </span>
                   </>
                 )}
               </Button>
@@ -875,7 +887,7 @@ export const SettingsPanel: React.FC = () => {
               </Card>
 
               {/* 服务凭据专属切换栏 (动态由 SSoT 云服务清单驱动，支持多业务自由扩展) */}
-              <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs">
+              <div className="rounded-2xl border border-slate-200/90 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-900/60 p-3 flex flex-col xl:flex-row xl:items-center justify-between gap-3 shadow-2xs">
                 <div className="flex flex-wrap items-center gap-1.5 p-1 rounded-xl bg-white dark:bg-slate-800 border border-slate-200/80 dark:border-slate-750 shadow-2xs">
                   {availableServices.map((srv) => {
                     const isTabActive = activeServiceTab === srv.id
@@ -916,13 +928,13 @@ export const SettingsPanel: React.FC = () => {
                   })}
                 </div>
 
-                <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
-                  <span className={`h-2 w-2 rounded-full ${activeServiceTab === 'live' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
-                  <span>当前处于：</span>
-                  <span className="font-bold text-slate-800 dark:text-slate-200">
+                <div className="text-[11px] text-slate-500 dark:text-slate-400 flex items-center gap-1.5 flex-wrap">
+                  <span className={`h-2 w-2 rounded-full shrink-0 ${activeServiceTab === 'live' ? 'bg-emerald-500' : 'bg-blue-500'}`} />
+                  <span className="shrink-0 whitespace-nowrap">当前处于：</span>
+                  <span className="font-bold text-slate-800 dark:text-slate-200 shrink-0">
                     {currentTabService?.name || (activeServiceTab === 'live' ? '云直播 (CSS)' : '即时通信 IM')} 独立配置
                   </span>
-                  <span className="text-[10px] text-slate-400">（其余服务配置已按需收纳）</span>
+                  <span className="text-[10px] text-slate-400 hidden sm:inline">（其余服务配置已按需收纳）</span>
                 </div>
               </div>
 

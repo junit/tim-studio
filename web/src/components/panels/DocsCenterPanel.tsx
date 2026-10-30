@@ -681,9 +681,9 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
       ) : (
         <>
           {/* 指标卡片与实时同步进度区域 */}
-      <div className="shrink-0 px-4 sm:px-6 py-2.5 bg-slate-50/70 dark:bg-slate-950/70 border-b border-slate-200/60 dark:border-slate-800/60 space-y-2.5">
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-2.5">
-          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+      <div className="shrink-0 px-3 sm:px-6 py-2 bg-slate-50/70 dark:bg-slate-950/70 border-b border-slate-200/60 dark:border-slate-800/60 space-y-2">
+        <div className="flex overflow-x-auto gap-2 pb-1 scrollbar-none sm:grid sm:grid-cols-2 lg:grid-cols-4">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between min-w-[190px] sm:min-w-0 flex-1 shrink-0">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
               {currentService.name} 接口总数
             </span>
@@ -693,7 +693,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
             </div>
           </div>
 
-          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between min-w-[190px] sm:min-w-0 flex-1 shrink-0">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">已结构化同步</span>
             <div className="flex items-baseline gap-1.5">
               <span className="text-sm font-bold font-mono text-emerald-600 dark:text-emerald-400">
@@ -705,14 +705,14 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
             </div>
           </div>
 
-          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between min-w-[190px] sm:min-w-0 flex-1 shrink-0">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">全量同步时间</span>
             <span className="text-xs font-mono font-semibold text-slate-700 dark:text-slate-300">
               {summary?.last_sync_time ? summary.last_sync_time.slice(0, 16) : '—'}
             </span>
           </div>
 
-          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between">
+          <div className="px-3 py-2 rounded-xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-2xs flex items-center justify-between min-w-[190px] sm:min-w-0 flex-1 shrink-0">
             <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">同步引擎状态</span>
             <div className="flex items-center gap-1.5">
               {syncStatus?.is_running ? (
@@ -976,12 +976,12 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                     className="rounded border-slate-300 dark:border-slate-600 text-blue-600 focus:ring-blue-500 cursor-pointer"
                   />
                 </th>
-                <th className="py-2.5 px-3 w-64">接口名称 / Doc ID</th>
-                <th className="py-2.5 px-3 w-48">所属分类层级</th>
-                <th className="py-2.5 px-3">请求 Command</th>
-                <th className="py-2.5 px-3 w-28 text-center">官方文档</th>
-                <th className="py-2.5 px-3 w-28 text-center">状态</th>
-                <th className="py-2.5 px-3 w-48 text-right">操作</th>
+                <th className="py-2.5 px-3 min-w-[160px] sm:w-64">接口名称 / Doc ID</th>
+                <th className="py-2.5 px-3 w-48 hidden lg:table-cell">所属分类层级</th>
+                <th className="py-2.5 px-3 hidden sm:table-cell">请求 Command</th>
+                <th className="py-2.5 px-3 w-24 text-center hidden xl:table-cell">官方文档</th>
+                <th className="py-2.5 px-3 w-24 text-center hidden lg:table-cell">状态</th>
+                <th className="py-2.5 px-3 w-28 sm:w-48 text-right">操作</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800 text-[11px]">
@@ -1019,7 +1019,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
 
                       {/* 接口名称 */}
                       <td className="py-2.5 px-3">
-                        <div className="flex items-center gap-1.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-mono text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-750 group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0">
                             POST
                           </span>
@@ -1027,15 +1027,19 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                             {getCleanApiName(item.name, item.command, item.action)}
                           </span>
                           {item.doc_id && (
-                            <span className="font-mono text-[9px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1 rounded">
+                            <span className="font-mono text-[9px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1 rounded shrink-0">
                               #{item.doc_id}
                             </span>
                           )}
                         </div>
+                        {/* 平板与移动端 (<lg) 在接口名称下方展示层级面包屑 */}
+                        <div className="lg:hidden flex items-center gap-1 text-[10px] text-slate-400 dark:text-slate-500 mt-1 truncate">
+                          <span>{getCleanPath(item).join(' / ')}</span>
+                        </div>
                       </td>
 
                       {/* 分类层级 (可点击的面包屑) */}
-                      <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400" onClick={(e) => e.stopPropagation()}>
+                      <td className="hidden lg:table-cell py-2.5 px-3 text-slate-500 dark:text-slate-400" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1 flex-wrap text-[11px]">
                           {getCleanPath(item).map((seg: string, idx: number, arr: string[]) => (
                             <React.Fragment key={idx}>
@@ -1064,14 +1068,14 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                       </td>
 
                       {/* 请求 Command */}
-                      <td className="py-2.5 px-3 font-mono text-slate-600 dark:text-slate-300 truncate">
+                      <td className="hidden sm:table-cell py-2.5 px-3 font-mono text-slate-600 dark:text-slate-300 truncate max-w-[220px]">
                         {item.command.startsWith('v4/')
                           ? item.command
                           : `v4/${item.service_name}/${item.command}`}
                       </td>
 
                       {/* 腾讯云原生链接 */}
-                      <td className="py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
+                      <td className="hidden xl:table-cell py-2.5 px-3 text-center" onClick={(e) => e.stopPropagation()}>
                         {item.doc_url ? (
                           <a
                             href={item.doc_url}
@@ -1089,10 +1093,10 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                       </td>
 
                       {/* 状态徽标 */}
-                      <td className="py-2.5 px-3 text-center">
+                      <td className="hidden lg:table-cell py-2.5 px-3 text-center">
                         <Badge
                           variant="outline"
-                          className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-[10px] px-1.5 py-0"
+                          className="bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-800 text-[10px] px-1.5 py-0 whitespace-nowrap"
                         >
                           已同步
                         </Badge>
@@ -1100,13 +1104,13 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
 
                       {/* 操作列 */}
                       <td className="py-2.5 px-3 text-right" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-end gap-1.5">
+                        <div className="flex items-center justify-end gap-1 sm:gap-1.5">
                           {/* 查看完整文档抽屉 */}
                           <Button
                             variant="ghost"
                             size="sm"
                             onClick={() => setViewingApi(item)}
-                            className="h-6 px-2 text-[11px] text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 font-medium"
+                            className="hidden sm:inline-flex h-6 px-2 text-[11px] text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 font-medium"
                           >
                             查看文档
                           </Button>

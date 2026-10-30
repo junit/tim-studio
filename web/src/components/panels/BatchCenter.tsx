@@ -548,7 +548,7 @@ export const BatchCenter: React.FC = () => {
                 <CardContent className="p-3.5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
                     {/* Unified Searchable API Combobox Picker */}
-                    <div className="relative flex items-center gap-1.5" ref={apiPickerRef}>
+                    <div className="relative flex flex-col sm:flex-row sm:items-center gap-1.5 w-full lg:w-auto" ref={apiPickerRef}>
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         目标业务接口:
                       </span>
@@ -557,7 +557,7 @@ export const BatchCenter: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => setIsApiPickerOpen(!isApiPickerOpen)}
-                        className={`group flex items-center gap-2 h-8 px-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer min-w-[240px] max-w-lg shadow-2xs text-left ${
+                        className={`group flex items-center gap-2 h-8 px-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer w-full sm:w-auto min-w-0 sm:min-w-[240px] max-w-full sm:max-w-lg shadow-2xs text-left ${
                           isApiPickerOpen
                             ? 'bg-blue-50/50 dark:bg-slate-800 border-blue-500 ring-2 ring-blue-500/15'
                             : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
@@ -595,7 +595,7 @@ export const BatchCenter: React.FC = () => {
 
                       {/* Dropdown Floating Combobox Popover */}
                       {isApiPickerOpen && (
-                        <div className="absolute left-0 top-full mt-1.5 z-50 w-84 sm:w-96 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-slate-950/60 p-2 animate-in fade-in zoom-in-95 duration-120">
+                        <div className="absolute left-0 top-full mt-1.5 z-50 w-84 sm:w-96 max-w-[calc(100vw-32px)] rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-slate-950/60 p-2 animate-in fade-in zoom-in-95 duration-120">
                           {/* 搜索框 */}
                           <div className="relative flex items-center mb-2">
                             <Search className="absolute left-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
@@ -698,14 +698,14 @@ export const BatchCenter: React.FC = () => {
                     </div>
 
                     {/* Delay Interval with QPS indicator */}
-                    <div className="flex items-center gap-2">
+                    <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 sm:gap-2 w-full sm:w-auto">
                       <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
                         执行间隔 (Rate Limit):
                       </span>
                       <select
                         value={delaySec}
                         onChange={(e) => setDelaySec(Number(e.target.value))}
-                        className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-mono font-medium text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        className="h-8 w-full sm:w-auto max-w-full rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-mono font-medium text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 truncate"
                       >
                         <option value={0.02}>20ms (高速 50 QPS - 仅限高频接口)</option>
                         <option value={0.05}>50ms (推荐 20 QPS - 稳健通用)</option>
@@ -753,7 +753,7 @@ export const BatchCenter: React.FC = () => {
 
                       {/* 原生批量替代建议 */}
                       {guidance.native_alternative && (
-                        <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/70 dark:bg-indigo-950/40 p-3 text-xs text-indigo-900 dark:text-indigo-200 flex items-center justify-between gap-3 shadow-2xs">
+                        <div className="rounded-xl border border-indigo-200 dark:border-indigo-900/60 bg-indigo-50/70 dark:bg-indigo-950/40 p-3 text-xs text-indigo-900 dark:text-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3 shadow-2xs">
                           <div className="flex items-center gap-2">
                             <Sparkles className="h-4 w-4 text-indigo-600 dark:text-indigo-400 shrink-0" />
                             <span className="leading-relaxed">{guidance.tip}</span>
@@ -762,7 +762,7 @@ export const BatchCenter: React.FC = () => {
                             size="sm"
                             variant="outline"
                             onClick={() => setApiId(guidance.native_alternative!.api_id)}
-                            className="h-7 px-2.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 cursor-pointer shrink-0 gap-1"
+                            className="h-7 px-2.5 text-xs font-semibold text-indigo-700 dark:text-indigo-300 border-indigo-300 dark:border-indigo-700 hover:bg-indigo-100 dark:hover:bg-indigo-900/60 cursor-pointer shrink-0 gap-1 w-full sm:w-auto"
                           >
                             <span>切换至「{guidance.native_alternative.name}」</span>
                             <ArrowRight className="h-3 w-3" />

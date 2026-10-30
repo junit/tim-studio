@@ -144,7 +144,7 @@ export function App() {
       <Header activeTab={activeTab} setActiveTab={setActiveTab} />
 
       {/* 主界面容器 */}
-      <main className="flex-1 overflow-hidden relative pb-14 md:pb-0">
+      <main className="flex-1 overflow-hidden relative pb-14 lg:pb-0">
         {activeTab === 'sandbox' && (
           <div className="flex h-full w-full overflow-hidden relative">
             {/* 移动端抽屉遮罩 (Backdrop) */}
@@ -215,18 +215,31 @@ export function App() {
                 </button>
               </div>
             ) : (
-              /* 收起状态：居中停靠在屏幕最左侧的竖向展开标签手柄（移动端/大屏均可用） */
-              <button
-                type="button"
-                onClick={toggleSidebar}
-                title="点击展开 API 导航栏 (快捷键 ⌘B)"
-                className="absolute left-0 top-1/2 -translate-y-1/2 flex flex-col items-center justify-center gap-1.5 py-3 px-1.5 rounded-r-xl border-y border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:pl-2 transition-all cursor-pointer z-30 group"
-              >
-                <ChevronRight className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform" />
-                <span className="text-[10px] font-bold tracking-widest text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 [writing-mode:vertical-lr] select-none py-1">
-                  API 导航
-                </span>
-              </button>
+              <>
+                {/* 桌面大屏收起状态：居中停靠在屏幕最左侧的竖向展开标签手柄 */}
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title="点击展开 API 导航栏 (快捷键 ⌘B)"
+                  className="hidden lg:flex absolute left-0 top-1/2 -translate-y-1/2 flex-col items-center justify-center gap-1.5 py-3 px-1.5 rounded-r-xl border-y border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-800 shadow-md hover:shadow-lg hover:border-blue-400 dark:hover:border-blue-500 hover:bg-blue-50/30 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:pl-2 transition-all cursor-pointer z-30 group"
+                >
+                  <ChevronRight className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 group-hover:translate-x-0.5 transition-transform" />
+                  <span className="text-[10px] font-bold tracking-widest text-slate-600 dark:text-slate-300 group-hover:text-blue-600 dark:group-hover:text-blue-400 [writing-mode:vertical-lr] select-none py-1">
+                    API 导航
+                  </span>
+                </button>
+
+                {/* 移动端/小屏收起状态：悬浮于左下角的轻盈 Pill 胶囊按钮（不遮挡中部表单） */}
+                <button
+                  type="button"
+                  onClick={toggleSidebar}
+                  title="点击展开 API 导航抽屉"
+                  className="fixed bottom-18 left-3 z-30 flex lg:hidden items-center gap-1.5 py-1.5 px-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white shadow-xl shadow-blue-600/30 active:scale-95 transition-all cursor-pointer"
+                >
+                  <Layers className="h-3.5 w-3.5" />
+                  <span className="text-xs font-semibold">API 导航</span>
+                </button>
+              </>
             )}
 
             {/* 右侧互动调试沙箱工作台 */}
@@ -247,8 +260,8 @@ export function App() {
         {activeTab === 'settings' && <SettingsPanel />}
       </main>
 
-      {/* 移动端专属：底部快捷原生 Tab 导航条 (MD 屏幕以上自动隐藏) */}
-      <nav className="flex md:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 items-center justify-around py-1.5 px-2 shadow-lg">
+      {/* 移动端/平板专属：底部快捷原生 Tab 导航条 (LG 屏幕 1024px 以上自动隐藏) */}
+      <nav className="flex lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md border-t border-slate-200/80 dark:border-slate-800 items-center justify-around py-1.5 px-2 shadow-lg">
         <button
           type="button"
           onClick={() => setActiveTab('sandbox')}

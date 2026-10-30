@@ -677,7 +677,7 @@ export const AgentPanel: React.FC = () => {
   const [windowWidth, setWindowWidth] = useState<number>(() =>
     typeof window !== 'undefined' ? window.innerWidth : 1280
   )
-  const isMobile = windowWidth < 768
+  const isMobile = windowWidth < 1024
   const isCompact = windowWidth < 1440
   const [isMobileListOpen, setIsMobileListOpen] = useState<boolean>(false)
 
@@ -2272,7 +2272,7 @@ export const AgentPanel: React.FC = () => {
       {isMobile && isMobileListOpen && (
         <div
           onClick={() => setIsMobileListOpen(false)}
-          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 md:hidden animate-in fade-in duration-200"
+          className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-40 lg:hidden animate-in fade-in duration-200"
         />
       )}
 
@@ -2521,7 +2521,7 @@ export const AgentPanel: React.FC = () => {
               <button
                 type="button"
                 onClick={() => setIsMobileListOpen(true)}
-                className="md:hidden flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shrink-0 cursor-pointer shadow-2xs hover:border-blue-400"
+                className="lg:hidden flex items-center justify-center h-8 w-8 rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 shrink-0 cursor-pointer shadow-2xs hover:border-blue-400"
                 title="打开智能体列表"
               >
                 <Menu className="h-4 w-4 text-blue-600 dark:text-blue-400" />
@@ -2558,16 +2558,17 @@ export const AgentPanel: React.FC = () => {
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
             <Button
               variant="outline"
               size="sm"
               onClick={() => setShowTopologyModal(true)}
-              className="h-8 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer"
+              className="h-8 px-2 sm:px-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-sky-600 dark:hover:text-sky-400 cursor-pointer"
               title="查看多智能体协同网络拓扑架构与流转视图"
             >
-              <Share2 className="h-3.5 w-3.5 mr-1 text-sky-500" />
-              <span>协同拓扑</span>
+              <Share2 className="h-3.5 w-3.5 sm:mr-1 text-sky-500" />
+              <span className="hidden sm:inline">协同拓扑</span>
+              <span className="sm:hidden">拓扑</span>
             </Button>
 
             {/* 导出排障记录报告下拉菜单 */}
@@ -2577,15 +2578,24 @@ export const AgentPanel: React.FC = () => {
                 size="sm"
                 onClick={() => setShowExportMenu(!showExportMenu)}
                 disabled={isExporting}
-                className="h-8 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
+                className="h-8 px-2 sm:px-2.5 text-xs font-medium text-slate-700 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 cursor-pointer"
                 title="导出会话排障记录为 Markdown 或独立 HTML 报告"
               >
                 {isExporting ? (
-                  <Loader2 className="h-3.5 w-3.5 mr-1 text-blue-500 animate-spin" />
+                  <Loader2 className="h-3.5 w-3.5 sm:mr-1 text-blue-500 animate-spin" />
                 ) : (
-                  <Download className="h-3.5 w-3.5 mr-1 text-blue-500" />
+                  <Download className="h-3.5 w-3.5 sm:mr-1 text-blue-500" />
                 )}
-                <span>{isExporting ? '生成中...' : '导出报告'}</span>
+                <span>
+                  {isExporting ? (
+                    '生成中...'
+                  ) : (
+                    <>
+                      <span className="hidden sm:inline">导出报告</span>
+                      <span className="sm:hidden">导出</span>
+                    </>
+                  )}
+                </span>
               </Button>
 
               {showExportMenu && (
@@ -2643,26 +2653,26 @@ export const AgentPanel: React.FC = () => {
               variant="outline"
               size="sm"
               onClick={handleClearHistory}
-              className="h-8 text-xs text-slate-600 dark:text-slate-300 hover:text-rose-600"
+              className="h-8 px-2 sm:px-2.5 text-xs text-slate-600 dark:text-slate-300 hover:text-rose-600"
               title="清空聊天记录"
             >
-              <History className="h-3.5 w-3.5 mr-1" />
-              <span>清空</span>
+              <History className="h-3.5 w-3.5 sm:mr-1" />
+              <span className="hidden sm:inline">清空</span>
             </Button>
 
             <Button
               variant="outline"
               size="sm"
               onClick={() => setIsDrawerOpen(!isDrawerOpen)}
-              className={`h-8 text-xs font-medium cursor-pointer ${
+              className={`h-8 px-2 sm:px-2.5 text-xs font-medium cursor-pointer ${
                 isDrawerOpen
                   ? 'bg-blue-50 dark:bg-blue-950/60 text-blue-600 dark:text-blue-400 border-blue-300 dark:border-blue-700'
                   : 'text-slate-700 dark:text-slate-300'
               }`}
               title="智能体设置与资产"
             >
-              <Settings className="h-3.5 w-3.5 mr-1 text-slate-500" />
-              <span>设置</span>
+              <Settings className="h-3.5 w-3.5 sm:mr-1 text-slate-500" />
+              <span className="hidden sm:inline">设置</span>
               {(activeBot?.guidelines_count || activeBot?.skills_count || activeBot?.memories_count) ? (
                 <span className="ml-1 px-1.5 py-0.2 rounded-full text-[9px] bg-blue-600 text-white font-mono">
                   {(activeBot?.guidelines_count || 0) + (activeBot?.skills_count || 0) + (activeBot?.memories_count || 0)}
@@ -3254,7 +3264,7 @@ export const AgentPanel: React.FC = () => {
               )}
             </div>
             <div className="text-center mt-1.5 select-none">
-              <span className="text-[10px] text-slate-400 dark:text-slate-500">
+              <span className="text-[10px] text-slate-400 dark:text-slate-500 truncate block max-w-xs sm:max-w-none mx-auto">
                 支持上传 DOCX、XLSX、CSV、TXT、PDF 与图片 · 支持 Python 脚本处理、自然语言多 Agent 协同 · Enter 发送
               </span>
             </div>
