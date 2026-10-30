@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react'
+import React, { useState, useEffect, useRef, useMemo } from 'react'
 import {
   Settings,
   Shield,
@@ -22,6 +22,7 @@ import {
   ExternalLink,
   Globe,
   X,
+  Search,
   Video,
   MessageSquare,
   Cloud,
@@ -252,6 +253,41 @@ export const SettingsPanel: React.FC = () => {
   const [feedback, setFeedback] = useState<{ type: 'success' | 'error'; message: string } | null>(null)
   const [isCreatingNew, setIsCreatingNew] = useState(false)
   const [justSaved, setJustSaved] = useState(false)
+
+  // 环境列表检索与 Tag 快捷过滤
+  const [envSearch, setEnvSearch] = useState('')
+  const [envTagFilter, setEnvTagFilter] = useState<'all' | string>('all')
+
+  const availableEnvTags = useMemo(() => {
+    const set = new Set<string>()
+    environments.forEach((e) => {
+      if (e.tag) set.add(e.tag.toUpperCase())
+    })
+    return Array.from(set)
+  }, [environments])
+
+  const sortedAndFilteredEnvs = useMemo(() => {
+    let list = [...environments]
+    if (envSearch.trim()) {
+      const q = envSearch.trim().toLowerCase()
+      list = list.filter((e) =>
+        e.name.toLowerCase().includes(q) ||
+        e.id.toLowerCase().includes(q) ||
+        (e.tag && e.tag.toLowerCase().includes(q)) ||
+        (e.remark && e.remark.toLowerCase().includes(q))
+      )
+    }
+    if (envTagFilter !== 'all') {
+      list = list.filter((e) => (e.tag || '').toUpperCase() === envTagFilter)
+    }
+    // 优先置顶当前激活生效的环境
+    list.sort((a, b) => {
+      if (a.id === activeEnvId) return -1
+      if (b.id === activeEnvId) return 1
+      return 0
+    })
+    return list
+  }, [environments, envSearch, envTagFilter, activeEnvId])
 
   const prevActiveEnvIdRef = useRef(activeEnvId)
 
@@ -496,8 +532,65 @@ export const SettingsPanel: React.FC = () => {
             </Button>
           </div>
 
+          {/* 环境搜索与 Tag 快捷筛选 */}
+          <div className="px-2.5 py-2 border-b border-slate-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-950/40 space-y-1.5">
+            <div className="relative flex items-center">
+              <Search className="absolute left-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+              <input
+                type="text"
+                placeholder="搜索环境名称或标识..."
+                value={envSearch}
+                onChange={(e) => setEnvSearch(e.target.value)}
+                className="w-full h-7 pl-8 pr-6 text-xs rounded-lg border border-slate-200 dark:border-slate-750 bg-white dark:bg-slate-850 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+              />
+              {envSearch && (
+                <button
+                  type="button"
+                  onClick={() => setEnvSearch('')}
+                  className="absolute right-1.5 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              )}
+            </div>
+
+            {/* Tag 快捷过滤药丸 */}
+            <div className="flex items-center gap-1 overflow-x-auto pb-0.5 scrollbar-thin text-[10px]">
+              <button
+                type="button"
+                onClick={() => setEnvTagFilter('all')}
+                className={`px-2 py-0.5 rounded-md font-semibold shrink-0 cursor-pointer transition-colors ${
+                  envTagFilter === 'all'
+                    ? 'bg-blue-600 text-white font-bold'
+                    : 'text-slate-500 hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                }`}
+              >
+                全部
+              </button>
+              {availableEnvTags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => setEnvTagFilter(tag)}
+                  className={`px-2 py-0.5 rounded-md font-mono font-bold shrink-0 cursor-pointer transition-colors ${
+                    envTagFilter === tag
+                      ? 'bg-blue-600 text-white'
+                      : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200/60 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
+
           <div className="flex-1 overflow-y-auto p-2.5 space-y-1.5">
-            {environments.map((env) => {
+            {sortedAndFilteredEnvs.length === 0 ? (
+              <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+                未找到匹配的环境配置
+              </div>
+            ) : (
+              sortedAndFilteredEnvs.map((env) => {
               const isSelected = !isCreatingNew && env.id === selectedEnvId
               const isActive = env.id === activeEnvId
 
@@ -578,7 +671,7 @@ export const SettingsPanel: React.FC = () => {
                   )}
                 </div>
               )
-            })}
+            }))}
 
             {isCreatingNew && (
               <div className="rounded-xl p-3 border-2 border-dashed border-blue-300 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/30 text-xs font-bold text-blue-700 dark:text-blue-400 flex items-center gap-2">

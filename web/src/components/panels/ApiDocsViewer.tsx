@@ -23,7 +23,7 @@ import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { JsonCodeEditor } from '@/components/common/JsonCodeEditor'
-import { ApiMeta, useApiStore } from '@/stores/apiStore'
+import { ApiMeta, useApiStore, getCleanApiName } from '@/stores/apiStore'
 
 export interface UrlParamItem {
   name: string
@@ -430,11 +430,11 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
       <div className="rounded-xl border border-slate-200/90 dark:border-slate-800 bg-white dark:bg-slate-900 p-3.5 shadow-2xs">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-2 min-w-0">
-            <span className="font-mono text-[10px] font-bold px-1.5 py-0.5 rounded bg-orange-500 text-white shrink-0">
+            <span className="font-mono text-[9px] font-semibold px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shrink-0">
               POST
             </span>
             <h3 className="font-bold text-sm text-slate-900 dark:text-slate-100 truncate">
-              {doc?.title || api.name}
+              {getCleanApiName(doc?.title || api.name, api.command, api.action)}
             </h3>
 
             {isSynced ? (
@@ -1202,7 +1202,7 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
               <div className="flex items-center gap-2 min-w-0">
                 <FileCode className="h-4 w-4 text-blue-500 dark:text-blue-400 shrink-0" />
                 <h3 className="font-bold text-slate-900 dark:text-slate-100 text-sm truncate">
-                  {doc?.title || api.name} - 沉浸式文档阅读
+                  {getCleanApiName(doc?.title || api.name, api.command, api.action)} - 沉浸式文档阅读
                 </h3>
                 <span className="font-mono text-xs text-slate-400 dark:text-slate-500 shrink-0 hidden sm:inline">
                   {api.command}

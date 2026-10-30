@@ -27,6 +27,7 @@ import {
   Minimize2,
   Search,
   X,
+  Check,
 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
@@ -34,7 +35,7 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import { ResizeHandle } from '@/components/ui/resize-handle'
 import { Dropzone } from '@/components/common/Dropzone'
 import { useBatchStore, BatchPreset } from '@/stores/batchStore'
-import { useApiStore, ApiMeta } from '@/stores/apiStore'
+import { useApiStore, ApiMeta, smartMatchApi, getCleanApiName } from '@/stores/apiStore'
 import { useHistoryStore } from '@/stores/historyStore'
 import { HistoryPanel } from '@/components/panels/HistoryPanel'
 
@@ -172,29 +173,21 @@ export const BatchCenter: React.FC = () => {
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'zh-CN'))
   }, [currentServiceApis, activeServiceId])
 
-  // 3. 根据所选分类与搜索关键字过滤接口
+  // 3. 根据所选分类与搜索关键字过滤接口 (支持全词、连续子串、分词交集与拼音/英文智能多维匹配)
   const filteredApis = useMemo(() => {
-    const kw = apiSearchKeyword.trim().toLowerCase()
     return currentServiceApis.filter((api) => {
-      const { l1, fullGroup } = getApiCategoryInfo(api, activeServiceId)
+      const { l1 } = getApiCategoryInfo(api, activeServiceId)
 
       if (selectedCategory !== 'all' && l1 !== selectedCategory) {
         return false
       }
 
-      if (kw) {
-        const matchName = api.name.toLowerCase().includes(kw)
-        const matchCommand = api.command.toLowerCase().includes(kw)
-        const matchApiId = api.api_id.toLowerCase().includes(kw)
-        const matchGroup = fullGroup.toLowerCase().includes(kw)
-        return matchName || matchCommand || matchApiId || matchGroup
-      }
-
-      return true
+      if (!apiSearchKeyword.trim()) return true
+      return smartMatchApi(api, apiSearchKeyword)
     })
   }, [currentServiceApis, activeServiceId, selectedCategory, apiSearchKeyword])
 
-  // 4. 按层级分组 (optgroup)：全部分类视角下展示完整路径，单分类筛选视角下展示二级子分类
+  // 4. 按层级分组：全部分类视角下展示完整路径，单分类筛选视角下展示二级子分类
   const groupedApis = useMemo(() => {
     const groups: Record<string, ApiMeta[]> = {}
 
@@ -261,7 +254,30 @@ export const BatchCenter: React.FC = () => {
     }
   }, [logs])
 
-  const selectedApi = apis.find((a) => a.api_id === apiId)
+  const selectedApi = useMemo(() => {
+    return apis.find((a) => a.api_id === apiId) || currentServiceApis[0] || null
+  }, [apis, apiId, currentServiceApis])
+
+  // 一体化接口选择器弹层状态与引用
+  const [isApiPickerOpen, setIsApiPickerOpen] = useState(false)
+  const apiPickerRef = useRef<HTMLDivElement>(null)
+  const apiPickerSearchInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (apiPickerRef.current && !apiPickerRef.current.contains(e.target as Node)) {
+        setIsApiPickerOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  useEffect(() => {
+    if (isApiPickerOpen) {
+      setTimeout(() => apiPickerSearchInputRef.current?.focus(), 50)
+    }
+  }, [isApiPickerOpen])
   const selectedPreset = currentServicePresets.find(
     (p) => p.id === activePresetId || p.api_id === apiId
   )
@@ -531,85 +547,153 @@ export const BatchCenter: React.FC = () => {
               <Card className="border-slate-200/90 dark:border-slate-800 dark:bg-slate-900 shadow-xs">
                 <CardContent className="p-3.5 space-y-3">
                   <div className="flex flex-wrap items-center justify-between gap-3">
-                    {/* Hierarchical API Selection & Category Filtering */}
-                    <div className="flex flex-wrap items-center gap-2">
-                      {/* 1. Category Filter */}
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                          业务分类:
-                        </span>
-                        <select
-                          value={selectedCategory}
-                          onChange={(e) => setSelectedCategory(e.target.value)}
-                          className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 max-w-[155px] truncate dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
-                          title="按业务分类筛选接口"
-                        >
-                          <option value="all">全部分类 ({currentServiceApis.length})</option>
-                          {l1Categories.map((cat) => (
-                            <option key={cat.name} value={cat.name}>
-                              {cat.name} ({cat.count})
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                    {/* Unified Searchable API Combobox Picker */}
+                    <div className="relative flex items-center gap-1.5" ref={apiPickerRef}>
+                      <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
+                        目标业务接口:
+                      </span>
 
-                      {/* 2. Target API Selection with <optgroup> */}
-                      <div className="flex items-center gap-1.5">
-                        <span className="text-xs font-bold text-slate-700 dark:text-slate-300 whitespace-nowrap">
-                          目标业务接口:
+                      {/* Trigger Button */}
+                      <button
+                        type="button"
+                        onClick={() => setIsApiPickerOpen(!isApiPickerOpen)}
+                        className={`group flex items-center gap-2 h-8 px-2.5 rounded-xl border text-xs font-medium transition-all cursor-pointer min-w-[240px] max-w-lg shadow-2xs text-left ${
+                          isApiPickerOpen
+                            ? 'bg-blue-50/50 dark:bg-slate-800 border-blue-500 ring-2 ring-blue-500/15'
+                            : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-slate-600'
+                        }`}
+                        title="点击展开可搜索的目标接口列表 (支持拼音、中文与英文 Action)"
+                      >
+                        <span className="font-mono text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-750 text-slate-500 dark:text-slate-400 border border-slate-200 dark:border-slate-700 shrink-0">
+                          POST
                         </span>
-                        <select
-                          value={apiId}
-                          onChange={(e) => setApiId(e.target.value)}
-                          className="h-8 rounded-xl border border-slate-200 bg-white px-2.5 text-xs font-medium text-slate-800 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 min-w-[220px] max-w-sm truncate dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 cursor-pointer"
-                        >
-                          {filteredApis.length === 0 ? (
-                            <option disabled value="">
-                              暂无匹配接口
-                            </option>
-                          ) : (
-                            Object.entries(groupedApis).map(([groupName, groupList]) => (
-                              <optgroup key={groupName} label={`📁 ${groupName} (${groupList.length})`}>
-                                {groupList.map((api) => (
-                                  <option key={api.api_id} value={api.api_id}>
-                                    {api.name} ({api.command})
-                                  </option>
-                                ))}
-                              </optgroup>
-                            ))
-                          )}
-                        </select>
-                      </div>
 
-                      {/* 3. Search Filter */}
-                      <div className="relative flex items-center">
-                        <Search className="absolute left-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
-                        <input
-                          type="text"
-                          placeholder="快速搜索..."
-                          value={apiSearchKeyword}
-                          onChange={(e) => setApiSearchKeyword(e.target.value)}
-                          className="h-8 pl-8 pr-6 rounded-xl border border-slate-200 bg-white text-xs text-slate-800 placeholder-slate-400 shadow-2xs focus:outline-none focus:ring-2 focus:ring-blue-500 w-28 focus:w-36 transition-all dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200 dark:placeholder-slate-500"
+                        {selectedApi && (() => {
+                          const { l1, l2 } = getApiCategoryInfo(selectedApi, activeServiceId)
+                          const catBadge = l2 && l2 !== l1 ? l2 : l1
+                          return catBadge ? (
+                            <span className="text-[10px] text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/60 px-1.5 py-0.2 rounded font-semibold shrink-0">
+                              {catBadge}
+                            </span>
+                          ) : null
+                        })()}
+
+                        <span className="font-bold text-slate-800 dark:text-slate-200 truncate flex-1">
+                          {selectedApi ? getCleanApiName(selectedApi.name, selectedApi.command, selectedApi.action) : '请选择目标接口'}
+                        </span>
+
+                        <span className="font-mono text-[10px] text-slate-400 dark:text-slate-500 truncate hidden lg:inline max-w-[140px]">
+                          {selectedApi?.command}
+                        </span>
+
+                        <ChevronDown
+                          className={`h-3.5 w-3.5 text-slate-400 group-hover:text-blue-500 transition-transform shrink-0 ${
+                            isApiPickerOpen ? 'rotate-180 text-blue-500' : ''
+                          }`}
                         />
-                        {apiSearchKeyword && (
-                          <button
-                            type="button"
-                            onClick={() => setApiSearchKeyword('')}
-                            className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 cursor-pointer"
-                            title="清空搜索"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
-                        )}
-                      </div>
+                      </button>
 
-                      {selectedApi && (
-                        <span
-                          className="font-mono text-[10px] text-slate-400 dark:text-slate-500 max-w-[160px] truncate hidden xl:inline"
-                          title={selectedApi.command}
-                        >
-                          {selectedApi.command}
-                        </span>
+                      {/* Dropdown Floating Combobox Popover */}
+                      {isApiPickerOpen && (
+                        <div className="absolute left-0 top-full mt-1.5 z-50 w-84 sm:w-96 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-slate-950/60 p-2 animate-in fade-in zoom-in-95 duration-120">
+                          {/* 搜索框 */}
+                          <div className="relative flex items-center mb-2">
+                            <Search className="absolute left-2.5 h-3.5 w-3.5 text-slate-400 pointer-events-none" />
+                            <input
+                              ref={apiPickerSearchInputRef}
+                              type="text"
+                              placeholder="搜索接口中文名、Command、缩写..."
+                              value={apiSearchKeyword}
+                              onChange={(e) => setApiSearchKeyword(e.target.value)}
+                              className="w-full h-8 pl-8 pr-7 text-xs rounded-lg border border-slate-200 dark:border-slate-750 bg-slate-50 dark:bg-slate-800 text-slate-800 dark:text-slate-200 placeholder-slate-400 focus:outline-none focus:ring-1 focus:ring-blue-500"
+                            />
+                            {apiSearchKeyword && (
+                              <button
+                                type="button"
+                                onClick={() => setApiSearchKeyword('')}
+                                className="absolute right-2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 p-0.5 cursor-pointer"
+                              >
+                                <X className="h-3 w-3" />
+                              </button>
+                            )}
+                          </div>
+
+                          {/* 分类快捷药丸横滑栏 */}
+                          <div className="flex items-center gap-1 overflow-x-auto pb-1.5 mb-1.5 text-[11px] scrollbar-thin border-b border-slate-100 dark:border-slate-800">
+                            <button
+                              type="button"
+                              onClick={() => setSelectedCategory('all')}
+                              className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer transition-colors ${
+                                selectedCategory === 'all'
+                                  ? 'bg-blue-600 text-white font-bold'
+                                  : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                              }`}
+                            >
+                              全部 ({currentServiceApis.length})
+                            </button>
+                            {l1Categories.map((cat) => (
+                              <button
+                                key={cat.name}
+                                type="button"
+                                onClick={() => setSelectedCategory(cat.name)}
+                                className={`px-2 py-0.5 rounded-md font-medium shrink-0 cursor-pointer transition-colors ${
+                                  selectedCategory === cat.name
+                                    ? 'bg-blue-600 text-white font-bold'
+                                    : 'text-slate-600 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800'
+                                }`}
+                              >
+                                {cat.name} ({cat.count})
+                              </button>
+                            ))}
+                          </div>
+
+                          {/* 接口搜索与过滤列表 */}
+                          <div className="max-h-64 overflow-y-auto space-y-0.5 [scrollbar-width:thin]">
+                            {filteredApis.length === 0 ? (
+                              <div className="py-6 text-center text-xs text-slate-400 dark:text-slate-500">
+                                暂无匹配接口
+                              </div>
+                            ) : (
+                              filteredApis.map((api) => {
+                                const isTarget = api.api_id === apiId
+                                const displayName = getCleanApiName(api.name, api.command, api.action)
+                                const { l1, l2 } = getApiCategoryInfo(api, activeServiceId)
+                                const catBadge = l2 && l2 !== l1 ? l2 : l1
+
+                                return (
+                                  <button
+                                    key={api.api_id}
+                                    type="button"
+                                    onClick={() => {
+                                      setApiId(api.api_id)
+                                      setIsApiPickerOpen(false)
+                                    }}
+                                    className={`w-full flex items-center justify-between p-2 rounded-lg text-left transition-colors cursor-pointer group ${
+                                      isTarget
+                                        ? 'bg-blue-50/80 dark:bg-blue-950/40 text-blue-900 dark:text-blue-100 border-l-2 border-l-blue-500 font-semibold'
+                                        : 'text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800/80 hover:text-slate-900 dark:hover:text-slate-100'
+                                    }`}
+                                  >
+                                    <div className="min-w-0 flex-1 pr-2">
+                                      <div className="flex items-center gap-1.5 mb-0.5">
+                                        <span className="text-[9px] font-semibold text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1 py-0.2 rounded shrink-0">
+                                          {catBadge}
+                                        </span>
+                                        <span className="text-xs truncate">{displayName}</span>
+                                      </div>
+                                      <p className="font-mono text-[10px] text-slate-400 dark:text-slate-500 truncate pl-0.5">
+                                        {api.command}
+                                      </p>
+                                    </div>
+                                    {isTarget && (
+                                      <Check className="h-4 w-4 text-blue-600 dark:text-blue-400 shrink-0" />
+                                    )}
+                                  </button>
+                                )
+                              })
+                            )}
+                          </div>
+                        </div>
                       )}
                     </div>
 

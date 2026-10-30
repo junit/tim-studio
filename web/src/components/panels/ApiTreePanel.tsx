@@ -58,10 +58,10 @@ const ApiItem: React.FC<ApiItemProps> = ({
       <div className="min-w-0 flex-1 pr-1.5">
         <div className="flex items-center gap-1.5 mb-0.5">
           <span
-            className={`font-mono text-[9px] font-bold px-1.5 py-0.2 rounded shrink-0 ${
+            className={`font-mono text-[9px] font-semibold px-1.5 py-0.2 rounded shrink-0 transition-colors ${
               isActive
-                ? 'bg-orange-500 text-white shadow-2xs'
-                : 'bg-orange-500/10 dark:bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-200/80 dark:border-orange-500/30 group-hover:bg-orange-500/20'
+                ? 'bg-blue-600 text-white shadow-2xs font-bold'
+                : 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-750 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:border-blue-300 dark:group-hover:border-blue-700/60'
             }`}
           >
             POST
@@ -145,13 +145,23 @@ const SubFolderView: React.FC<SubFolderNodeProps> = ({
               <ChevronRight className="h-3 w-3" />
             )}
           </span>
-          <Tag
-            className={`h-3 w-3 shrink-0 ${
-              isLevel3Plus
-                ? 'text-blue-500 dark:text-blue-400'
-                : 'text-slate-400 dark:text-slate-500 group-hover:text-blue-500 dark:group-hover:text-blue-400'
-            }`}
-          />
+          {isOpen ? (
+            <FolderOpen
+              className={`h-3 w-3 shrink-0 ${
+                isLevel3Plus
+                  ? 'text-blue-500 dark:text-blue-400'
+                  : 'text-amber-500/90 dark:text-amber-400/90'
+              }`}
+            />
+          ) : (
+            <Folder
+              className={`h-3 w-3 shrink-0 ${
+                isLevel3Plus
+                  ? 'text-slate-400 dark:text-slate-500 group-hover:text-blue-500'
+                  : 'text-slate-400 dark:text-slate-500 group-hover:text-amber-500'
+              }`}
+            />
+          )}
           <span
             className={`truncate ${
               isLevel3Plus

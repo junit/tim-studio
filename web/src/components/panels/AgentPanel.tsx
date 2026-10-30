@@ -196,6 +196,7 @@ const inferAvatarFromText = (text: string): string => {
 export const AgentPanel: React.FC = () => {
   const showToast = useApiStore((state) => state.showToast)
   const apis = useApiStore((state) => state.apis)
+  const activeServiceId = useApiStore((state) => state.activeServiceId)
   const totalApisCount = apis.length || 427
 
   // BOT 列表与当前选中
@@ -203,6 +204,41 @@ export const AgentPanel: React.FC = () => {
   const [activeBotId, setActiveBotId] = useState<string>('default_assistant')
   const [activeBot, setActiveBot] = useState<any>(null)
   const [isLoadingBot, setIsLoadingBot] = useState<boolean>(false)
+
+  // 智能体业务域筛选（全部 / 当前业务专属 / 通用）
+  const [botDomainFilter, setBotDomainFilter] = useState<'all' | 'current' | 'general'>('all')
+
+  const getBotDomain = (bot: BotSummary): 'live' | 'im' | 'general' => {
+    if (bot.id === 'default_assistant' || (bot as any).service_type === 'all' || (bot as any).service_type === 'general') {
+      return 'general'
+    }
+    const svc = (bot as any).service_type
+    if (svc === 'live' || svc === 'css') return 'live'
+    if (svc === 'im' || svc === 'tim') return 'im'
+
+    const target = (bot.id + ' ' + bot.name + ' ' + (bot.description || '')).toLowerCase()
+    const hasLive = target.includes('live') || target.includes('css') || target.includes('直播')
+    const hasIm = target.includes('im') || target.includes('tim') || target.includes('单聊') || target.includes('群聊')
+
+    if (hasLive && !hasIm) return 'live'
+    if (hasIm && !hasLive) return 'im'
+    return 'general'
+  }
+
+  const filteredBots = useMemo(() => {
+    return bots.filter((b) => {
+      if (botDomainFilter === 'all') return true
+      const domain = getBotDomain(b)
+      if (botDomainFilter === 'current') {
+        const curSvc = activeServiceId || 'im'
+        return domain === curSvc || b.id === 'default_assistant'
+      }
+      if (botDomainFilter === 'general') {
+        return domain === 'general'
+      }
+      return true
+    })
+  }, [bots, botDomainFilter, activeServiceId])
 
   // 会话状态
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -2206,71 +2242,131 @@ export const AgentPanel: React.FC = () => {
           </button>
         </div>
 
+        {/* 智能体业务域分类微 Tab */}
+        <div className="px-2.5 py-1.5 border-b border-slate-100 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/40 flex items-center gap-1 shrink-0">
+          <button
+            type="button"
+            onClick={() => setBotDomainFilter('all')}
+            className={`flex-1 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer text-center ${
+              botDomainFilter === 'all'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold shadow-2xs border border-slate-200/80 dark:border-slate-700'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            全部 ({bots.length})
+          </button>
+          <button
+            type="button"
+            onClick={() => setBotDomainFilter('current')}
+            className={`flex-1 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer text-center ${
+              botDomainFilter === 'current'
+                ? activeServiceId === 'live'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-300 font-bold shadow-2xs border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 font-bold shadow-2xs border border-blue-200 dark:border-blue-800'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            {activeServiceId === 'live' ? '云直播' : 'IM'}
+          </button>
+          <button
+            type="button"
+            onClick={() => setBotDomainFilter('general')}
+            className={`flex-1 py-1 rounded-lg text-[10px] font-semibold transition-all cursor-pointer text-center ${
+              botDomainFilter === 'general'
+                ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-slate-100 font-bold shadow-2xs border border-slate-200/80 dark:border-slate-700'
+                : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
+            }`}
+          >
+            通用
+          </button>
+        </div>
+
         {/* 智能体微信/WhatsApp风格列表 */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {bots.map((bot) => {
-            const isActive = bot.id === activeBotId
-            const timeStr = formatChatTime(bot.last_message?.timestamp || bot.updated_at || bot.created_at)
-            const isDefault = bot.id === 'default_assistant'
-            const activeRun = activeRunsMap[bot.id]
-            const isRunning = Boolean(activeRun && activeRun.status === 'running')
-            const streamStatus = activeRun?.stream_status || 'thinking'
-            const currentStep = activeRun?.current_step || 1
+          {filteredBots.length === 0 ? (
+            <div className="py-8 text-center text-xs text-slate-400 dark:text-slate-500">
+              当前业务下暂无专属智能体
+            </div>
+          ) : (
+            filteredBots.map((bot) => {
+              const isActive = bot.id === activeBotId
+              const timeStr = formatChatTime(bot.last_message?.timestamp || bot.updated_at || bot.created_at)
+              const isDefault = bot.id === 'default_assistant'
+              const activeRun = activeRunsMap[bot.id]
+              const isRunning = Boolean(activeRun && activeRun.status === 'running')
+              const streamStatus = activeRun?.stream_status || 'thinking'
+              const currentStep = activeRun?.current_step || 1
+              const domain = getBotDomain(bot)
 
-            return (
-              <button
-                key={bot.id}
-                onClick={() => {
-                  setActiveBotId(bot.id)
-                  if (isMobile) setIsMobileListOpen(false)
-                }}
-                className={`w-full text-left p-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-3 border ${
-                  isActive
-                    ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/80 shadow-xs'
-                    : isRunning
-                    ? 'bg-blue-50/40 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-800/50 text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-blue-50/60 dark:hover:bg-blue-950/50'
-                    : 'bg-transparent hover:bg-slate-100/80 dark:hover:bg-slate-800/50 border-transparent text-slate-700 dark:text-slate-300'
-                }`}
-              >
-                {/* 头像 */}
-                <div className="relative shrink-0">
-                  <div
-                    className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-2xs border transition-all ${
-                      isActive
-                        ? 'bg-blue-100 dark:bg-blue-900/60 border-blue-200 dark:border-blue-700 scale-102'
-                        : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700/80'
-                    } ${
-                      isRunning
-                        ? 'ring-2 ring-blue-500/80 dark:ring-blue-400/90 shadow-sm shadow-blue-500/25'
-                        : ''
-                    }`}
-                  >
-                    {bot.avatar || '🤖'}
-                  </div>
-                  {/* 运行中呼吸光效水波纹指示灯 */}
-                  {isRunning && (
-                    <span className="absolute -top-1 -right-1 flex h-3 w-3 z-10" title="正在执行任务中">
-                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                      <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border border-white dark:border-slate-900"></span>
-                    </span>
-                  )}
-                  {isDefault && (
-                    <span className="absolute -bottom-1 -right-1 px-1 py-0.2 rounded-full text-[8px] bg-amber-500 text-white font-bold shadow-2xs leading-none z-10">
-                      内置
-                    </span>
-                  )}
-                </div>
-
-                {/* 会话信息与最新消息 */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1 mb-1">
-                    <span
-                      className={`text-xs font-bold truncate ${
-                        isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-slate-100'
+              return (
+                <button
+                  key={bot.id}
+                  onClick={() => {
+                    setActiveBotId(bot.id)
+                    if (isMobile) setIsMobileListOpen(false)
+                  }}
+                  className={`w-full text-left p-2.5 rounded-xl transition-all cursor-pointer flex items-center gap-3 border ${
+                    isActive
+                      ? 'bg-blue-50/90 dark:bg-blue-950/50 border-blue-200 dark:border-blue-800/80 shadow-xs'
+                      : isRunning
+                      ? 'bg-blue-50/40 dark:bg-blue-950/30 border-blue-200/60 dark:border-blue-800/50 text-slate-700 dark:text-slate-300 shadow-2xs hover:bg-blue-50/60 dark:hover:bg-blue-950/50'
+                      : 'bg-transparent hover:bg-slate-100/80 dark:hover:bg-slate-800/50 border-transparent text-slate-700 dark:text-slate-300'
+                  }`}
+                >
+                  {/* 头像 */}
+                  <div className="relative shrink-0">
+                    <div
+                      className={`w-11 h-11 rounded-2xl flex items-center justify-center text-xl shadow-2xs border transition-all ${
+                        isActive
+                          ? 'bg-blue-100 dark:bg-blue-900/60 border-blue-200 dark:border-blue-700 scale-102'
+                          : 'bg-slate-100 dark:bg-slate-800 border-slate-200 dark:border-slate-700/80'
+                      } ${
+                        isRunning
+                          ? 'ring-2 ring-blue-500/80 dark:ring-blue-400/90 shadow-sm shadow-blue-500/25'
+                          : ''
                       }`}
                     >
-                      {bot.name}
-                    </span>
+                      {bot.avatar || '🤖'}
+                    </div>
+                    {/* 运行中呼吸光效水波纹指示灯 */}
+                    {isRunning && (
+                      <span className="absolute -top-1 -right-1 flex h-3 w-3 z-10" title="正在执行任务中">
+                        <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+                        <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500 border border-white dark:border-slate-900"></span>
+                      </span>
+                    )}
+                    {isDefault && (
+                      <span className="absolute -bottom-1 -right-1 px-1 py-0.2 rounded-full text-[8px] bg-amber-500 text-white font-bold shadow-2xs leading-none z-10">
+                        内置
+                      </span>
+                    )}
+                  </div>
+
+                  {/* 会话信息与最新消息 */}
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-1 mb-1">
+                      <div className="flex items-center gap-1.5 min-w-0 flex-1">
+                        <span
+                          className={`text-xs font-bold truncate ${
+                            isActive ? 'text-blue-600 dark:text-blue-400' : 'text-slate-900 dark:text-slate-100'
+                          }`}
+                        >
+                          {bot.name}
+                        </span>
+                        {domain === 'live' ? (
+                          <span className="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-emerald-50 dark:bg-emerald-950/60 text-emerald-700 dark:text-emerald-400 border border-emerald-200/80 dark:border-emerald-800 shrink-0">
+                            CSS
+                          </span>
+                        ) : domain === 'im' ? (
+                          <span className="px-1 py-0.2 rounded text-[8px] font-mono font-bold bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-400 border border-blue-200/80 dark:border-blue-800 shrink-0">
+                            IM
+                          </span>
+                        ) : (
+                          <span className="px-1 py-0.2 rounded text-[8px] font-mono font-semibold bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 shrink-0">
+                            通用
+                          </span>
+                        )}
+                      </div>
                     {isRunning ? (
                       <span
                         className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[10px] font-semibold bg-blue-100/90 dark:bg-blue-900/70 text-blue-600 dark:text-blue-300 border border-blue-200 dark:border-blue-700 shrink-0 shadow-2xs animate-pulse"
@@ -2333,7 +2429,7 @@ export const AgentPanel: React.FC = () => {
                 </div>
               </button>
             )
-          })}
+          }))}
         </div>
 
         {/* 底部模型接入状态 */}

@@ -20,13 +20,14 @@ import {
   Maximize2,
   Minimize2,
   ChevronRight,
+  ChevronDown,
   Folder,
   FolderOpen,
 } from 'lucide-react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { useApiStore, ApiMeta, CLOUD_SERVICES } from '@/stores/apiStore'
+import { useApiStore, ApiMeta, CLOUD_SERVICES, getCleanApiName } from '@/stores/apiStore'
 import { ApiDocsViewer } from '@/components/panels/ApiDocsViewer'
 import { CommonSpecsViewer } from '@/components/panels/CommonSpecsViewer'
 
@@ -83,6 +84,18 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
   const [syncMode, setSyncMode] = useState<'auto' | 'html' | 'api'>('auto')
   const [isDrawerMaximized, setIsDrawerMaximized] = useState(false)
   const [docViewMode, setDocViewMode] = useState<'apis' | 'common_specs'>('apis')
+  const [isSyncMenuOpen, setIsSyncMenuOpen] = useState(false)
+  const syncMenuRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (syncMenuRef.current && !syncMenuRef.current.contains(e.target as Node)) {
+        setIsSyncMenuOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
 
   // 正在查看完整文档的 API（打开抽屉）
   const [viewingApi, setViewingApi] = useState<ApiMeta | null>(null)
@@ -580,25 +593,59 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                     <RefreshCw className={`h-3.5 w-3.5 ${isSyncingTree ? 'animate-spin' : ''}`} />
                     <span className="hidden sm:inline">{isSyncingTree ? '抓取中...' : '同步目录树'}</span>
                   </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => handleStartBatchSync(false, undefined, syncMode)}
-                    className="h-8 text-xs border-slate-300 dark:border-slate-700 text-slate-700 dark:text-slate-300 hover:bg-slate-50 dark:hover:bg-slate-800 font-medium gap-1.5 shadow-2xs cursor-pointer"
-                    title="仅同步本地尚未下载的文档"
-                  >
-                    <RefreshCw className="h-3.5 w-3.5 text-slate-500 dark:text-slate-400" />
-                    <span>增量同步</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => handleStartBatchSync(true, undefined, syncMode)}
-                    className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-1.5 shadow-xs cursor-pointer"
-                    title={`重新并发抓取当前 ${currentService.name} 全量接口的官方最新文档并结构化存储`}
-                  >
-                    <Play className="h-3.5 w-3.5 fill-white" />
-                    <span>全量覆盖同步</span>
-                  </Button>
+                  {/* 组合同步操作按钮 (Split Action Button) */}
+                  <div className="relative inline-flex items-center rounded-lg shadow-2xs" ref={syncMenuRef}>
+                    <Button
+                      size="sm"
+                      onClick={() => handleStartBatchSync(false, undefined, syncMode)}
+                      className="h-8 text-xs bg-blue-600 hover:bg-blue-500 text-white font-semibold gap-1.5 rounded-r-none border-r border-blue-500/40 cursor-pointer"
+                      title="仅同步本地尚未下载的文档（增量极速同步）"
+                    >
+                      <RefreshCw className="h-3.5 w-3.5" />
+                      <span>增量同步</span>
+                    </Button>
+                    <button
+                      type="button"
+                      onClick={() => setIsSyncMenuOpen(!isSyncMenuOpen)}
+                      className="flex items-center justify-center h-8 w-6 bg-blue-600 hover:bg-blue-500 text-white rounded-r-lg transition-colors cursor-pointer"
+                      title="展开更多同步选项（全量覆盖同步等）"
+                    >
+                      <ChevronDown className={`h-3.5 w-3.5 transition-transform ${isSyncMenuOpen ? 'rotate-180' : ''}`} />
+                    </button>
+
+                    {isSyncMenuOpen && (
+                      <div className="absolute right-0 top-full mt-1.5 w-60 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-xl shadow-slate-900/10 dark:shadow-slate-950/60 p-1.5 z-50 text-xs animate-in fade-in zoom-in-95 duration-100">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSyncMenuOpen(false)
+                            handleStartBatchSync(false, undefined, syncMode)
+                          }}
+                          className="flex items-center gap-2 w-full p-2 rounded-lg text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          <RefreshCw className="h-3.5 w-3.5 text-blue-500" />
+                          <div>
+                            <p className="font-semibold">增量同步 (推荐)</p>
+                            <p className="text-[10px] text-slate-400">仅拉取本地尚未下载或缺失的文档</p>
+                          </div>
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsSyncMenuOpen(false)
+                            handleStartBatchSync(true, undefined, syncMode)
+                          }}
+                          className="flex items-center gap-2 w-full p-2 rounded-lg text-left text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                        >
+                          <Play className="h-3.5 w-3.5 text-orange-500" />
+                          <div>
+                            <p className="font-semibold">全量覆盖同步</p>
+                            <p className="text-[10px] text-slate-400">强制并发重新抓取并更新全量文档</p>
+                          </div>
+                        </button>
+                      </div>
+                    )}
+                  </div>
                 </>
               )}
             </div>
@@ -963,11 +1010,11 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                       {/* 接口名称 */}
                       <td className="py-2.5 px-3">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-mono text-[9px] font-bold px-1.5 py-0.2 rounded bg-orange-500/10 dark:bg-orange-500/15 text-orange-600 dark:text-orange-400 border border-orange-200/80 dark:border-orange-500/30 shrink-0">
+                          <span className="font-mono text-[9px] font-semibold px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-200/80 dark:border-slate-750 group-hover:text-blue-600 dark:group-hover:text-blue-400 shrink-0">
                             POST
                           </span>
                           <span className="font-semibold text-slate-900 dark:text-slate-100 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors truncate">
-                            {item.name}
+                            {getCleanApiName(item.name, item.command, item.action)}
                           </span>
                           {item.doc_id && (
                             <span className="font-mono text-[9px] text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800 px-1 rounded">

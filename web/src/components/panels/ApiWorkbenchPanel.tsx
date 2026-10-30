@@ -36,7 +36,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Badge } from '@/components/ui/badge'
 import { ResizeHandle } from '@/components/ui/resize-handle'
-import { useApiStore, ApiMeta, ApiTab, ApiField, initializeFormData, smartMatchApi } from '@/stores/apiStore'
+import { useApiStore, ApiMeta, ApiTab, ApiField, initializeFormData, smartMatchApi, getCleanApiName } from '@/stores/apiStore'
 import { useBatchStore } from '@/stores/batchStore'
 import { useConfigStore } from '@/stores/configStore'
 import { ApiDocsViewer } from '@/components/panels/ApiDocsViewer'
@@ -2308,7 +2308,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                     <span className="text-[10px] px-1 py-0.5 rounded bg-blue-50 dark:bg-blue-950/50 text-blue-600 dark:text-blue-400 font-mono">
                       {api.subcategory || api.category}
                     </span>
-                    <span>{api.name}</span>
+                    <span>{getCleanApiName(api.name, api.command, api.action)}</span>
                   </Button>
                 ))}
               </div>
@@ -2330,7 +2330,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                   className="h-8 text-xs bg-white dark:bg-slate-800 text-slate-700 dark:text-slate-200 hover:text-orange-600 dark:hover:text-orange-400 hover:border-orange-300 dark:hover:border-orange-600 border-slate-200 dark:border-slate-700 shadow-2xs gap-1.5"
                 >
                   <Plus className="h-3 w-3 text-orange-500" />
-                  <span>{api.name}</span>
+                  <span>{getCleanApiName(api.name, api.command, api.action)}</span>
                 </Button>
               ))}
             </div>
@@ -2351,25 +2351,32 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
         >
           {tabs.map((tab) => {
             const isActive = tab.id === activeTabId
+            const cleanTabName = getCleanApiName(tab.api.name, tab.api.command, tab.api.action)
             return (
               <div
                 key={tab.id}
                 ref={isActive ? activeTabRef : null}
                 onClick={() => setActiveTabId(tab.id)}
                 onContextMenu={(e) => handleTabContextMenu(e, tab)}
-                title={`${tab.api.name} (${tab.api.command})`}
+                title={`${cleanTabName} (${tab.api.command})`}
                 className={`group relative flex items-center gap-1.5 h-8 px-2 rounded-t-lg text-xs transition-all cursor-pointer border-t-2 flex-1 shrink ${
                   isActive
                     ? 'min-w-[136px] max-w-[200px] bg-white dark:bg-slate-900 border-t-blue-500 text-slate-900 dark:text-slate-100 font-semibold shadow-2xs z-10'
                     : 'min-w-[118px] max-w-[180px] bg-slate-200/40 dark:bg-slate-900/40 hover:bg-slate-200/80 dark:hover:bg-slate-800/80 border-t-transparent text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
-                <span className="font-mono text-[9px] font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/20 px-1 py-0.2 rounded shrink-0">
+                <span
+                  className={`font-mono text-[9px] font-semibold px-1 py-0.2 rounded shrink-0 transition-colors ${
+                    isActive
+                      ? 'bg-blue-50 dark:bg-blue-950 text-blue-600 dark:text-blue-400 border border-blue-200 dark:border-blue-800'
+                      : 'bg-slate-200/70 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border border-slate-300/50 dark:border-slate-700/50'
+                  }`}
+                >
                   POST
                 </span>
 
-                <span className="truncate flex-1 text-[11px] min-w-0" title={tab.api.name}>
-                  {tab.api.name}
+                <span className="truncate flex-1 text-[11px] min-w-0" title={cleanTabName}>
+                  {cleanTabName}
                 </span>
 
                 {tab.isModified && (
@@ -2496,10 +2503,10 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                               }`}
                             >
                               <div className="flex items-center gap-1.5 min-w-0 flex-1">
-                                <span className="font-mono text-[9px] font-bold text-orange-600 dark:text-orange-400 bg-orange-500/10 dark:bg-orange-500/15 border border-orange-500/20 px-1 py-0.2 rounded shrink-0">
+                                <span className="font-mono text-[9px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 px-1 py-0.2 rounded shrink-0">
                                   POST
                                 </span>
-                                <span className="truncate text-xs">{t.api.name}</span>
+                                <span className="truncate text-xs">{getCleanApiName(t.api.name, t.api.command, t.api.action)}</span>
                                 {t.isModified && (
                                   <span className="h-1.5 w-1.5 rounded-full bg-amber-500 shrink-0" title="已修改" />
                                 )}
@@ -2551,7 +2558,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                                 <span className="font-mono text-[9px] font-semibold text-slate-400 dark:text-slate-500 group-hover:text-blue-600 dark:group-hover:text-blue-400">
                                   [{api.category}]
                                 </span>
-                                <span className="truncate text-xs font-medium">{api.name}</span>
+                                <span className="truncate text-xs font-medium">{getCleanApiName(api.name, api.command, api.action)}</span>
                               </div>
                               <p className="font-mono text-[10px] text-slate-400 dark:text-slate-500 truncate pl-0.5">
                                 {api.command}
@@ -2575,19 +2582,28 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
         {/* 面包屑与快捷动作 */}
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex items-center gap-2 min-w-0 flex-1 truncate">
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
-              <span className="truncate">{activeApi.category}</span>
-              <span>/</span>
-              {activeApi.subcategory && (
-                <>
-                  <span className="truncate">{activeApi.subcategory}</span>
-                  <span>/</span>
-                </>
-              )}
-              <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
-                {activeApi.name}
-              </h2>
-            </div>
+            {(() => {
+              let parts = (activeApi.path && activeApi.path.length > 0)
+                ? [...activeApi.path]
+                : [activeApi.category, activeApi.subcategory].filter(Boolean) as string[]
+              if (parts.length > 1 && (parts[0].includes('云直播') || parts[0].includes('CSS') || parts[0] === '即时通信 IM')) {
+                parts = parts.slice(1)
+              }
+              const cleanName = getCleanApiName(activeApi.name, activeApi.command, activeApi.action)
+              return (
+                <div className="flex items-center gap-1.5 text-xs text-slate-500 dark:text-slate-400 font-medium truncate">
+                  {parts.map((seg, idx) => (
+                    <React.Fragment key={idx}>
+                      <span className="truncate">{seg}</span>
+                      <span>/</span>
+                    </React.Fragment>
+                  ))}
+                  <h2 className="text-xs font-bold text-slate-900 dark:text-slate-100 tracking-tight truncate">
+                    {cleanName}
+                  </h2>
+                </div>
+              )
+            })()}
             {activeApi.doc_id && (
               <button
                 type="button"
@@ -3758,7 +3774,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
             onMouseDown={(e) => e.stopPropagation()}
           >
             <div className="px-2.5 py-1 text-[10px] font-bold text-slate-400 dark:text-slate-500 border-b border-slate-100 dark:border-slate-800 mb-0.5 truncate">
-              {contextMenu.tab.api.name}
+              {getCleanApiName(contextMenu.tab.api.name, contextMenu.tab.api.command, contextMenu.tab.api.action)}
             </div>
 
             <button
@@ -3814,7 +3830,7 @@ export const ApiWorkbenchPanel: React.FC<ApiWorkbenchPanelProps> = ({
                 setApiId(contextMenu.tab!.api.api_id)
                 showToast({
                   type: 'success',
-                  message: `已将「${contextMenu.tab!.api.name}」设为批处理目标接口`,
+                  message: `已将「${getCleanApiName(contextMenu.tab!.api.name, contextMenu.tab!.api.command, contextMenu.tab!.api.action)}」设为批处理目标接口`,
                   actionLabel: '前往批处理中心 →',
                   onAction: onSwitchToBatch,
                 })
