@@ -501,7 +501,44 @@ export const useApiStore = create<ApiState>((set, get) => ({
     try {
       localStorage.setItem('tim_active_service', serviceId)
     } catch {}
-    set({ activeServiceId: serviceId })
+
+    const { tabs, apis, activeTabId } = get()
+    const targetServiceTabs = tabs.filter((t) => (t.api.service_type || 'im') === serviceId)
+    let nextActiveTabId = activeTabId
+    let nextActiveApi = get().activeApi
+    let newTabs = tabs
+
+    // 若当前激活的 tab 不属于目标服务，切换激活 tab 为目标服务下的 tab
+    const currentTab = tabs.find((t) => t.id === activeTabId)
+    if (!currentTab || (currentTab.api.service_type || 'im') !== serviceId) {
+      if (targetServiceTabs.length > 0) {
+        const preferred = targetServiceTabs[targetServiceTabs.length - 1]
+        nextActiveTabId = preferred.id
+        nextActiveApi = preferred.api
+        savePersistedTabsState(tabs, nextActiveTabId)
+      } else {
+        const defaultApi =
+          serviceId === 'live'
+            ? apis.find((a) => (a.service_type || 'im') === 'live') || apis[0]
+            : apis.find((a) => a.api_id === 'c2c_send_msg') ||
+              apis.find((a) => (a.service_type || 'im') === 'im') ||
+              apis[0]
+        if (defaultApi) {
+          const newTab = createTabFromApi(defaultApi)
+          newTabs = [...tabs, newTab]
+          nextActiveTabId = newTab.id
+          nextActiveApi = newTab.api
+          savePersistedTabsState(newTabs, nextActiveTabId)
+        }
+      }
+    }
+
+    set({
+      tabs: newTabs,
+      activeServiceId: serviceId,
+      activeTabId: nextActiveTabId,
+      activeApi: nextActiveApi,
+    })
   },
 
   getRecentApis: () => {
@@ -582,24 +619,38 @@ export const useApiStore = create<ApiState>((set, get) => ({
           }
         }
 
-        // 2. 若无历史保存的标签页（首次进入），默认打开高频常用核心接口「单发单聊消息」(c2c_send_msg)
-        if (initialTabs.length === 0) {
-          const defaultApi =
-            apis.find((a) => a.api_id === 'c2c_send_msg') ||
-            apis[0] ||
-            null
-          if (defaultApi) {
-            initialTabs = [createTabFromApi(defaultApi)]
-            activeTab = initialTabs[0]
-          }
-        } else if (!activeTab) {
-          activeTab = initialTabs[0]
+        // 2. 保持用户在全局服务切换器中选定的权威服务标识 (localStorage 作为 SSoT，绝不被 Tab 的服务类型逆向覆盖)
+        const savedService =
+          (typeof localStorage !== 'undefined' && localStorage.getItem('tim_active_service')) || 'im'
+        const activeService = savedService
+
+        // 优先在 initialTabs 中寻找属于 savedService 的激活 Tab
+        let serviceActiveTab: ApiTab | null = null
+        if (activeTab && (activeTab.api.service_type || 'im') === savedService) {
+          serviceActiveTab = activeTab
+        } else {
+          // 查找已有 initialTabs 中属于当前服务的 Tab
+          serviceActiveTab = initialTabs.find((t) => (t.api.service_type || 'im') === savedService) || null
         }
 
+        // 若无属于当前服务的打开标签页，为该服务新建核心默认 Tab
+        if (!serviceActiveTab) {
+          const defaultApi =
+            savedService === 'live'
+              ? apis.find((a) => (a.service_type || 'im') === 'live') || apis[0]
+              : apis.find((a) => a.api_id === 'c2c_send_msg') ||
+                apis.find((a) => (a.service_type || 'im') === 'im') ||
+                apis[0]
+          if (defaultApi) {
+            serviceActiveTab = createTabFromApi(defaultApi)
+            initialTabs.push(serviceActiveTab)
+          }
+        }
+
+        activeTab = serviceActiveTab
         const activeId = activeTab ? activeTab.id : null
         savePersistedTabsState(initialTabs, activeId)
 
-        const activeService = activeTab?.api.service_type || get().activeServiceId || 'im'
         try {
           localStorage.setItem('tim_active_service', activeService)
         } catch {}

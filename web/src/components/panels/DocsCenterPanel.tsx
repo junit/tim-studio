@@ -292,12 +292,20 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
     onNavigateToSandbox?.(targetApi)
   }
 
-  // 获取清洗后的分类层级路径
+  // 获取清洗后的分类层级路径 (剔除顶层冗余服务名称)
   const getCleanPath = (a: ApiMeta): string[] => {
     let p = (a.path && a.path.length > 0)
       ? [...a.path]
       : [a.category || '其它分类', a.subcategory].filter(Boolean) as string[]
-    if (p.length > 1 && (p[0] === currentService.name || p[0] === currentService.shortName || p[0] === '云直播 (CSS)' || p[0] === '云直播')) {
+    if (
+      p.length > 1 &&
+      (p[0] === currentService.name ||
+        p[0] === currentService.shortName ||
+        p[0] === '云直播 (CSS)' ||
+        p[0] === '云直播' ||
+        p[0] === '即时通信 IM' ||
+        p[0] === '即时通信')
+    ) {
       p = p.slice(1)
     }
     return p
@@ -322,8 +330,10 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
       const p = getCleanPath(a)
       const c = p[0] || a.category || '其它'
       if (c === selectedLevel1) {
-        const sub = p.length > 1 ? p[1] : a.subcategory || c
-        map.set(sub, (map.get(sub) || 0) + 1)
+        const sub = p.length > 1 ? p[1] : (a.subcategory && a.subcategory !== c ? a.subcategory : null)
+        if (sub) {
+          map.set(sub, (map.get(sub) || 0) + 1)
+        }
       }
     })
     return Array.from(map.entries()).map(([name, count]) => ({ name, count }))
@@ -337,7 +347,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
       const p = getCleanPath(a)
       const c = p[0] || a.category || '其它'
       if (c === selectedLevel1) {
-        const sub = p.length > 1 ? p[1] : a.subcategory || c
+        const sub = p.length > 1 ? p[1] : (a.subcategory && a.subcategory !== c ? a.subcategory : null)
         if (sub === selectedLevel2 && p.length > 2) {
           const sub3 = p[2]
           map.set(sub3, (map.get(sub3) || 0) + 1)
@@ -368,7 +378,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
     currentServiceApis.forEach((a) => {
       const p = getCleanPath(a)
       const l1 = p[0] || a.category || '其它'
-      const l2 = p.length > 1 ? p[1] : a.subcategory || null
+      const l2 = p.length > 1 ? p[1] : (a.subcategory && a.subcategory !== l1 ? a.subcategory : null)
       const l3 = p.length > 2 ? p[2] : null
 
       if (!tree.has(l1)) {
@@ -469,7 +479,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
 
       // 二级分类匹配
       if (selectedLevel2 !== 'all') {
-        const sub = p.length > 1 ? p[1] : a.subcategory || itemL1
+        const sub = p.length > 1 ? p[1] : (a.subcategory && a.subcategory !== itemL1 ? a.subcategory : null)
         if (sub !== selectedLevel2) return false
       }
 
@@ -1027,10 +1037,7 @@ export const DocsCenterPanel: React.FC<DocsCenterPanelProps> = ({ onNavigateToSa
                       {/* 分类层级 (可点击的面包屑) */}
                       <td className="py-2.5 px-3 text-slate-500 dark:text-slate-400" onClick={(e) => e.stopPropagation()}>
                         <div className="flex items-center gap-1 flex-wrap text-[11px]">
-                          {(item.path && item.path.length > 0
-                            ? item.path
-                            : [item.category, item.subcategory].filter(Boolean)
-                          ).map((seg: string, idx: number, arr: string[]) => (
+                          {getCleanPath(item).map((seg: string, idx: number, arr: string[]) => (
                             <React.Fragment key={idx}>
                               {idx > 0 && <span className="text-slate-300 dark:text-slate-600">/</span>}
                               <button

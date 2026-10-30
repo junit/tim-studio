@@ -838,25 +838,44 @@ export const ApiDocsViewer: React.FC<ApiDocsViewerProps> = ({
           </div>
           <ul className="space-y-2 bg-slate-50/70 dark:bg-slate-950/60 p-3.5 rounded-lg border border-slate-100 dark:border-slate-800 font-sans text-xs">
             {overviewLines.map((line, idx) => {
-              const isNotice = line.startsWith('注意：') || line.startsWith('说明：') || line.startsWith('提示：')
-              if (isNotice) {
+              const isCaution = line.startsWith('注意：')
+              const isInfo = line.startsWith('说明：') || line.startsWith('提示：')
+              if (isCaution || isInfo) {
                 const tag = line.slice(0, 3)
                 const content = line.slice(3)
+                const isWarn = isCaution
                 return (
                   <li
                     key={idx}
-                    className="flex items-start gap-2 text-amber-900 dark:text-amber-200 bg-amber-50/90 dark:bg-amber-950/60 p-2.5 rounded-md border border-amber-200/80 dark:border-amber-800/80 my-1 font-medium"
+                    className={`flex items-start gap-2.5 p-3 rounded-lg border text-xs my-1 font-medium transition-colors shadow-2xs ${
+                      isWarn
+                        ? 'bg-amber-50/50 dark:bg-amber-950/20 border-amber-200/70 dark:border-amber-800/50 text-slate-800 dark:text-slate-200'
+                        : 'bg-blue-50/50 dark:bg-blue-950/20 border-blue-200/70 dark:border-blue-900/50 text-slate-800 dark:text-slate-200'
+                    }`}
                   >
-                    <span className="font-bold text-[11px] bg-amber-200/80 dark:bg-amber-900/80 text-amber-950 dark:text-amber-100 px-1.5 py-0.2 rounded shrink-0">
+                    {isWarn ? (
+                      <AlertCircle className="h-3.5 w-3.5 text-amber-600 dark:text-amber-400 shrink-0 mt-0.5" />
+                    ) : (
+                      <Info className="h-3.5 w-3.5 text-blue-600 dark:text-blue-400 shrink-0 mt-0.5" />
+                    )}
+                    <span
+                      className={`font-semibold text-[10px] px-1.5 py-0.5 rounded shrink-0 ${
+                        isWarn
+                          ? 'bg-amber-100 dark:bg-amber-900/60 text-amber-900 dark:text-amber-200'
+                          : 'bg-blue-100 dark:bg-blue-900/60 text-blue-900 dark:text-blue-200'
+                      }`}
+                    >
                       {tag}
                     </span>
-                    <span className="leading-relaxed flex-1">{content}</span>
+                    <span className="leading-relaxed flex-1 text-slate-700 dark:text-slate-300 font-normal">
+                      {content}
+                    </span>
                   </li>
                 )
               }
               return (
                 <li key={idx} className="flex items-start gap-2.5 text-slate-700 dark:text-slate-300 leading-relaxed">
-                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500 dark:bg-blue-400 shrink-0 mt-1.5" />
+                  <span className="h-1.5 w-1.5 rounded-full bg-blue-500/80 dark:bg-blue-400 shrink-0 mt-1.5" />
                   <span className="flex-1">{line}</span>
                 </li>
               )
