@@ -728,6 +728,17 @@ def delete_bot_file(bot_id: str, filename: str):
     return {"success": True}
 
 
+def _unique_archive_name(clean_name: str, used_names: set[str]) -> str:
+    base, ext = os.path.splitext(clean_name)
+    arc_name = clean_name
+    suffix = 1
+    while arc_name in used_names:
+        arc_name = f"{base} ({suffix}){ext}"
+        suffix += 1
+    used_names.add(arc_name)
+    return arc_name
+
+
 @router.get("/bots/{bot_id}/files-export")
 def export_all_bot_files(bot_id: str):
     """一键打包下载智能体所有产出物与文件（ZIP 压缩流）"""
@@ -739,23 +750,21 @@ def export_all_bot_files(bot_id: str):
 
     bot_dir = bot_manager._bot_dir(bot_id)
     uploads_dir = os.path.join(bot_dir, "uploads")
-    if not os.path.exists(uploads_dir) or not os.listdir(uploads_dir):
+    try:
+        upload_names = os.listdir(uploads_dir) if os.path.exists(uploads_dir) else []
+    except OSError as exc:
+        raise HTTPException(status_code=500, detail="读取文件目录失败") from exc
+    if not upload_names:
         raise HTTPException(status_code=404, detail="该智能体当前暂无任何产出物或文件")
 
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
-        seen_names = {}
-        for fn in sorted(os.listdir(uploads_dir)):
+        used_names = set()
+        for fn in sorted(upload_names):
             fp = os.path.join(uploads_dir, fn)
             if os.path.isfile(fp):
                 clean_name = re.sub(r"^f_\d+_", "", fn)
-                if clean_name in seen_names:
-                    seen_names[clean_name] += 1
-                    base, ext = os.path.splitext(clean_name)
-                    arc_name = f"{base} ({seen_names[clean_name]}){ext}"
-                else:
-                    seen_names[clean_name] = 0
-                    arc_name = clean_name
+                arc_name = _unique_archive_name(clean_name, used_names)
                 zf.write(fp, arcname=arc_name)
     buf.seek(0)
 
@@ -913,7 +922,7 @@ def export_bot_chat(
                         <span style="font-weight: 700; color: #0f172a; font-size: 14px;">👤 用户需求 [#{idx}]</span>
                         <span style="font-size: 11px; color: #94a3b8; font-family: monospace;">{html_lib.escape(str(ts))}</span>
                     </div>
-                    <div class="markdown-content" data-raw="{html_lib.escape(content)}" style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap;">{html_lib.escape(content)}</div>
+                    <div class="markdown-content" style="font-size: 14px; line-height: 1.6; color: #334155; white-space: pre-wrap;">{html_lib.escape(content)}</div>
                     {atts_html}
                 </div>
                 """)
@@ -959,7 +968,7 @@ def export_bot_chat(
                     </div>
                     {thought_section}
                     {code_section}
-                    <div class="markdown-content" data-raw="{html_lib.escape(content)}" style="margin-top: 14px; font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap;">{html_lib.escape(content)}</div>
+                    <div class="markdown-content" style="margin-top: 14px; font-size: 14px; line-height: 1.7; color: #1e293b; white-space: pre-wrap;">{html_lib.escape(content)}</div>
                 </div>
                 """)
 
@@ -1076,7 +1085,6 @@ def export_bot_chat(
             .header-actions {{ display: none !important; }}
         }}
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 </head>
 <body>
     <div class="container">
@@ -1118,19 +1126,7 @@ def export_bot_chat(
         </footer>
     </div>
 
-    <script>
-        // 自动解析 Markdown 为富文本渲染（若 CDN 可用），CDN 不可用时保留优雅纯文本
-        document.addEventListener('DOMContentLoaded', function() {{
-            if (window.marked && typeof window.marked.parse === 'function') {{
-                document.querySelectorAll('.markdown-content').forEach(function(el) {{
-                    var raw = el.getAttribute('data-raw') || el.textContent;
-                    el.innerHTML = window.marked.parse(raw);
-                    el.classList.add('markdown-rendered');
-                    el.style.whiteSpace = 'normal';
-                }});
-            }}
-        }});
-    </script>
+    <!-- 会话内容保持 HTML 转义后的纯文本，避免在导出报告中重新激活不可信 Markdown。 -->
 </body>
 </html>"""
 

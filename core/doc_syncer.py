@@ -14,7 +14,7 @@ import threading
 import time
 import urllib.parse
 import urllib.request
-from typing import Dict, List, Optional, Union
+from typing import Any, Optional
 
 # 存储目录
 STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage", "docs"))
@@ -93,9 +93,10 @@ def parse_url_to_body(raw_text: str) -> dict:
         if k in common_params:
             continue
         val = v[0] if len(v) == 1 else v
-        if str(val).isdigit():
-            val = int(val)
-        elif str(val).lower() == "true":
+        value_text = str(val)
+        if value_text.isdigit():
+            val = int(value_text)
+        elif value_text.lower() == "true":
             val = True
         elif str(val).lower() == "false":
             val = False
@@ -337,7 +338,7 @@ def parse_official_doc(
                             req_val = "公共参数"
                         if name and name not in ("字段", "字段名", "参数", "参数名", "参数名称"):
                             clean_name = name[:-2] if name.endswith(".N") else name
-                            field_item = {"name": clean_name, "type": typ, "required": req_val, "description": desc}
+                            field_item: dict[str, Any] = {"name": clean_name, "type": typ, "required": req_val, "description": desc}
                             if name != clean_name:
                                 field_item["aliases"] = [name]
                             req_fields.append(field_item)
@@ -503,7 +504,7 @@ class DocSyncManager:
         获取指定 API 的结构化文档。若本地已同步则返回完整文档；否则返回未同步骨架与降级字段。
         """
         doc_id = api_meta.get("doc_id")
-        api_id = api_meta.get("api_id")
+        api_id = str(api_meta.get("api_id") or "")
         name = api_meta.get("name", "")
         doc_url = api_meta.get("doc_url", "")
         desc = api_meta.get("description", "")
@@ -519,6 +520,7 @@ class DocSyncManager:
                 if any('"Response":' in ex.get("content", "") or "'Response':" in ex.get("content", "") for ex in saved.get("request_examples", [])):
                     try:
                         saved = self.sync_single(doc_id, api_id=api_id, doc_url=saved.get("doc_url", doc_url), mode="auto")
+
                     except Exception:
                         pass
                 return saved
@@ -627,7 +629,7 @@ class DocSyncManager:
         save_doc(parsed)
         return parsed
 
-    def start_batch_sync(self, apis_list: List[dict], force: bool = False, mode: str = "auto") -> dict:
+    def start_batch_sync(self, apis_list: list[dict], force: bool = False, mode: str = "auto") -> dict:
         """
         启动后台多线程异步批量同步
         """
@@ -754,7 +756,7 @@ class DocSyncManager:
             self._cancel_requested = True
             return {"status": "cancelling", "message": "已发送取消同步请求"}
 
-    def get_summary(self, apis_list: List[dict]) -> dict:
+    def get_summary(self, apis_list: list[dict]) -> dict:
         total = len(apis_list)
         synced_count = 0
         last_sync_time = None

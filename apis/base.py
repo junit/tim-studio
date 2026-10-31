@@ -1,27 +1,42 @@
-# -*- coding: utf-8 -*-
 """
 腾讯云 IM API 基类与字段定义
 """
 
+from __future__ import annotations
+
 import json
-from typing import Any, Dict, List, Optional
+import math
+from contextlib import suppress
+from typing import Any
 
 
 def safe_int(val: Any, default: int = 0) -> int:
-    """安全转换为整型，对 None、空字符串、非数字字符串平稳降级"""
-    if val is None:
-        return default
-    if isinstance(val, (int, float)):
+    """安全转换为整型；非法、非有限或非整数输入返回 default。"""
+    if isinstance(val, bool):
         return int(val)
+    if isinstance(val, int):
+        return val
+    if isinstance(val, float):
+        return int(val) if math.isfinite(val) and val.is_integer() else default
     if isinstance(val, str):
-        s = val.strip()
-        if not s:
+        value = val.strip()
+        if not value:
             return default
-        try:
-            return int(float(s))
-        except (ValueError, TypeError):
-            return default
+        signless = value[1:] if value[:1] in ("+", "-") else value
+        if signless.isdigit():
+            try:
+                return int(value)
+            except ValueError:
+                return default
     return default
+
+
+def get_input_value(input_data: dict[str, Any], canonical: str, aliases: list[str] | None = None) -> Any:
+    """读取字段时保留 canonical 的显式空值，并按声明顺序尝试 aliases。"""
+    for key in [canonical, *(aliases or [])]:
+        if key in input_data and input_data[key] is not None:
+            return input_data[key]
+    return None
 
 
 class Field:
@@ -34,10 +49,10 @@ class Field:
         default: Any = None,
         placeholder: str = "",
         help_text: str = "",
-        aliases: List[str] = None,  # 用于 Excel/CSV 自动列匹配
-        struct_name: Optional[str] = None,
-        sub_fields: Optional[List[dict]] = None,
-        item_schema: Optional[dict] = None
+        aliases: list[str] | None = None,  # 用于 Excel/CSV 自动列匹配
+        struct_name: str | None = None,
+        sub_fields: list[dict] | None = None,
+        item_schema: dict | None = None
     ):
         self.name = name
         self.label = label
@@ -77,7 +92,7 @@ class BaseTimApi:
     service_type: str = "im"  # "im" 或 "live" 等 API 3.0 云服务标识
     category: str = "通用"
     subcategory: str = ""
-    path: List[str] = []
+    path: list[str] = []
     doc_id: int = 0
     service_name: str = ""
     command: str = ""
@@ -86,10 +101,10 @@ class BaseTimApi:
     endpoint: str = ""
     doc_url: str = ""
     description: str = ""
-    fields: List[Field] = []
-    sample_payload: Dict[str, Any] = {}
+    fields: list[Field] = []
+    sample_payload: dict[str, Any] = {}
 
-    def build_payload(self, input_data: Dict[str, Any]) -> Dict[str, Any]:
+    def build_payload(self, input_data: dict[str, Any]) -> dict[str, Any]:
         """
         根据前端表单或批量行字典转换组装最终的 API 请求包体
         子类可按需覆盖此方法
@@ -115,13 +130,9 @@ class BaseTimApi:
             if val is not None:
                 f_type = (f.type or "").lower()
                 if f_type in ("number", "int", "integer", "float", "double"):
-                    try:
-                        if isinstance(val, (int, float)):
-                            pass
-                        elif isinstance(val, str) and val.strip() != "":
-                            val = int(val) if val.strip().lstrip("-").isdigit() else (float(val) if "." in val else int(val))
-                    except (ValueError, TypeError):
-                        pass
+                    if isinstance(val, str) and val.strip():
+                        with suppress(ValueError, TypeError):
+                            val = int(val) if val.strip().lstrip("-").isdigit() else float(val)
                 elif f_type in ("boolean", "bool"):
                     if isinstance(val, str):
                         val = val.lower() in ("true", "1", "yes")
@@ -139,12 +150,11 @@ class BaseTimApi:
                             val = [x.strip() for x in val_str.split(",") if x.strip()]
                         else:
                             val = []
-                elif f_type in ("json", "object", "dict"):
-                    if isinstance(val, str):
-                        try:
-                            val = json.loads(val)
-                        except Exception:
-                            pass
+                elif f_type in ("json", "object", "dict") and isinstance(val, str):
+                    try:
+                        val = json.loads(val)
+                    except (TypeError, json.JSONDecodeError):
+                        val = val
                 payload[f.name] = val
             elif f.default is not None:
                 payload[f.name] = f.default

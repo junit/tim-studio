@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 腾讯云 IM 可视化管理控制台 - FastAPI 服务
 """
@@ -7,48 +6,55 @@ import csv
 import io
 import json
 import os
-import time
-from typing import Any, Dict, List, Optional
+from typing import Any
+
 import openpyxl
-from fastapi import FastAPI, File, HTTPException, UploadFile, Query
+from fastapi import FastAPI, File, HTTPException, Query, UploadFile
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import FileResponse, JSONResponse, StreamingResponse, Response
+from fastapi.responses import FileResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 
+from apis.agent import router as agent_router
+from core.cloud_client import UniversalCloudClient
+from core.common_specs_syncer import common_specs_manager
 from core.config import (
-    load_config,
-    save_config,
-    get_environments_payload,
-    switch_environment,
-    save_environment,
     delete_environment,
+    get_environments_payload,
+    load_config,
     mask_secret,
+    save_environment,
+    switch_environment,
+)
+from core.doc_syncer import doc_sync_manager
+from core.live_util import (
+    generate_live_play_urls,
+    generate_live_push_url,
 )
 from core.registry import registry
 from core.task_runner import (
+    clear_history,
+    delete_history_item,
     load_history,
     save_history_item,
-    delete_history_item,
-    clear_history,
     task_runner,
 )
-from core.tim_client import TimClient
-from core.cloud_client import UniversalCloudClient
-from core.live_util import generate_live_push_url, generate_live_play_urls, parse_live_stream_url
-from core.doc_syncer import doc_sync_manager
-from core.tree_syncer import sync_catalog_from_live_tree, fetch_official_hydration_tree
-from core.common_specs_syncer import common_specs_manager
-from apis.agent import router as agent_router
+from core.tree_syncer import fetch_official_hydration_tree, sync_catalog_from_live_tree
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 STATIC_DIR = os.path.join(BASE_DIR, "static")
+
+ALLOWED_ORIGINS = [
+    origin.strip()
+    for origin in os.environ.get("CORS_ALLOWED_ORIGINS", "http://localhost:8000,http://127.0.0.1:8000").split(",")
+    if origin.strip()
+]
 
 app = FastAPI(title="TC Studio (Nova) - Tencent Cloud Multi-Service Architecture Studio", version="2.0.0")
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -85,31 +91,34 @@ def serve_faviconsvg():
 
 # 挂载 Vite 构建输出静态资源目录
 assets_dir = os.path.join(STATIC_DIR, "assets")
-os.makedirs(assets_dir, exist_ok=True)
+try:
+    os.makedirs(assets_dir, exist_ok=True)
+except OSError as exc:
+    raise RuntimeError(f"无法创建静态资源目录: {assets_dir}") from exc
 app.mount("/assets", StaticFiles(directory=assets_dir), name="assets")
 
 
 # ---------------- 多环境配置管理与鉴权 ----------------
 class EnvironmentItem(BaseModel):
-    id: Optional[str] = None
+    id: str | None = None
     name: str = "未命名环境"
-    tag: Optional[str] = "DEV"
-    remark: Optional[str] = ""
+    tag: str | None = "DEV"
+    remark: str | None = ""
     # 腾讯云 IM 专属配置
     sdkappid: int = 0
-    secret_key: Optional[str] = ""
+    secret_key: str | None = ""
     admin_user: str = "administrator"
     domain: str = "console.tim.qq.com"
     # 腾讯云 API 3.0 通用凭据 (云直播 / TRTC / VOD / COS 等通用)
-    tc_secret_id: Optional[str] = ""
-    tc_secret_key: Optional[str] = ""
-    tc_region: Optional[str] = "ap-guangzhou"
-    tc_endpoint: Optional[str] = "live.tencentcloudapi.com"
+    tc_secret_id: str | None = ""
+    tc_secret_key: str | None = ""
+    tc_region: str | None = "ap-guangzhou"
+    tc_endpoint: str | None = "live.tencentcloudapi.com"
     # 云直播 (CSS) 专属配置 (推拉流域名与鉴权防盗链 Key)
-    live_push_domain: Optional[str] = ""
-    live_play_domain: Optional[str] = ""
-    live_push_key: Optional[str] = ""
-    live_play_key: Optional[str] = ""
+    live_push_domain: str | None = ""
+    live_play_domain: str | None = ""
+    live_push_key: str | None = ""
+    live_play_key: str | None = ""
     delay_sec: float = 0.05
 
 
@@ -118,8 +127,8 @@ class SwitchEnvRequest(BaseModel):
 
 
 class TestConnRequest(BaseModel):
-    env_id: Optional[str] = None
-    service: Optional[str] = None
+    env_id: str | None = None
+    service: str | None = None
 
 
 @app.get("/api/environments")
@@ -132,8 +141,8 @@ def api_switch_environment(req: SwitchEnvRequest):
     try:
         data = switch_environment(req.env_id)
         return {"status": "success", "data": data}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.post("/api/environments/save")
@@ -142,8 +151,8 @@ def api_save_environment(req: EnvironmentItem):
         data = save_environment(req.dict())
         saved_env = data.get("saved_env") or {}
         return {"status": "success", "data": saved_env, "payload": data}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @app.delete("/api/environments/{env_id}")
@@ -151,8 +160,8 @@ def api_delete_environment(env_id: str):
     try:
         data = delete_environment(env_id)
         return {"status": "success", "data": data}
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 class ConfigUpdate(BaseModel):
@@ -189,10 +198,15 @@ def update_config(body: ConfigUpdate):
 
 
 @app.post("/api/config/test")
-def test_connectivity(req: Optional[TestConnRequest] = None):
+def test_connectivity(req: TestConnRequest | None = None):
     cfg = load_config()
     env_id = req.env_id if req else None
-    target = next((e for e in cfg["environments"] if e.get("id") == env_id), None) if env_id else cfg
+    if env_id:
+        target = next((e for e in cfg["environments"] if e.get("id") == env_id), None)
+        if target is None:
+            raise HTTPException(status_code=404, detail=f"环境 ID {env_id} 不存在")
+    else:
+        target = cfg
     client = UniversalCloudClient(config=target)
 
     req_service = (req.service if req and req.service else "").lower()
@@ -225,17 +239,17 @@ def get_supported_services():
 
 
 @app.get("/api/apis")
-def get_registered_apis(service: Optional[str] = None):
+def get_registered_apis(service: str | None = None):
     return {"status": "success", "data": registry.list_apis(service_type=service)}
 
 
 class LiveSignUrlRequest(BaseModel):
-    domain: Optional[str] = None
+    domain: str | None = None
     stream_name: str
-    key: Optional[str] = None
-    expire_seconds: Optional[int] = 86400
-    app_name: Optional[str] = "live"
-    type: Optional[str] = "both"  # "push", "play", "both"
+    key: str | None = None
+    expire_seconds: int | None = 86400
+    app_name: str | None = "live"
+    type: str | None = "both"  # "push", "play", "both"
 
 
 @app.post("/api/live/sign-url")
@@ -274,8 +288,8 @@ def api_generate_live_url(req: LiveSignUrlRequest):
 
 
 class ApiInvokeRequest(BaseModel):
-    payload: Dict[str, Any]
-    dry_run: Optional[bool] = False
+    payload: dict[str, Any]
+    dry_run: bool | None = False
 
 
 @app.post("/api/apis/{api_id}/invoke")
@@ -328,13 +342,13 @@ def invoke_single_api(api_id: str, req: ApiInvokeRequest):
 # ---------------- 官方结构化文档与异步批量同步 ----------------
 class BatchSyncRequest(BaseModel):
     force: bool = False
-    api_ids: Optional[List[str]] = None
-    mode: Optional[str] = "auto"  # 'auto' | 'html' | 'api'
-    service: Optional[str] = None  # 'im' | 'live' | 'all'
+    api_ids: list[str] | None = None
+    mode: str | None = "auto"  # 'auto' | 'html' | 'api'
+    service: str | None = None  # 'im' | 'live' | 'all'
 
 
 @app.get("/api/docs/summary")
-def get_docs_summary(service: Optional[str] = Query(None)):
+def get_docs_summary(service: str | None = Query(None)):
     apis_list = registry.list_apis()
     if service and service != "all":
         apis_list = [a for a in apis_list if (a.get("service_type") or "im") == service]
@@ -374,8 +388,8 @@ def sync_official_tree():
     try:
         res = sync_catalog_from_live_tree()
         return {"status": "success", "data": res}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"同步官方目录树失败: {str(e)}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"同步官方目录树失败: {exc!s}") from exc
 
 
 @app.post("/api/live/catalog/sync")
@@ -386,21 +400,24 @@ def sync_official_live_catalog():
         catalog = sync_all_live_apis()
         registry.reload()
         return {"status": "success", "count": len(catalog)}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"同步云直播官方接口失败: {str(e)}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"同步云直播官方接口失败: {exc!s}") from exc
 
 
 @app.get("/api/docs/tree/raw")
 def get_raw_official_tree():
     snapshot_path = os.path.join(BASE_DIR, "storage", "official_live_tree.json")
     if os.path.exists(snapshot_path):
-        with open(snapshot_path, "r", encoding="utf-8") as f:
-            return {"status": "success", "data": json.load(f)}
+        try:
+            with open(snapshot_path, encoding="utf-8") as f:
+                return {"status": "success", "data": json.load(f)}
+        except (OSError, json.JSONDecodeError) as exc:
+            raise HTTPException(status_code=500, detail=f"读取官方目录树快照失败: {exc}") from exc
     try:
         raw_tree, _ = fetch_official_hydration_tree()
         return {"status": "success", "data": raw_tree}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"获取官方目录树快照失败: {str(e)}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"获取官方目录树快照失败: {exc!s}") from exc
 
 
 @app.get("/api/docs/{api_id}")
@@ -436,13 +453,13 @@ def sync_single_api_doc(api_id: str, mode: str = Query("auto")):
             mode=mode
         )
         return {"status": "success", "data": doc}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"同步官方文档失败: {str(e)}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"同步官方文档失败: {exc!s}") from exc
 
 
 # ---------------- 腾讯云 API 3.0 公共规范与数据结构 ----------------
 @app.get("/api/common-specs")
-def get_common_specs(service: str = Query("live"), category: Optional[str] = Query(None)):
+def get_common_specs(service: str = Query("live"), category: str | None = Query(None)):
     specs = common_specs_manager.get_specs(service=service)
     if category:
         if category in specs:
@@ -477,20 +494,25 @@ def sync_common_specs(service: str = Query("live")):
                 "countries_count": specs.get("mappings", {}).get("countries_count", 0),
             },
         }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"同步公共规范失败: {str(e)}")
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=f"同步公共规范失败: {exc!s}") from exc
 
 
 # ---------------- 批处理任务 ----------------
 @app.post("/api/batch/upload")
 async def upload_batch_file(file: UploadFile = File(...)):
-    filename = file.filename.lower()
+    raw_filename = file.filename or ""
+    filename = raw_filename.lower()
+    if not filename:
+        raise HTTPException(status_code=400, detail="上传文件名不能为空")
     content = await file.read()
     rows = []
 
-    if filename.endswith(".xlsx") or filename.endswith(".xls"):
+    if filename.endswith((".xlsx", ".xls")):
         wb = openpyxl.load_workbook(io.BytesIO(content), read_only=True)
         sheet = wb.active
+        if sheet is None:
+            return {"status": "fail", "message": "Excel 工作表为空"}
         all_rows = list(sheet.iter_rows(values_only=True))
         if not all_rows:
             return {"status": "fail", "message": "Excel 文件为空"}
@@ -498,7 +520,10 @@ async def upload_batch_file(file: UploadFile = File(...)):
         for r in all_rows[1:]:
             if any(r):
                 row_dict = {}
-                for h, val in zip(header, r):
+                for index, val in enumerate(r):
+                    if index >= len(header):
+                        break
+                    h = header[index]
                     if h:
                         row_dict[h] = str(val) if val is not None else ""
                 rows.append(row_dict)
@@ -509,7 +534,10 @@ async def upload_batch_file(file: UploadFile = File(...)):
             rows.append({k.strip(): str(v).strip() for k, v in r.items() if k})
     elif filename.endswith(".json"):
         text = content.decode("utf-8", errors="ignore")
-        data = json.loads(text)
+        try:
+            data = json.loads(text)
+        except json.JSONDecodeError as exc:
+            return {"status": "fail", "message": f"JSON 格式无效: {exc.msg}"}
         if isinstance(data, list):
             rows = data
         else:
@@ -519,7 +547,7 @@ async def upload_batch_file(file: UploadFile = File(...)):
 
     return {
         "status": "success",
-        "filename": file.filename,
+        "filename": raw_filename,
         "total_rows": len(rows),
         "columns": list(rows[0].keys()) if rows else [],
         "preview": rows[:10],
@@ -528,7 +556,7 @@ async def upload_batch_file(file: UploadFile = File(...)):
 
 
 @app.get("/api/batch/presets")
-def get_batch_presets(service: Optional[str] = None):
+def get_batch_presets(service: str | None = None):
     """获取常用运维场景预设清单，支持按 service 过滤"""
     from core.batch_presets import BATCH_PRESETS
     if service:
@@ -570,17 +598,22 @@ def get_batch_guidance_api(api_id: str):
 
 class CreateBatchRequest(BaseModel):
     api_id: str
-    items: List[dict]
-    delay_sec: Optional[float] = 0.05
-    dry_run: Optional[bool] = False
+    items: list[dict]
+    delay_sec: float | None = 0.05
+    dry_run: bool | None = False
 
 
 @app.post("/api/batch/create")
 def create_batch_task(req: CreateBatchRequest):
     if not req.items:
         raise HTTPException(status_code=400, detail="任务列表不能为空")
-    task = task_runner.create_task(req.api_id, req.items, delay_sec=req.delay_sec, dry_run=req.dry_run or False)
-    task_runner.start_task(task.task_id)
+    delay_sec = req.delay_sec if req.delay_sec is not None else 0.05
+    try:
+        task = task_runner.create_task(req.api_id, req.items, delay_sec=delay_sec, dry_run=bool(req.dry_run))
+        if not task_runner.start_task(task.task_id):
+            raise HTTPException(status_code=409, detail="批处理任务已启动或已终止")
+    except ValueError as exc:
+        raise HTTPException(status_code=429, detail=str(exc)) from exc
     return {
         "status": "success",
         "task_id": task.task_id,
@@ -681,7 +714,7 @@ def export_csv(task_id: str, only_failed: bool = False):
 
     output = io.StringIO()
     if results:
-        fieldnames = list(dict.fromkeys(k for r in results for k in r.keys()))
+        fieldnames = list(dict.fromkeys(k for r in results for k in r))
         writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
         writer.writeheader()
         writer.writerows(results)
@@ -704,7 +737,7 @@ def get_history_list():
         prev_res_path = os.path.join(BASE_DIR, "withdraw_results.json")
         if os.path.exists(prev_res_path):
             try:
-                with open(prev_res_path, "r", encoding="utf-8") as f:
+                with open(prev_res_path, encoding="utf-8") as f:
                     data = json.load(f)
                     init_record = {
                         "task_id": "init_208",
@@ -720,8 +753,8 @@ def get_history_list():
                     }
                     save_history_item(init_record)
                     history = [init_record]
-            except Exception:
-                pass
+            except (OSError, json.JSONDecodeError):
+                history = load_history()
 
     # 列表仅返回摘要，不带 results 大数据
     summary_list = []

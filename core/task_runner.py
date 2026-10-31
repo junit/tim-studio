@@ -1,27 +1,27 @@
-# -*- coding: utf-8 -*-
 """
 批处理任务调度器与 SSE 事件流推送
 """
 
-import asyncio
-import csv
+from __future__ import annotations
+
 import json
 import os
 import queue
 import threading
 import time
 import uuid
-from typing import Any, Dict, Generator, List, Optional
+from collections.abc import Callable
+from typing import Any
 
+from .cloud_client import UniversalCloudClient
 from .config import load_config
 from .registry import registry
-from .cloud_client import UniversalCloudClient
-from .tim_client import TimClient
 
 STORAGE_DIR = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "storage"))
 HISTORY_PATH = os.path.join(STORAGE_DIR, "history.json")
 _history_lock = threading.Lock()
 MAX_CACHED_TASKS = 50
+MAX_EVENTS_PER_TASK = 2000
 
 
 def _atomic_dump_json(filepath: str, data: Any, indent: int = 2) -> None:
@@ -41,7 +41,8 @@ def _atomic_dump_json(filepath: str, data: Any, indent: int = 2) -> None:
         raise
 
 
-def load_history() -> List[dict]:
+def load_history() -> list[dict]:
+
     with _history_lock:
         if os.path.exists(HISTORY_PATH):
             try:
@@ -91,7 +92,8 @@ def clear_history() -> bool:
 
 
 class BatchTask:
-    def __init__(self, task_id: str, api_id: str, items: List[dict], delay_sec: float = 0.05, dry_run: bool = False, config_snapshot: Optional[dict] = None):
+    def __init__(self, task_id: str, api_id: str, items: list[dict], delay_sec: float = 0.05, dry_run: bool = False, config_snapshot: dict | None = None):
+
         self.task_id = task_id
         self.api_id = api_id
         self.items = items
@@ -104,19 +106,22 @@ class BatchTask:
         self.failed = 0
         self.status = "PENDING"  # PENDING, RUNNING, PAUSED, CANCELLED, COMPLETED, FAILED
         self.results = []
-        self.events: List[dict] = []
-        self.event_queue = queue.Queue()  # 兼容向后单队列引用
-        self._subscribers: List[queue.Queue] = []
+        self.events: list[dict] = []
+        self.event_queue = queue.Queue(maxsize=MAX_EVENTS_PER_TASK)  # 兼容向后单队列引用
+        self._subscribers: list[queue.Queue] = []
         self._lock = threading.Lock()
-        self.start_time = None
-        self.end_time = None
+        self.start_time: float | None = None
+        self.end_time: float | None = None
+        self._started = False
+        self._finalized = False
+        self._finalize_callback: Callable[[], None] | None = None
         self._stop_event = threading.Event()
         self._pause_event = threading.Event()
         self._pause_event.set()  # set means running, clear means paused
 
     def register_subscriber(self) -> tuple:
         """注册新订阅者并获取全量历史事件快照，支持无感重连防事件撕裂"""
-        q = queue.Queue()
+        q = queue.Queue(maxsize=MAX_EVENTS_PER_TASK)
         with self._lock:
             self._subscribers.append(q)
             history = list(self.events)
@@ -131,6 +136,8 @@ class BatchTask:
         evt = {"type": event_type, "data": data, "timestamp": time.time()}
         with self._lock:
             self.events.append(evt)
+            if len(self.events) > MAX_EVENTS_PER_TASK:
+                del self.events[:-MAX_EVENTS_PER_TASK]
             subs = list(self._subscribers)
         # 兼容老版单队列
         try:
@@ -144,57 +151,132 @@ class BatchTask:
                 pass
 
     def stop(self):
-        self._stop_event.set()
-        self.status = "CANCELLED"
+        callback = None
+        with self._lock:
+            if self._finalized:
+                return
+            self._stop_event.set()
+            self.status = "CANCELLED"
+            self._pause_event.set()
+            if not self._started:
+                callback = self._finalize_callback
+        if callback:
+            callback()
 
     def pause(self):
-        self._pause_event.clear()
-        self.status = "PAUSED"
+        with self._lock:
+            if self.status in ("PENDING", "CANCELLED", "COMPLETED", "FAILED"):
+                return
+            self._pause_event.clear()
+            self.status = "PAUSED"
 
     def resume(self):
-        self._pause_event.set()
-        self.status = "RUNNING"
+        with self._lock:
+            if self.status != "PAUSED":
+                return
+            self._pause_event.set()
+            self.status = "RUNNING"
 
 
 class TaskRunner:
     def __init__(self):
-        self.tasks: Dict[str, BatchTask] = {}
+        self.tasks: dict[str, BatchTask] = {}
         self._lock = threading.Lock()
 
-    def create_task(self, api_id: str, items: List[dict], delay_sec: float = None, dry_run: bool = False) -> BatchTask:
+    def create_task(self, api_id: str, items: list[dict], delay_sec: float | None = None, dry_run: bool = False) -> BatchTask:
+
         cfg = load_config()
         if delay_sec is None:
-            delay_sec = cfg.get("delay_sec", 0.05)
+            delay_sec = float(cfg.get("delay_sec", 0.05))
         task_id = str(uuid.uuid4())[:8]
         # 快照当前激活配置，确保任务执行期间不受全局环境切换影响，彻底做到凭证隔离
         config_snapshot = dict(cfg)
-        task = BatchTask(task_id, api_id, items, delay_sec=delay_sec, dry_run=dry_run, config_snapshot=config_snapshot)
+        task = BatchTask(task_id, api_id, items, delay_sec=float(delay_sec), dry_run=dry_run, config_snapshot=config_snapshot)
+
+        task._finalize_callback = lambda task=task: self._finalize_task(task, None, "任务在启动前被取消")
         with self._lock:
             # 淘汰超出缓存上限的陈旧任务，控制内存
             if len(self.tasks) >= MAX_CACHED_TASKS:
                 completed_keys = [k for k, t in self.tasks.items() if t.status in ("COMPLETED", "CANCELLED", "FAILED")]
                 for k in completed_keys[: len(self.tasks) - MAX_CACHED_TASKS + 1]:
                     self.tasks.pop(k, None)
+                if len(self.tasks) >= MAX_CACHED_TASKS:
+                    raise ValueError("批处理任务缓存已满，请等待现有任务结束")
             self.tasks[task_id] = task
         return task
 
-    def get_task(self, task_id: str) -> Optional[BatchTask]:
+    def get_task(self, task_id: str) -> BatchTask | None:
+
         return self.tasks.get(task_id)
 
-    def start_task(self, task_id: str):
+    def start_task(self, task_id: str) -> bool:
         task = self.get_task(task_id)
         if not task:
             raise ValueError(f"Task {task_id} not found")
 
+        with task._lock:
+            if task._started or task.status != "PENDING" or task._finalized:
+                return False
+            task._started = True
         threading.Thread(target=self._worker, args=(task,), daemon=True).start()
+        return True
+
+    def _finalize_task(self, task: BatchTask, api_meta: Any | None, error_message: str | None = None):
+        with task._lock:
+            if task._finalized:
+                return
+            task._finalized = True
+            task.end_time = task.end_time or time.time()
+            if task.status == "CANCELLED":
+                final_status = "CANCELLED"
+            elif error_message:
+                task.status = "FAILED"
+                final_status = "FAILED"
+            elif task.status == "FAILED":
+                final_status = "FAILED"
+            else:
+                task.status = "COMPLETED"
+                final_status = "COMPLETED"
+            end_time = task.end_time
+            start_time = task.start_time or end_time
+            summary = {
+                "task_id": task.task_id,
+                "api_id": task.api_id,
+                "api_name": api_meta.name if api_meta else task.api_id,
+                "service_type": getattr(api_meta, "service_type", "im") if api_meta else "im",
+                "total": task.total,
+                "success": task.success,
+                "failed": task.failed,
+                "duration_sec": round(end_time - start_time, 2),
+                "status": final_status,
+                "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(start_time)),
+            }
+        if error_message and final_status != "CANCELLED":
+            task.emit("error", {"message": error_message, "status": final_status})
+        else:
+            task.emit("complete", summary)
+        try:
+            save_history_item({**summary, "results": task.results})
+        except Exception as exc:
+            print(f"[WARN] Failed to save batch history: {exc}")
 
     def _worker(self, task: BatchTask):
-        task.status = "RUNNING"
-        task.start_time = time.time()
-        api_meta = registry.get_api(task.api_id)
+        with task._lock:
+            if task._finalized:
+                return
+            if task._stop_event.is_set() or task.status == "CANCELLED":
+                cancelled_before_start = True
+                api_meta = None
+            else:
+                cancelled_before_start = False
+                task.status = "RUNNING"
+                task.start_time = time.time()
+                api_meta = registry.get_api(task.api_id)
+        if cancelled_before_start:
+            self._finalize_task(task, None)
+            return
         if not api_meta:
-            task.emit("error", {"message": f"API {task.api_id} 未注册"})
-            task.status = "FAILED"
+            self._finalize_task(task, None, f"API {task.api_id} 未注册")
             return
 
         try:
@@ -204,27 +286,27 @@ class TaskRunner:
                 "task_id": task.task_id,
                 "api_id": task.api_id,
                 "api_name": api_meta.name,
-                "total": task.total
+                "total": task.total,
             })
 
             for idx, row in enumerate(task.items, start=1):
                 if task._stop_event.is_set():
                     break
-
-                # 暂停控制
-                task._pause_event.wait()
+                while not task._pause_event.wait(timeout=0.1):
+                    if task._stop_event.is_set():
+                        break
+                if task._stop_event.is_set():
+                    break
                 task.current = idx
 
                 try:
                     payload = api_meta.build_payload(row)
                     if task.dry_run:
-                        # 预览模式：不发网络请求，校验入参并构建报文
                         action_status = "OK"
                         err_code = 0
                         err_info = "【预览演练】参数结构构建成功 (未发起真实网络请求)"
                         cost_ms = 0
                     else:
-                        # 调用统一云网关驱动 (根据 service_type 自动分发至 IM 或 API 3.0)
                         resp = client.invoke_api(api_meta, payload)
                         action_status = resp.get("ActionStatus", "FAIL")
                         err_code = resp.get("ErrorCode", -1)
@@ -233,10 +315,10 @@ class TaskRunner:
                 except Exception as item_err:
                     action_status = "FAIL"
                     err_code = -999
-                    err_info = f"参数转换或执行异常: {str(item_err)}"
+                    err_info = f"参数转换或执行异常: {item_err!s}"
                     cost_ms = 0
 
-                is_ok = (action_status == "OK" and err_code == 0)
+                is_ok = action_status == "OK" and err_code == 0
                 if is_ok:
                     task.success += 1
                 else:
@@ -247,10 +329,9 @@ class TaskRunner:
                     "_status": action_status,
                     "_err_code": err_code,
                     "_err_info": err_info,
-                    "_cost_ms": cost_ms
+                    "_cost_ms": cost_ms,
                 }
                 task.results.append(result_item)
-
                 task.emit("progress", {
                     "index": idx,
                     "total": task.total,
@@ -262,43 +343,15 @@ class TaskRunner:
                     "err_code": err_code,
                     "err_info": err_info,
                     "cost_ms": cost_ms,
-                    "item": result_item
+                    "item": result_item,
                 })
 
-                if task.delay_sec > 0:
-                    time.sleep(task.delay_sec)
+                if task.delay_sec > 0 and task._stop_event.wait(task.delay_sec):
+                    break
         except Exception as global_err:
-            task.status = "FAILED"
-            task.emit("error", {"message": f"批处理工作线程异常中断: {str(global_err)}"})
+            self._finalize_task(task, api_meta, f"批处理工作线程异常中断: {global_err!s}")
             return
-        finally:
-            task.end_time = time.time()
-            duration_sec = round(task.end_time - (task.start_time or task.end_time), 2)
-            if task.status != "CANCELLED" and task.status != "FAILED":
-                task.status = "COMPLETED"
-
-            summary = {
-                "task_id": task.task_id,
-                "api_id": task.api_id,
-                "api_name": api_meta.name if api_meta else task.api_id,
-                "service_type": getattr(api_meta, "service_type", "im") if api_meta else "im",
-                "total": task.total,
-                "success": task.success,
-                "failed": task.failed,
-                "duration_sec": duration_sec,
-                "status": task.status,
-                "created_at": time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(task.start_time or time.time()))
-            }
-            task.emit("complete", summary)
-
-            # 归档持久化
-            try:
-                save_history_item({
-                    **summary,
-                    "results": task.results
-                })
-            except Exception as e:
-                print(f"[WARN] Failed to save batch history: {e}")
+        self._finalize_task(task, api_meta)
 
 
 task_runner = TaskRunner()

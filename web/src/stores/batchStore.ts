@@ -257,11 +257,20 @@ export const useBatchStore = create<BatchState>((set, get) => ({
 
   connectSSE: (taskId: string) => {
     if (eventSource) eventSource.close()
-    eventSource = new EventSource(`/api/batch/${taskId}/events`)
+    const source = new EventSource(`/api/batch/${taskId}/events`)
+    eventSource = source
+    let reconnectLogged = false
+    const isCurrentSource = () => eventSource === source && get().activeTaskId === taskId
 
-    eventSource.onmessage = (e) => {
-      if (!e.data || e.data.startsWith(':')) return
-      const evt = JSON.parse(e.data)
+    source.onmessage = (e) => {
+      if (!isCurrentSource() || !e.data || e.data.startsWith(':')) return
+      let evt: { type: string; data: any }
+      try {
+        evt = JSON.parse(e.data)
+      } catch (error) {
+        console.warn('Invalid batch SSE payload', error)
+        return
+      }
       const { type, data } = evt
 
       if (type === 'start') {
@@ -299,20 +308,35 @@ export const useBatchStore = create<BatchState>((set, get) => ({
           'INFO',
           `🎉 批处理完成！耗时: ${data.duration_sec}s | 成功: ${data.success} | 失败: ${data.failed}`
         )
-        if (eventSource) eventSource.close()
+        if (eventSource === source) {
+          source.close()
+          eventSource = null
+        }
       } else if (type === 'error') {
         set({ isRunning: false })
         get().addLog('FAILED', `任务错误: ${data.message}`)
-        if (eventSource) eventSource.close()
+        if (eventSource === source) {
+          source.close()
+          eventSource = null
+        }
       }
     }
 
-    eventSource.onerror = (e) => {
-      console.warn('SSE Disconnected', e)
-      set({ isRunning: false })
-      get().addLog('FAILED', 'SSE 连接异常中断，批处理监听已终止')
-      if (eventSource) {
-        eventSource.close()
+    source.onerror = () => {
+      if (!isCurrentSource()) {
+        source.close()
+        return
+      }
+      // EventSource automatically retries transient disconnects. Keep the task running
+      // until the browser reports CLOSED or the server sends an explicit terminal event.
+      if (source.readyState === EventSource.CLOSED) {
+        set({ isRunning: false })
+        get().addLog('FAILED', 'SSE 连接已关闭，批处理仍可能在后台运行')
+        source.close()
+        eventSource = null
+      } else if (!reconnectLogged) {
+        reconnectLogged = true
+        get().addLog('WARN', 'SSE 连接暂时中断，正在自动重连...')
       }
     }
   },
@@ -339,7 +363,10 @@ export const useBatchStore = create<BatchState>((set, get) => ({
     if (!confirm('确定要终止当前批处理任务吗？')) return
     await fetch(`/api/batch/${activeTaskId}/stop`, { method: 'POST' })
     set({ isRunning: false })
-    if (eventSource) eventSource.close()
+    if (eventSource) {
+      eventSource.close()
+      eventSource = null
+    }
     get().addLog('WARN', '批量任务已被用户强制终止')
   },
 }))

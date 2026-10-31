@@ -67,7 +67,7 @@ def recognize_image_text(file_path: str, max_chars: int = 3000) -> Optional[str]
 
     # 2. 尝试 pytesseract (如果宿主已安装)
     try:
-        import pytesseract
+        import pytesseract  # type: ignore[import-not-found]
         from PIL import Image
         img = Image.open(file_path)
         txt = pytesseract.image_to_string(img, lang="chi_sim+eng").strip()

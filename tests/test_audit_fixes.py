@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 全维度代码审计与证伪防护单元测试套件
 验证针对 P0/P1/P2 重大缺陷的防御性加固：
@@ -11,25 +10,23 @@
 7. 附件文件打包重名去重保护
 """
 
-import ast
-import io
-import json
 import os
 import sys
 import time
-import zipfile
+from concurrent.futures import ThreadPoolExecutor
+
 import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
 from apis.base import safe_int
-from apis.c2c_msg import SendMsgApi, BatchSendMsgApi
+from apis.c2c_msg import BatchSendMsgApi, SendMsgApi
 from apis.group import AddGroupMemberApi
 from core.agent.constants import AUTHORIZED_IMPORTS
 from core.agent.run_manager import AgentRun
 from core.agent.tools import RunSkillTool
-from core.config import save_environment, load_config, load_raw_config
-from core.task_runner import TaskRunner, BatchTask
+from core.config import load_raw_config, save_environment
+from core.task_runner import TaskRunner
 from core.tim_client import TimClient
 
 
@@ -39,6 +36,72 @@ def test_authorized_imports_sandbox_os_removed():
     assert "subprocess" not in AUTHORIZED_IMPORTS
     assert "sys" not in AUTHORIZED_IMPORTS
     assert "shutil" not in AUTHORIZED_IMPORTS
+
+
+
+
+def _save_environment_in_child(config_path: str, index: int):
+    import core.config as config_module
+
+    config_module.CONFIG_PATH = config_path
+    config_module.save_environment({"id": f"proc_env_{index}", "name": f"proc-{index}"})
+
+
+def test_agent_sandbox_scope_survives_executor_send_tools(tmp_path):
+    """扩展沙箱工具必须在 CodeAgent.run 的 send_tools 后仍可用。"""
+    from types import SimpleNamespace
+
+    from smolagents.local_python_executor import LocalPythonExecutor
+
+    from core.agent.engine import _install_sandbox_scope
+
+    def render_chart(*_args):
+        return "chart"
+
+    def save_file(*_args):
+        return {"filename": "out.txt"}
+
+    def confined_open(*_args, **_kwargs):
+        return None
+
+    output_dir = str(tmp_path / "uploads")
+    executor = LocalPythonExecutor(additional_authorized_imports=[])
+    agent = SimpleNamespace(python_executor=executor, state={})
+    _install_sandbox_scope(agent, {
+        "render_chart": render_chart,
+        "save_file": save_file,
+        "open": confined_open,
+        "OUTPUT_DIR": output_dir,
+    })
+    executor.send_tools({})
+
+    assert executor.static_tools is not None
+    assert executor.static_tools["render_chart"] is render_chart
+    assert executor.static_tools["save_file"] is save_file
+    assert executor.static_tools["open"] is confined_open
+    assert agent.state["OUTPUT_DIR"] == output_dir
+
+
+
+
+def test_agent_sandbox_scope_preserves_callable_client_methods():
+    """可调用的客户端实例必须保留为对象，不能被 safer_func 降级。"""
+    from types import SimpleNamespace
+
+    from smolagents.local_python_executor import LocalPythonExecutor
+
+    from core.agent.engine import _install_sandbox_scope
+
+    client = TimClient(config={"sdkappid": 1, "secret_key": "secret", "admin_user": "admin"})
+    executor = LocalPythonExecutor(additional_authorized_imports=[])
+    agent = SimpleNamespace(python_executor=executor, state={})
+    _install_sandbox_scope(agent, {"tim_client": client})
+    executor.send_variables(agent.state)
+    executor.send_tools({})
+
+    assert agent.state["tim_client"] is client
+    assert "tim_client" not in (executor.static_tools or {})
+    assert executor("tim_client.get_usersig()").output
 
 
 def test_run_skill_ast_security_gate(tmp_path):
@@ -70,6 +133,77 @@ def test_run_skill_ast_security_gate(tmp_path):
     assert "__subclasses__" in res3["error"]
 
 
+
+
+def test_run_skill_approval_wait_does_not_consume_timeout(tmp_path, monkeypatch):
+    """审批等待超过技能 deadline 后仍应返回明确的用户取消结果。"""
+    import core.agent.tools as tools_module
+    from core.agent.bot_manager import BotManager
+
+    mgr = BotManager(data_dir=str(tmp_path / "data"))
+    bot = mgr.create_bot("test_approval_timeout", "审批超时测试")
+    decisions = []
+
+    def slow_cancel(request):
+        decisions.append(request)
+        time.sleep(1.8)
+        return "cancel"
+
+    runner = RunSkillTool(bot.id, mgr, TimClient(), approval_requester=slow_cancel)
+    monkeypatch.setattr(tools_module, "_SKILL_TIMEOUT_SECONDS", 1.5)
+    mgr.save_skill(
+        bot.id,
+        "cancel_after_slow_approval",
+        "慢审批取消",
+        "result = cloud_call('destroy_group', {'GroupId': 'group-test'})",
+    )
+
+    result = runner.forward("cancel_after_slow_approval")
+
+    assert len(decisions) == 1
+    assert result["success"] is True
+    assert result["result"]["ActionStatus"] == "CANCELLED"
+
+
+def test_run_skill_worker_blocks_host_capabilities(tmp_path):
+    """技能 worker 只能使用受限能力，不能借 open/pathlib/reflection 访问宿主机。"""
+    from core.agent.bot_manager import BotManager
+
+    mgr = BotManager(data_dir=str(tmp_path / "data"))
+    bot = mgr.create_bot("test_worker_boundary", "安全测试")
+    runner = RunSkillTool(bot.id, mgr, TimClient())
+
+    blocked_skills = {
+        "open_host": "def execute():\n    return open('/etc/hosts').read()",
+        "pathlib_host": "import pathlib\ndef execute():\n    return pathlib.Path('/etc/hosts').read_text()",
+        "reflection": "def execute():\n    return getattr(object, '__subclasses__')()",
+    }
+    for name, code in blocked_skills.items():
+        mgr.save_skill(bot.id, name, name, code)
+        result = runner.forward(name)
+        assert result["success"] is False
+        assert "安全拦截" in result["error"]
+
+
+def test_run_skill_worker_supports_async_and_killable_timeout(tmp_path, monkeypatch):
+    """async skill 必须被 await，超时必须终止隔离进程。"""
+    import core.agent.tools as tools_module
+    from core.agent.bot_manager import BotManager
+
+    mgr = BotManager(data_dir=str(tmp_path / "data"))
+    bot = mgr.create_bot("test_worker_lifecycle", "生命周期测试")
+    runner = RunSkillTool(bot.id, mgr, TimClient())
+
+    mgr.save_skill(bot.id, "async_skill", "async", "async def execute():\n    return 'async-ok'")
+    assert runner.forward("async_skill") == {"success": True, "result": "async-ok"}
+
+    monkeypatch.setattr(tools_module, "_SKILL_TIMEOUT_SECONDS", 0.2)
+    mgr.save_skill(bot.id, "timeout_skill", "timeout", "import time\ntime.sleep(30)")
+    timeout_result = runner.forward("timeout_skill")
+    assert timeout_result["success"] is False
+    assert "超时" in timeout_result["error"]
+
+
 def test_safe_int_robustness():
     """验证 safe_int 容错转换各类边界入参"""
     assert safe_int(123) == 123
@@ -80,7 +214,10 @@ def test_safe_int_robustness():
     assert safe_int(None) == 0
     assert safe_int(None, default=5) == 5
     assert safe_int("invalid_string", default=9) == 9
-    assert safe_int("12.34") == 12
+    assert safe_int("12.34") == 0
+    assert safe_int("1e3") == 0
+    assert safe_int(float("nan"), default=7) == 7
+    assert safe_int(float("inf"), default=7) == 7
 
 
 def test_api_build_payload_empty_strings():
@@ -128,7 +265,7 @@ def test_save_environment_preserves_secret_on_null_field():
     orig_secret = env.get("secret_key", "") if env else ""
 
     # 提交包含 null / None 的 secret_key
-    res = save_environment({
+    save_environment({
         "id": active_env_id,
         "secret_key": None
     })
@@ -136,7 +273,6 @@ def test_save_environment_preserves_secret_on_null_field():
     raw_env_after = next((e for e in raw_after.get("environments", []) if e.get("id") == active_env_id), None)
     assert raw_env_after is not None
     assert raw_env_after["secret_key"] == orig_secret
-    assert raw_env_after["secret_key"] != "None"
 
 
 def test_agent_run_error_status_not_masked_by_done():
@@ -183,7 +319,7 @@ def test_tim_client_callable():
     # 模拟 invoke 不真正请求网络
     original_invoke = client.invoke
     try:
-        client.invoke = lambda s, c, p, timeout=15: {"action": f"{s}/{c}", "payload": p, "timeout": timeout}
+        client.invoke = lambda service_name, command, payload, timeout=15: {"action": f"{service_name}/{command}", "payload": payload, "timeout": timeout}
         res = client(api_path="group_open_http_svc/get_appid_group_list", payload={"Limit": 10})
         assert res["action"] == "/group_open_http_svc/get_appid_group_list"
         assert res["payload"]["Limit"] == 10
@@ -219,8 +355,8 @@ def test_skill_ioc_and_sandbox_hardening(tmp_path):
 
 def test_api_aliases_resolution():
     """验证 GetGroupInfoApi, AccountDeleteApi, AccountCheckApi 的别名兼容性"""
+    from apis.account import AccountCheckApi, AccountDeleteApi
     from apis.group import GetGroupInfoApi
-    from apis.account import AccountDeleteApi, AccountCheckApi
 
     # 1. GetGroupInfoApi 别名支持
     group_api = GetGroupInfoApi()
@@ -240,11 +376,120 @@ def test_api_aliases_resolution():
     chk_api = AccountCheckApi()
     pc1 = chk_api.build_payload({"users": "check1,check2"})
     assert pc1["CheckItem"] == [{"UserID": "check1"}, {"UserID": "check2"}]
+    with pytest.raises(ValueError):
+        del_api.build_payload({"DeleteItem": []})
+    with pytest.raises(ValueError):
+        group_api.build_payload({"GroupIdList": []})
+
+
+def test_zip_archive_name_dedup_avoids_preexisting_suffix(tmp_path):
+    from apis.agent import _unique_archive_name
+
+    used = {"report.txt", "report (1).txt"}
+    assert _unique_archive_name("report.txt", used) == "report (2).txt"
+    assert _unique_archive_name("report.txt", used) == "report (3).txt"
+
+
+def test_save_environment_serializes_concurrent_writers(tmp_path, monkeypatch):
+    """并发环境更新必须完整成功且不能丢失其他 writer 的环境。"""
+    import core.config as config_module
+
+    config_path = tmp_path / "config.json"
+    monkeypatch.setattr(config_module, "CONFIG_PATH", str(config_path))
+    config_module.save_config({
+        "active_env_id": "env_default",
+        "environments": [{"id": "env_default", "name": "default", "secret_key": "secret"}],
+    })
+
+    def save_one(index):
+        config_module.save_environment({"id": f"env_{index}", "name": f"env-{index}"})
+
+    with ThreadPoolExecutor(max_workers=8) as executor:
+        list(executor.map(save_one, range(20)))
+
+    raw = config_module.load_raw_config()
+    ids = {env["id"] for env in raw["environments"]}
+    assert {"env_default", *(f"env_{i}" for i in range(20))} <= ids
+
+
+
+
+def test_save_environment_serializes_cross_process_writers(tmp_path, monkeypatch):
+    """多进程 worker 同时更新环境时不能丢失更新。"""
+    import multiprocessing
+
+    import core.config as config_module
+
+    if config_module.fcntl is None or "spawn" not in multiprocessing.get_all_start_methods():
+        pytest.skip("需要 POSIX fcntl 和 spawn 进程模型")
+
+    config_path = tmp_path / "config.json"
+    monkeypatch.setattr(config_module, "CONFIG_PATH", str(config_path))
+    config_module.save_config({
+        "active_env_id": "env_default",
+        "environments": [{"id": "env_default", "name": "default", "secret_key": "secret"}],
+    })
+
+    ctx = multiprocessing.get_context("spawn")
+    processes = [
+        ctx.Process(target=_save_environment_in_child, args=(str(config_path), index))
+        for index in range(8)
+    ]
+    for process in processes:
+        process.start()
+    for process in processes:
+        process.join(5)
+        assert process.exitcode == 0
+
+    raw = config_module.load_raw_config()
+    ids = {env["id"] for env in raw["environments"]}
+    assert {"env_default", *(f"proc_env_{i}" for i in range(8))} <= ids
+
+
+def test_batch_task_pause_stop_finalizes():
+    """暂停中的 worker 收到 stop 后必须退出并归档终态。"""
+    runner = TaskRunner()
+    task = runner.create_task(
+        "c2c_send_msg",
+        [{"Text": "x", "From_Account": "a", "To_Account": "b"}],
+        delay_sec=0.1,
+        dry_run=True,
+    )
+    assert runner.start_task(task.task_id) is True
+    time.sleep(0.02)
+    task.pause()
+    task.stop()
+    deadline = time.time() + 2
+    while task.end_time is None and time.time() < deadline:
+        time.sleep(0.01)
+    assert task.status == "CANCELLED"
+    assert task.end_time is not None
+    assert [event["type"] for event in task.events][-1] == "complete"
+
+
+def test_batch_task_unknown_api_has_single_error_terminal_event():
+    runner = TaskRunner()
+    task = runner.create_task("__missing_api__", [{}], dry_run=True)
+    assert runner.start_task(task.task_id) is True
+    deadline = time.time() + 2
+    while task.end_time is None and time.time() < deadline:
+        time.sleep(0.01)
+    assert task.status == "FAILED"
+    assert task.end_time is not None
+    assert [event["type"] for event in task.events] == ["error"]
+
+
+def test_agent_run_manual_stop_preserves_stopped_status():
+    run = AgentRun("run_stop", "default_assistant", "stop")
+    run.request_stop()
+    assert run.status == "stopped"
+    assert run.stream_status == "done"
+    assert [event["event"] for event in run.events] == ["done"]
 
 
 def test_atomic_save_config():
     """验证 save_config 原子持久化写入机制"""
-    from core.config import save_config, load_raw_config, CONFIG_PATH
+    from core.config import CONFIG_PATH, load_raw_config, save_config
     orig_raw = load_raw_config()
     try:
         test_cfg = dict(orig_raw)
@@ -256,4 +501,25 @@ def test_atomic_save_config():
         assert not os.path.exists(f"{CONFIG_PATH}.tmp")
     finally:
         save_config(orig_raw)
+
+
+
+def test_config_transaction_is_reentrant(tmp_path, monkeypatch):
+    """嵌套事务和 save_config 不得因文件锁重复获取而死锁。"""
+    import core.config as config_module
+
+    config_path = tmp_path / "config.json"
+    monkeypatch.setattr(config_module, "CONFIG_PATH", str(config_path))
+    initial = {
+        "active_env_id": "env_default",
+        "environments": [{"id": "env_default", "name": "default"}],
+    }
+    config_module.save_config(initial)
+
+    with config_module._config_transaction():
+        config_module.save_config(initial)
+        with config_module._config_transaction():
+            config_module.save_config(initial)
+
+    assert config_module.load_raw_config()["active_env_id"] == "env_default"
 

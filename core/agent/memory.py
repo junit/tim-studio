@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 智能体四层分级记忆与无限上下文管理器 (Hierarchical Infinite Memory Manager)
 实现业界顶级单会话智能体（Grok, Muse, MemGPT）架构：
@@ -17,14 +16,12 @@ import json
 import logging
 import os
 import re
-import time
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
-from typing import Any, Dict, List, Optional, Set, Tuple
+from typing import Any, cast
 
 from .constants import (
     DEFAULT_MESSAGE_CONTENT_MAX_CHARS,
-    DEFAULT_SUMMARY_TRIGGER_THRESHOLD,
     DEFAULT_WORKING_MEMORY_CHAR_BUDGET,
     DEFAULT_WORKING_MEMORY_TURNS,
 )
@@ -39,8 +36,8 @@ class HierarchicalContext:
     working_memory_turns: int
     compacted_history_count: int
     running_summary: str
-    entities_catalog: Dict[str, List[str]]
-    runtime_variables: Dict[str, str]
+    entities_catalog: dict[str, list[str]]
+    runtime_variables: dict[str, str]
 
 
 class HierarchicalMemoryManager:
@@ -48,12 +45,12 @@ class HierarchicalMemoryManager:
 
     def __init__(self):
         # 内存中缓存各 bot 的运行时实体目录，避免重复正则全量扫描
-        self._entity_cache: Dict[str, Dict[str, Set[str]]] = {}
+        self._entity_cache: dict[str, dict[str, set[str]]] = {}
 
     # -------------------------------------------------------------
     # Layer 4: Execution Runtime Memory (沙箱运行时内存与变量空间)
     # -------------------------------------------------------------
-    def inspect_sandbox_variables(self, saved_state: Dict[str, Any]) -> Tuple[str, Dict[str, str]]:
+    def inspect_sandbox_variables(self, saved_state: dict[str, Any]) -> tuple[str, dict[str, str]]:
         """
         深度自省当前沙箱中的活跃变量，提取类型、数据形状与简要字段信息，
         供模型在下一轮对话中无缝复用已有数据，免去重复调用 API
@@ -61,8 +58,8 @@ class HierarchicalMemoryManager:
         if not saved_state:
             return "", {}
 
-        var_summaries: Dict[str, str] = {}
-        lines: List[str] = []
+        var_summaries: dict[str, str] = {}
+        lines: list[str] = []
 
         for name, val in saved_state.items():
             if name.startswith("_") or name in (
@@ -74,10 +71,11 @@ class HierarchicalMemoryManager:
 
             try:
                 # 针对 Pandas DataFrame
-                if hasattr(val, "shape") and hasattr(val, "columns"):
-                    shape_str = f"{val.shape[0]} 行 x {val.shape[1]} 列"
-                    cols = list(val.columns)[:5]
-                    cols_str = f", 列: {cols}{'...' if len(val.columns) > 5 else ''}"
+                value = cast(Any, val)
+                if hasattr(value, "shape") and hasattr(value, "columns"):
+                    shape_str = f"{value.shape[0]} 行 x {value.shape[1]} 列"
+                    cols = list(value.columns)[:5]
+                    cols_str = f", 列: {cols}{'...' if len(value.columns) > 5 else ''}"
                     desc = f"pandas.DataFrame ({shape_str}{cols_str})"
                 # 针对列表
                 elif isinstance(val, list):
@@ -121,11 +119,11 @@ class HierarchicalMemoryManager:
     # -------------------------------------------------------------
     # Layer 3: Long-term Episodic & Entity Memory (实体提取与目录构建)
     # -------------------------------------------------------------
-    def extract_entities_from_messages(self, messages: List[Dict[str, Any]]) -> Dict[str, Set[str]]:
+    def extract_entities_from_messages(self, messages: list[dict[str, Any]]) -> dict[str, set[str]]:
         """从消息流中智能捕获关联的群组 ID、账号和常用接口标识"""
-        group_ids: Set[str] = set()
-        user_ids: Set[str] = set()
-        apis: Set[str] = set()
+        group_ids: set[str] = set()
+        user_ids: set[str] = set()
+        apis: set[str] = set()
 
         group_regex = re.compile(r'(?:@TGS#\w+|LIVE_\w+|[A-Za-z][A-Za-z0-9_\-]*:\d+)')
         api_regex = re.compile(r'([a-zA-Z0-9_]+_open_http_svc/[a-zA-Z0-9_]+|[a-zA-Z0-9_]+_svc/[a-zA-Z0-9_]+)')
@@ -170,7 +168,7 @@ class HierarchicalMemoryManager:
     def _summary_file_path(self, bot_dir: str) -> str:
         return os.path.join(bot_dir, "session_summary.json")
 
-    def get_session_summary(self, bot_dir: str) -> Optional[Dict[str, Any]]:
+    def get_session_summary(self, bot_dir: str) -> dict[str, Any] | None:
         """读取已持久化的会话滚动摘要数据"""
         path = self._summary_file_path(bot_dir)
         if os.path.exists(path):
@@ -195,7 +193,7 @@ class HierarchicalMemoryManager:
         self,
         bot_id: str,
         bot_dir: str,
-        older_history: List[Dict[str, Any]]
+        older_history: list[dict[str, Any]]
     ) -> str:
         """
         对滑出即时工作记忆窗口的长周期旧消息进行增量摘要压缩，保持宏观主线不丢失
@@ -221,8 +219,8 @@ class HierarchicalMemoryManager:
 
         # 增量提炼：提取诉求、操作要点与业务实体
         entities = self.extract_entities_from_messages(older_history)
-        user_intents: List[str] = []
-        assistant_conclusions: List[str] = []
+        user_intents: list[str] = []
+        assistant_conclusions: list[str] = []
 
         for m in older_history:
             role = m.get("role")
@@ -245,7 +243,7 @@ class HierarchicalMemoryManager:
         recent_intents = user_intents[-8:] if len(user_intents) > 8 else user_intents
         recent_conclusions = assistant_conclusions[-6:] if len(assistant_conclusions) > 6 else assistant_conclusions
 
-        summary_parts: List[str] = []
+        summary_parts: list[str] = []
         summary_parts.append(f"【会话至今已累计推进 {len(older_history)} 轮长周期演进】")
 
         if recent_intents:
@@ -288,7 +286,7 @@ class HierarchicalMemoryManager:
     # -------------------------------------------------------------
     # Layer 1: Working Memory (即时工作记忆与观测蒸馏)
     # -------------------------------------------------------------
-    def distill_assistant_turn(self, content: str, metadata: Dict[str, Any], max_len: int) -> str:
+    def distill_assistant_turn(self, content: str, metadata: dict[str, Any], max_len: int) -> str:
         """
         对前序助手的执行进行观测蒸馏 (Observation Distillation)：
         保留核心回答，若伴随 Python 脚本或工具调用，自动生成紧凑元数据注解，
@@ -298,11 +296,12 @@ class HierarchicalMemoryManager:
         code_blocks = metadata.get("code_blocks", []) or []
         tool_calls = metadata.get("tool_calls", []) or []
 
-        notes: List[str] = []
+        notes: list[str] = []
         if code_blocks:
             notes.append(f"执行了 {len(code_blocks)} 段 Python 脚本")
         if tool_calls:
-            t_names = [tc.get("name") for tc in tool_calls if isinstance(tc, dict) and tc.get("name")]
+            t_names = [str(tc.get("name")) for tc in tool_calls if isinstance(tc, dict) and tc.get("name")]
+
             if t_names:
                 notes.append(f"调用工具: {', '.join(t_names[:3])}")
 
@@ -312,16 +311,16 @@ class HierarchicalMemoryManager:
 
     def build_working_memory(
         self,
-        recent_history: List[Dict[str, Any]],
+        recent_history: list[dict[str, Any]],
         char_budget: int = DEFAULT_WORKING_MEMORY_CHAR_BUDGET
-    ) -> List[str]:
+    ) -> list[str]:
         """
         基于 Token/字符预算自适应组装即时工作记忆，优先保证最近轮次的高保真度
         """
         if not recent_history:
             return []
 
-        formatted_turns: List[str] = []
+        formatted_turns: list[str] = []
         current_chars = 0
 
         # 从最近的一轮向前回溯填充
@@ -355,21 +354,21 @@ class HierarchicalMemoryManager:
         bot_id: str,
         bot: Any,
         user_message: str,
-        all_history: List[Dict[str, Any]],
-        saved_state: Dict[str, Any],
-        attachments: Optional[List[Dict[str, Any]]],
+        all_history: list[dict[str, Any]],
+        saved_state: dict[str, Any],
+        attachments: list[dict[str, Any]] | None,
         system_prompt: str,
         manager: Any,
         uploads_dir: str,
-        context_budget: Optional[int] = None,
-        max_context_turns: Optional[int] = None,
+        context_budget: int | None = None,
+        max_context_turns: int | None = None,
     ) -> HierarchicalContext:
         """
         完整组装四层分级记忆与无限上下文提示词 (Prompt Assembly Pipeline)
         支持动态用户/模型上下文预算 (Context Budgeting)
         """
         bot_dir = manager._bot_dir(bot_id)
-        prompt_sections: List[str] = []
+        prompt_sections: list[str] = []
 
         effective_working_turns = (
             max_context_turns
@@ -535,9 +534,9 @@ class HierarchicalMemoryManager:
         self,
         bot_id: str,
         bot_dir: str,
-        all_history: List[Dict[str, Any]],
-        saved_state: Dict[str, Any],
-        max_context_turns: Optional[int] = None
+        all_history: list[dict[str, Any]],
+        saved_state: dict[str, Any],
+        max_context_turns: int | None = None
     ):
         """当单轮交互完成时触发，异步或静默更新滚动摘要与实体缓存"""
         working_limit = max_context_turns or DEFAULT_WORKING_MEMORY_TURNS

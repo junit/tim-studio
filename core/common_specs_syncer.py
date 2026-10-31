@@ -418,8 +418,10 @@ class CommonSpecsManager:
             if not force_reload and os.path.exists(SPECS_CACHE_PATH):
                 try:
                     with open(SPECS_CACHE_PATH, "r", encoding="utf-8") as f:
-                        self._specs_cache = json.load(f)
-                        return self._specs_cache
+                        loaded = json.load(f)
+                    if isinstance(loaded, dict):
+                        self._specs_cache = loaded
+                        return loaded
                 except Exception as e:
                     print(f"[WARN] Failed to load {SPECS_CACHE_PATH}: {e}")
 

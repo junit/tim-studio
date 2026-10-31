@@ -1,11 +1,11 @@
-# -*- coding: utf-8 -*-
 """
 单聊消息相关 API
 对应文档: https://cloud.tencent.com/document/product/269/1520#c2c
 """
 
 import random
-from .base import BaseTimApi, Field, safe_int
+
+from .base import BaseTimApi, Field, get_input_value, safe_int
 
 
 class AdminMsgWithdrawApi(BaseTimApi):
@@ -56,10 +56,10 @@ class SendMsgApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        if input_data.get("Text"):
-            from_acc = input_data.get("From_Account", "")
-            to_acc = input_data.get("To_Account", "")
-            text = input_data.get("Text", "")
+        text = get_input_value(input_data, "Text", ["text", "content"])
+        if text:
+            from_acc = get_input_value(input_data, "From_Account", ["from_account"]) or ""
+            to_acc = get_input_value(input_data, "To_Account", ["to_account"]) or ""
             return {
                 "SyncOtherMachine": safe_int(input_data.get("SyncOtherMachine"), 1),
                 "From_Account": str(from_acc),
@@ -69,9 +69,9 @@ class SendMsgApi(BaseTimApi):
             }
         if "MsgBody" in input_data:
             return input_data
-        from_acc = input_data.get("From_Account", "")
-        to_acc = input_data.get("To_Account", "")
-        text = input_data.get("Text", "")
+        from_acc = get_input_value(input_data, "From_Account", ["from_account"]) or ""
+        to_acc = get_input_value(input_data, "To_Account", ["to_account"]) or ""
+        text = get_input_value(input_data, "Text", ["text", "content"]) or ""
         return {
             "SyncOtherMachine": 1,
             "From_Account": from_acc,
@@ -104,11 +104,12 @@ class BatchSendMsgApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        if input_data.get("Text"):
-            to_acc = input_data.get("To_Account", [])
+        text = get_input_value(input_data, "Text", ["text"])
+        if text:
+            to_acc = get_input_value(input_data, "To_Account", ["to_accounts"]) or []
             if isinstance(to_acc, str):
                 to_acc = [x.strip() for x in to_acc.split(",") if x.strip()]
-            text = input_data.get("Text", "")
+            text = get_input_value(input_data, "Text", ["text"]) or ""
             return {
                 "SyncOtherMachine": safe_int(input_data.get("SyncOtherMachine"), 2),
                 "To_Account": to_acc,
@@ -117,10 +118,10 @@ class BatchSendMsgApi(BaseTimApi):
             }
         if "MsgBody" in input_data:
             return input_data
-        to_acc = input_data.get("To_Account", [])
+        to_acc = get_input_value(input_data, "To_Account", ["to_accounts"]) or []
         if isinstance(to_acc, str):
             to_acc = [x.strip() for x in to_acc.split(",") if x.strip()]
-        text = input_data.get("Text", "")
+        text = get_input_value(input_data, "Text", ["text"]) or ""
         return {
             "SyncOtherMachine": 2,
             "To_Account": to_acc,

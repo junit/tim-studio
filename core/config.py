@@ -6,9 +6,67 @@
 
 import json
 import os
+import tempfile
+import threading
 import uuid
+from contextlib import contextmanager, suppress
+
+try:
+    import fcntl
+except ImportError:  # pragma: no cover - Windows fallback keeps process-local safety
+    fcntl = None
 
 CONFIG_PATH = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "config.json"))
+
+_config_lock = threading.RLock()
+_config_file_lock_state = threading.local()
+
+
+def _open_config_lock_file(lock_path: str):
+    try:
+        return open(lock_path, "a+", encoding="utf-8")  # noqa: PTH123
+    except OSError as exc:
+        raise RuntimeError(f"无法打开配置文件锁: {lock_path}") from exc
+
+
+@contextmanager
+def _config_file_lock():
+    """Serialize config transactions across worker processes on POSIX hosts."""
+    if fcntl is None:
+        yield
+        return
+
+    depth = getattr(_config_file_lock_state, "depth", 0)
+    if depth:
+        _config_file_lock_state.depth = depth + 1
+        try:
+            yield
+        finally:
+            _config_file_lock_state.depth = depth
+        return
+
+    lock_path = f"{CONFIG_PATH}.lock"
+    with _open_config_lock_file(lock_path) as lock_file:
+        try:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+        except OSError as exc:
+            raise RuntimeError(f"无法获取配置文件锁: {lock_path}") from exc
+
+        _config_file_lock_state.depth = 1
+        try:
+            yield
+        finally:
+            _config_file_lock_state.depth = 0
+            with suppress(OSError):
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+
+@contextmanager
+def _config_transaction():
+    """Hold both process-local and cross-process config locks."""
+    with _config_lock, _config_file_lock():
+        yield
+
 
 DEFAULT_ENV = {
     "id": "env_default",
@@ -60,14 +118,15 @@ def is_secret_masked(secret: str) -> bool:
 
 def load_raw_config() -> dict:
     """读取未经处理的原始配置"""
-    if os.path.exists(CONFIG_PATH):
-        try:
-            with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-                data = json.load(f)
-                return data
-        except Exception as e:
-            print(f"[WARN] Failed to load config.json: {e}")
-    return {}
+    with _config_lock:
+        if os.path.exists(CONFIG_PATH):
+            try:
+                with open(CONFIG_PATH, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    return data
+            except (OSError, json.JSONDecodeError) as exc:
+                print(f"[WARN] Failed to load config.json: {exc}")
+        return {}
 
 
 def load_config() -> dict:
@@ -108,17 +167,39 @@ def load_config() -> dict:
     return cfg
 
 
-def save_config(new_config: dict) -> dict:
-    """持久化保存配置到 config.json (原子写入：先写临时文件再原子替换，防止高并发写入截断损坏文件)"""
+def _write_config_unlocked(new_config: dict) -> dict:
+    """Write config atomically; callers hold the process/file transaction locks."""
     disk_data = {
         "active_env_id": new_config.get("active_env_id", "env_default"),
         "environments": new_config.get("environments", []),
     }
-    tmp_path = f"{CONFIG_PATH}.tmp"
-    with open(tmp_path, "w", encoding="utf-8") as f:
-        json.dump(disk_data, f, ensure_ascii=False, indent=2)
-    os.replace(tmp_path, CONFIG_PATH)
+    temp_path = None
+    try:
+        with tempfile.NamedTemporaryFile(
+            mode="w",
+            encoding="utf-8",
+            dir=os.path.dirname(CONFIG_PATH),
+            prefix=f".{os.path.basename(CONFIG_PATH)}.",
+            suffix=".tmp",
+            delete=False,
+        ) as temp_file:
+            temp_path = temp_file.name
+            json.dump(disk_data, temp_file, ensure_ascii=False, indent=2)
+            temp_file.flush()
+            os.fsync(temp_file.fileno())
+        os.replace(temp_path, CONFIG_PATH)
+        temp_path = None
+    finally:
+        if temp_path and os.path.exists(temp_path):
+            with suppress(OSError):
+                os.remove(temp_path)
     return new_config
+
+
+def save_config(new_config: dict) -> dict:
+    """持久化保存配置：进程锁 + 跨进程文件锁 + 原子替换。"""
+    with _config_transaction():
+        return _write_config_unlocked(new_config)
 
 
 def get_environments_payload(mask: bool = True) -> dict:
@@ -151,14 +232,15 @@ def get_environments_payload(mask: bool = True) -> dict:
 
 def switch_environment(env_id: str) -> dict:
     """切换当前活动环境"""
-    cfg = load_config()
-    target_env = next((e for e in cfg["environments"] if e.get("id") == env_id), None)
-    if not target_env:
-        raise ValueError(f"环境 ID {env_id} 不存在")
+    with _config_transaction():
+        cfg = load_config()
+        target_env = next((e for e in cfg["environments"] if e.get("id") == env_id), None)
+        if not target_env:
+            raise ValueError(f"环境 ID {env_id} 不存在")
 
-    cfg["active_env_id"] = env_id
-    save_config(cfg)
-    return get_environments_payload(mask=True)
+        cfg["active_env_id"] = env_id
+        _write_config_unlocked(cfg)
+        return get_environments_payload(mask=True)
 
 
 def save_environment(env_data: dict) -> dict:
@@ -167,65 +249,64 @@ def save_environment(env_data: dict) -> dict:
     关键安全特性：如果提交的敏感密钥为空或为脱敏掩码（包含星号），则保留原真实密钥不变！
     全面支持动态扩展属性，杜绝新业务字段被覆盖或丢弃。
     """
-    cfg = load_config()
-    env_id = env_data.get("id")
-    is_new = False
+    with _config_transaction():
+        cfg = load_config()
+        env_id = env_data.get("id")
+        is_new = False
 
-    if not env_id:
-        env_id = f"env_{uuid.uuid4().hex[:8]}"
-        env_data["id"] = env_id
-        is_new = True
+        if not env_id:
+            env_id = f"env_{uuid.uuid4().hex[:8]}"
+            env_data["id"] = env_id
+            is_new = True
 
-    existing_idx = next((i for i, e in enumerate(cfg["environments"]) if e.get("id") == env_id), -1)
+        existing_idx = next((i for i, e in enumerate(cfg["environments"]) if e.get("id") == env_id), -1)
 
-    if existing_idx >= 0:
-        existing_env = cfg["environments"][existing_idx]
-        # 防覆盖逻辑：对所有已知及动态识别的敏感密钥字段进行保护
-        all_sec_keys = {k for k in list(existing_env.keys()) + list(env_data.keys()) if is_field_sensitive(k)}
-        for sec_field in all_sec_keys:
-            submitted_val = str(env_data.get(sec_field) or "").strip()
-            if not submitted_val or is_secret_masked(submitted_val):
-                env_data[sec_field] = existing_env.get(sec_field, "")
-            else:
-                env_data[sec_field] = submitted_val
+        if existing_idx >= 0:
+            existing_env = cfg["environments"][existing_idx]
+            all_sec_keys = {k for k in list(existing_env.keys()) + list(env_data.keys()) if is_field_sensitive(k)}
+            for sec_field in all_sec_keys:
+                submitted_val = str(env_data.get(sec_field) or "").strip()
+                if not submitted_val or is_secret_masked(submitted_val):
+                    env_data[sec_field] = existing_env.get(sec_field, "")
+                else:
+                    env_data[sec_field] = submitted_val
 
-        cfg["environments"][existing_idx] = {
-            **existing_env,
-            **env_data,
+            cfg["environments"][existing_idx] = {
+                **existing_env,
+                **env_data,
+            }
+        else:
+            for key in list(env_data.keys()):
+                if is_field_sensitive(key):
+                    submitted_val = str(env_data.get(key) or "").strip()
+                    if is_secret_masked(submitted_val):
+                        env_data[key] = ""
+            cfg["environments"].append(env_data)
+
+        if is_new and len(cfg["environments"]) == 1:
+            cfg["active_env_id"] = env_id
+
+        _write_config_unlocked(cfg)
+        payload = get_environments_payload(mask=True)
+        saved_env = next((e for e in payload["environments"] if e.get("id") == env_id), None)
+        return {
+            **payload,
+            "saved_env": saved_env,
+            "saved_id": env_id,
         }
-    else:
-        # 新建环境：若前端提交脱敏占位符则置空
-        for key in list(env_data.keys()):
-            if is_field_sensitive(key):
-                submitted_val = str(env_data.get(key) or "").strip()
-                if is_secret_masked(submitted_val):
-                    env_data[key] = ""
-        cfg["environments"].append(env_data)
-
-    # 如果当前创建的是第一个环境，自动设为活动环境
-    if is_new and len(cfg["environments"]) == 1:
-        cfg["active_env_id"] = env_id
-
-    save_config(cfg)
-    payload = get_environments_payload(mask=True)
-    saved_env = next((e for e in payload["environments"] if e.get("id") == env_id), None)
-    return {
-        **payload,
-        "saved_env": saved_env,
-        "saved_id": env_id,
-    }
 
 
 def delete_environment(env_id: str) -> dict:
     """删除环境（至少保留一个环境）"""
-    cfg = load_config()
-    if len(cfg["environments"]) <= 1:
-        raise ValueError("至少需要保留一个环境配置，无法全部删除")
+    with _config_transaction():
+        cfg = load_config()
+        if len(cfg["environments"]) <= 1:
+            raise ValueError("至少需要保留一个环境配置，无法全部删除")
 
-    cfg["environments"] = [e for e in cfg["environments"] if e.get("id") != env_id]
+        cfg["environments"] = [e for e in cfg["environments"] if e.get("id") != env_id]
 
-    if cfg["active_env_id"] == env_id:
-        cfg["active_env_id"] = cfg["environments"][0]["id"]
+        if cfg["active_env_id"] == env_id:
+            cfg["active_env_id"] = cfg["environments"][0]["id"]
 
-    save_config(cfg)
-    return get_environments_payload(mask=True)
+        _write_config_unlocked(cfg)
+        return get_environments_payload(mask=True)

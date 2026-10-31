@@ -72,14 +72,17 @@ class AgentRun:
 
     def request_stop(self):
         """请求中断执行"""
-        self._stop_requested = True
-        self.status = "stopped"
-        self.stream_status = "error"
-        self.end_time = time.time()
-        if self._approval_event:
+        with self._lock:
+            if self.status != "running":
+                return
+            self._stop_requested = True
+            self.status = "stopped"
+            self.stream_status = "done"
+            self.end_time = time.time()
+            approval_event = self._approval_event
             self._approval_decision = "rejected"
-            self._approval_event.set()
-        self.dispatch_event("error", {"error": "用户已手动停止执行"})
+        if approval_event:
+            approval_event.set()
         self.dispatch_event("done", {"status": "stopped"})
 
     def request_approval(self, approval_data: Dict[str, Any]) -> str:
@@ -191,12 +194,16 @@ class AgentRun:
             self.stream_status = "answering"
             self.content = data.get("content", "") or self.content
         elif event_name == "done":
-            if self.status != "error" and data.get("status") != "error":
-                self.status = "done"
+            terminal_status = data.get("status")
+            if terminal_status == "stopped":
+                self.status = "stopped"
                 self.stream_status = "done"
-            else:
+            elif self.status == "error" or terminal_status == "error":
                 self.status = "error"
                 self.stream_status = "error"
+            else:
+                self.status = "done"
+                self.stream_status = "done"
             self.end_time = time.time()
             if data.get("attachments"):
                 self.attachments = data.get("attachments")
@@ -204,7 +211,7 @@ class AgentRun:
                 self.attachments = data.get("files")
             for b in self.code_blocks:
                 if b.get("status") == "running":
-                    b["status"] = "success" if self.status != "error" else "failed"
+                    b["status"] = "failed" if self.status in ("error", "stopped") else "success"
         elif event_name == "error":
             self.status = "error"
             self.stream_status = "error"

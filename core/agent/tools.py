@@ -1,14 +1,21 @@
-# -*- coding: utf-8 -*-
 """
 智能体工具集定义：TIM 166 API 工具、提示词自我强化、记忆持久化、技能自沉淀与执行
 """
 
+from __future__ import annotations
+
 import ast
+import asyncio
+import inspect
 import json
+import multiprocessing
 import os
 import re
 import time
-from typing import Any, Dict, List, Optional
+from collections.abc import Coroutine
+from contextlib import suppress
+from typing import Any, cast
+
 from smolagents import Tool
 
 from ..tim_client import TimClient
@@ -43,34 +50,34 @@ class CloudCallTool(Tool):
 
     def __init__(
         self,
-        approval_requester: Optional[Any] = None,
-        bot_manager: Optional[BotManager] = None,
-        tim_client: Optional[TimClient] = None,
-        cloud_client: Optional[Any] = None
+        approval_requester: Any | None = None,
+        bot_manager: BotManager | None = None,
+        tim_client: TimClient | None = None,
+        cloud_client: Any | None = None,
+        approval_wait_callback: Any | None = None
     ):
         super().__init__()
         self.approval_requester = approval_requester
+        self.approval_wait_callback = approval_wait_callback
         self.bot_manager = bot_manager
         self.tim_client = tim_client
         self.cloud_client = cloud_client
 
-    def forward(self, action_or_path: str, payload: Any, service: Optional[str] = None) -> dict:
+    def forward(self, action_or_path: str, payload: Any, service: str | None = None) -> dict:
         target_name = (action_or_path or "").strip()
 
-        # 容错清洗：若模型传入 JSON 字符串形式的 payload，自动安全解析为字典
-        clean_payload = payload
-        if isinstance(clean_payload, str):
+        raw_payload = payload
+        if isinstance(raw_payload, str):
             try:
-                clean_payload = json.loads(clean_payload.strip())
+                parsed_payload = json.loads(raw_payload.strip())
+                raw_payload = parsed_payload
             except Exception:
                 try:
-                    parsed = ast.literal_eval(clean_payload.strip())
-                    if isinstance(parsed, dict):
-                        clean_payload = parsed
+                    parsed_payload = ast.literal_eval(raw_payload.strip())
+                    raw_payload = parsed_payload
                 except Exception:
-                    pass
-        if not isinstance(clean_payload, dict):
-            clean_payload = clean_payload or {}
+                    raw_payload = {}
+        clean_payload: dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
 
         high_risk_kws = self.bot_manager.get_high_risk_keywords() if self.bot_manager else HIGH_RISK_API_KEYWORDS
         is_high_risk = any(k in target_name.lower() for k in high_risk_kws)
@@ -103,14 +110,23 @@ class CloudCallTool(Tool):
             approval_id = f"appr_{int(time.time() * 1000)}"
 
             # 触发人机协同门禁挂起并等待授权
-            decision = self.approval_requester({
-                "approval_id": approval_id,
-                "api_path": target_name,
-                "payload": clean_payload,
-                "warning": f"检测到不可逆破坏性操作：{target_name}",
-                "target_summary": summary_str,
-                "timeout_seconds": 300
-            })
+            approval_callback = self.approval_wait_callback
+            if approval_callback:
+                with suppress(Exception):
+                    approval_callback(True)
+            try:
+                decision = self.approval_requester({
+                    "approval_id": approval_id,
+                    "api_path": target_name,
+                    "payload": clean_payload,
+                    "warning": f"检测到不可逆破坏性操作：{target_name}",
+                    "target_summary": summary_str,
+                    "timeout_seconds": 300
+                })
+            finally:
+                if approval_callback:
+                    with suppress(Exception):
+                        approval_callback(False)
 
             if decision != "approve":
                 return {
@@ -120,8 +136,8 @@ class CloudCallTool(Tool):
                 }
 
         try:
-            from ..registry import registry
             from ..cloud_client import UniversalCloudClient
+            from ..registry import registry
 
             api_meta = registry.get_api(target_name)
             cloud_client = self.cloud_client or UniversalCloudClient()
@@ -147,7 +163,7 @@ class CloudCallTool(Tool):
             if is_high_risk and isinstance(res, dict):
                 res["_security_notice"] = {
                     "is_high_risk": True,
-                    "user_approved": True if self.approval_requester else False,
+                    "user_approved": bool(self.approval_requester),
                     "warning": f"⚠️ 警告: 接口 '{target_name}' 属于破坏性高危操作（解散群/删除账号/批量清理/直播断流禁推），已完成安全审计记录。"
                 }
             return res
@@ -155,7 +171,7 @@ class CloudCallTool(Tool):
             return {
                 "ActionStatus": "FAIL",
                 "ErrorCode": -99,
-                "ErrorInfo": f"调用接口 {target_name} 异常: {str(e)}"
+                "ErrorInfo": f"调用接口 {target_name} 异常: {e!s}"
             }
 
 
@@ -176,10 +192,10 @@ class TimCallTool(CloudCallTool):
 
     def __init__(
         self,
-        tim_client: Optional[TimClient] = None,
-        approval_requester: Optional[Any] = None,
-        bot_manager: Optional[BotManager] = None,
-        cloud_client: Optional[Any] = None
+        tim_client: TimClient | None = None,
+        approval_requester: Any | None = None,
+        bot_manager: BotManager | None = None,
+        cloud_client: Any | None = None
     ):
         super().__init__(
             approval_requester=approval_requester,
@@ -188,8 +204,10 @@ class TimCallTool(CloudCallTool):
             cloud_client=cloud_client
         )
 
-    def forward(self, api_path: str, payload: dict) -> dict:
-        return super().forward(api_path, payload)
+    skip_forward_signature_validation = True
+
+    def forward(self, api_path: str, payload: dict) -> dict:  # type: ignore[override]
+        return CloudCallTool.forward(self, api_path, payload, service="im")
 
 
 class CloudSearchApisTool(Tool):
@@ -211,7 +229,7 @@ class CloudSearchApisTool(Tool):
     }
     output_type = "array"
 
-    def forward(self, keyword: str, service: Optional[str] = "all") -> list:
+    def forward(self, keyword: str, service: str | None = "all") -> list:
         from ..registry import registry
         registry.discover()
 
@@ -300,8 +318,10 @@ class TimGetDocTool(CloudGetDocTool):
         }
     }
 
-    def forward(self, api_path: str) -> dict:
-        return super().forward(api_path)
+    skip_forward_signature_validation = True
+
+    def forward(self, api_path: str) -> dict:  # type: ignore[override]
+        return CloudGetDocTool.forward(self, api_path)
 
 
 class EnhancePromptTool(Tool):
@@ -374,7 +394,7 @@ class RecallMemoryTool(Tool):
         self.bot_id = bot_id
         self.bot_manager = bot_manager
 
-    def forward(self, query: Optional[str] = None) -> list:
+    def forward(self, query: str | None = None) -> list:
         mems = self.bot_manager.list_memories(self.bot_id)
         if not query or query.lower() in ("all", ""):
             return [m.model_dump() for m in mems]
@@ -461,7 +481,7 @@ class SaveSkillTool(Tool):
         self.bot_id = bot_id
         self.bot_manager = bot_manager
 
-    def forward(self, name: str, description: str, python_code: str, input_schema: Optional[dict] = None) -> str:
+    def forward(self, name: str, description: str, python_code: str, input_schema: dict | None = None) -> str:
         skill = self.bot_manager.save_skill(self.bot_id, name, description, python_code, input_schema)
         return f"⚡ 技能 [{skill.name}] 已成功保存到当前 BOT 的专属技能库！后续可通过 run_skill('{skill.name}') 直接调用。"
 
@@ -492,20 +512,20 @@ class ListSkillsTool(Tool):
 
 def build_sandbox_scope(
     caller_tool: Any,
-    search_tool: Optional[Any] = None,
-    doc_tool: Optional[Any] = None,
-    cloud_client: Optional[Any] = None,
-    tim_client: Optional[Any] = None,
-    extra_scope: Optional[Dict[str, Any]] = None,
-) -> Dict[str, Any]:
+    search_tool: Any | None = None,
+    doc_tool: Any | None = None,
+    cloud_client: Any | None = None,
+    tim_client: Any | None = None,
+    extra_scope: dict[str, Any] | None = None,
+) -> dict[str, Any]:
     """
     通用沙箱环境作用域构建工厂 (Sandbox Scope Factory)
     动态根据已注册服务批量挂载快捷调用宏 ({service}_call)，自动消除硬编码
     """
+    from ..live_util import generate_live_play_urls, generate_live_push_url
     from ..registry import registry
-    from ..live_util import generate_live_push_url, generate_live_play_urls
 
-    scope: Dict[str, Any] = {
+    scope: dict[str, Any] = {
         "cloud_call": caller_tool.forward,
         "search_apis": search_tool.forward if search_tool else None,
         "get_doc": doc_tool.forward if doc_tool else None,
@@ -535,6 +555,235 @@ def build_sandbox_scope(
     return scope
 
 
+_SKILL_ALLOWED_IMPORTS = frozenset({
+    "csv",
+    "datetime",
+    "json",
+    "math",
+    "random",
+    "re",
+    "time",
+})
+_SKILL_BLOCKED_NAMES = frozenset({
+    "__import__",
+    "breakpoint",
+    "compile",
+    "delattr",
+    "eval",
+    "exec",
+    "getattr",
+    "globals",
+    "help",
+    "input",
+    "locals",
+    "open",
+    "setattr",
+    "vars",
+})
+_SKILL_BLOCKED_ATTRIBUTES = frozenset({
+    "__bases__",
+    "__builtins__",
+    "__class__",
+    "__code__",
+    "__dict__",
+    "__getattribute__",
+    "__globals__",
+    "__mro__",
+    "__subclasses__",
+    "__setattr__",
+})
+_SKILL_TIMEOUT_SECONDS = 25.0
+_MISSING = object()
+
+
+def _validate_skill_ast(code: str) -> None:
+    """Reject imports/reflection that cannot be safely exposed to a skill worker."""
+    parsed_ast = ast.parse(code)
+    for node in ast.walk(parsed_ast):
+        if isinstance(node, ast.Import):
+            for alias in node.names:
+                module = alias.name.split(".", 1)[0]
+                if module not in _SKILL_ALLOWED_IMPORTS:
+                    raise ValueError(f"技能代码禁止导入模块 '{alias.name}'")
+        elif isinstance(node, ast.ImportFrom):
+            module = (node.module or "").split(".", 1)[0]
+            if module not in _SKILL_ALLOWED_IMPORTS:
+                raise ValueError(f"技能代码禁止从模块 '{node.module}' 导入")
+        elif isinstance(node, ast.Name) and node.id in _SKILL_BLOCKED_NAMES:
+            raise ValueError(f"技能代码禁止使用危险内置函数 '{node.id}'")
+        elif isinstance(node, ast.Attribute):
+            if node.attr in _SKILL_BLOCKED_ATTRIBUTES or (node.attr.startswith("__") and node.attr != "__name__"):
+                raise ValueError(f"技能代码禁止访问内省属性 '{node.attr}'")
+        elif isinstance(node, ast.Call) and isinstance(node.func, ast.Name) and node.func.id in _SKILL_BLOCKED_NAMES:
+            raise ValueError(f"技能代码禁止调用危险内置函数 '{node.func.id}'")
+
+
+def _skill_safe_builtins() -> dict:
+    import builtins
+
+    return {
+        name: value
+        for name, value in builtins.__dict__.items()
+        if name not in _SKILL_BLOCKED_NAMES and name != "__import__"
+    }
+
+
+def _skill_rpc_call(conn, name: str, args: tuple, kwargs: dict):
+    conn.send({"kind": "call", "name": name, "args": args, "kwargs": kwargs})
+    while True:
+        response = conn.recv()
+        if response.get("kind") != "response":
+            continue
+        if response.get("ok"):
+            return response.get("value")
+        raise RuntimeError(response.get("error", "技能 RPC 调用失败"))
+
+
+def _skill_rpc_callable(conn, name: str):
+    def call(*args, **kwargs):
+        return _skill_rpc_call(conn, name, args, kwargs)
+
+    return call
+
+
+class _SkillTimClientProxy:
+    __slots__ = ("_conn",)
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def __call__(self, api_path: str = "", payload: dict | None = None, timeout: int = 15):
+        return _skill_rpc_call(self._conn, "tim_client.call", (api_path, payload or {}, timeout), {})
+
+    def invoke(self, service_name: str, command: str, payload: dict, timeout: int = 15):
+        return _skill_rpc_call(self._conn, "tim_client.invoke", (service_name, command, payload, timeout), {})
+
+    def get_usersig(self):
+        return _skill_rpc_call(self._conn, "tim_client.get_usersig", (), {})
+
+
+_SkillTimClientProxy.__name__ = "TimClient"
+
+
+class _SkillCloudClientProxy:
+    __slots__ = ("_conn",)
+
+    def __init__(self, conn):
+        self._conn = conn
+
+    def invoke_api(self, action_or_path: str, payload: dict | None = None, service: str | None = None):
+        return _skill_rpc_call(
+            self._conn,
+            "cloud_call",
+            (action_or_path, payload or {}, service),
+            {},
+        )
+
+    @property
+    def tim_client(self):
+        return _SkillTimClientProxy(self._conn)
+
+
+_SkillCloudClientProxy.__name__ = "UniversalCloudClient"
+
+
+def _skill_dependency(name: str, scope: dict):
+    if name in ("client", "cloud_client"):
+        return scope["cloud_client"]
+    if name == "tim_client":
+        return scope["tim_client"]
+    if name in ("cloud_call", "tim_call"):
+        return scope[name]
+    if name in scope and name in {"args", "kwargs", "result", "gen_live_push_url", "gen_live_play_url"}:
+        return scope[name]
+    if name.endswith("_call") and name in scope:
+        return scope[name]
+    return _MISSING
+
+
+def _invoke_skill_callable(execute, args: dict, scope: dict):
+    signature = inspect.signature(execute)
+    positional = []
+    keyword = dict(args)
+    has_var_keyword = False
+
+    for parameter in signature.parameters.values():
+        if parameter.kind == inspect.Parameter.VAR_KEYWORD:
+            has_var_keyword = True
+            continue
+        if parameter.kind == inspect.Parameter.VAR_POSITIONAL:
+            continue
+        if parameter.name in keyword:
+            value = keyword.pop(parameter.name)
+        else:
+            value = _skill_dependency(parameter.name, scope)
+            if value is _MISSING:
+                if parameter.default is not inspect.Parameter.empty:
+                    continue
+                continue
+        if parameter.kind == inspect.Parameter.POSITIONAL_ONLY:
+            positional.append(value)
+        else:
+            keyword[parameter.name] = value
+
+    if has_var_keyword:
+        keyword.update(args)
+    return execute(*positional, **keyword)
+
+
+def _skill_worker_entry(conn, code: str, args: dict, service_names: list):
+    """Execute a skill in a killable worker with only RPC-backed capabilities."""
+    try:
+        with suppress(Exception):
+            import resource
+            resource.setrlimit(resource.RLIMIT_CPU, (int(_SKILL_TIMEOUT_SECONDS) + 2, int(_SKILL_TIMEOUT_SECONDS) + 2))
+            resource.setrlimit(resource.RLIMIT_FSIZE, (16 * 1024 * 1024, 16 * 1024 * 1024))
+
+        def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
+            module = str(name).split(".", 1)[0]
+            if module not in _SKILL_ALLOWED_IMPORTS:
+                raise ImportError(f"安全拦截：禁止导入模块 '{name}'")
+            return __import__(name, globals, locals, fromlist, level)
+
+        safe_builtins = _skill_safe_builtins()
+        safe_builtins["__import__"] = safe_import
+        tim_client = _SkillTimClientProxy(conn)
+        cloud_client = _SkillCloudClientProxy(conn)
+        scope = {
+            "__builtins__": safe_builtins,
+            "args": args,
+            "kwargs": args,
+            "result": None,
+            "tim_client": tim_client,
+            "cloud_client": cloud_client,
+            "cloud_call": _skill_rpc_callable(conn, "cloud_call"),
+            "tim_call": _skill_rpc_callable(conn, "tim_call"),
+            "im_call": _skill_rpc_callable(conn, "im_call"),
+        }
+        from ..live_util import generate_live_play_urls, generate_live_push_url
+        scope["gen_live_push_url"] = generate_live_push_url
+        scope["gen_live_play_url"] = generate_live_play_urls
+        for service_name in service_names:
+            scope[f"{service_name}_call"] = _skill_rpc_callable(conn, f"service:{service_name}")
+
+        import builtins as _builtins
+        _builtins.exec(code, scope, scope)  # noqa: S102
+
+        execute = scope.get("execute")
+        if callable(execute):
+            result = _invoke_skill_callable(execute, args, scope)
+            if inspect.isawaitable(result):
+                result = asyncio.run(cast(Coroutine[Any, Any, Any], result))
+        else:
+            result = scope.get("result", "Skill executed successfully")
+        conn.send({"kind": "result", "ok": True, "value": result})
+    except BaseException as exc:
+        with suppress(Exception):
+            conn.send({"kind": "result", "ok": False, "error": f"{type(exc).__name__}: {exc}"})
+    finally:
+        conn.close()
+
+
 class RunSkillTool(Tool):
     name = "run_skill"
     description = "运行当前 BOT 已沉淀的某个专属技能。"
@@ -556,8 +805,8 @@ class RunSkillTool(Tool):
         bot_id: str,
         bot_manager: BotManager,
         tim_client: TimClient,
-        cloud_client: Optional[Any] = None,
-        approval_requester: Optional[Any] = None
+        cloud_client: Any | None = None,
+        approval_requester: Any | None = None
     ):
         super().__init__()
         self.bot_id = bot_id
@@ -570,12 +819,127 @@ class RunSkillTool(Tool):
             from ..cloud_client import UniversalCloudClient
             self.cloud_client = UniversalCloudClient()
 
-    def forward(self, name: str, kwargs: Optional[Any] = None) -> dict:
+    def _dispatch_skill_rpc(self, caller_tool: CloudCallTool, request: dict):
+        name = request.get("name", "")
+        args = request.get("args", ())
+        kwargs = request.get("kwargs", {})
+        if name == "cloud_call":
+            return caller_tool.forward(*args, **kwargs)
+        if name in ("tim_call", "im_call"):
+            path = args[0] if args else kwargs.get("path", "")
+            payload = args[1] if len(args) > 1 else kwargs.get("payload", {})
+            return caller_tool.forward(path, payload or {}, service="im")
+        if name == "tim_client.call":
+            api_path, payload, timeout = args
+            return caller_tool.forward(api_path, payload or {}, service="im")
+        if name == "tim_client.invoke":
+            service_name, command, payload, _timeout = args
+            path = f"{service_name}/{command}" if service_name else command
+            return caller_tool.forward(path, payload or {}, service="im")
+        if name == "tim_client.get_usersig":
+            return self.tim_client.get_usersig()
+        if name.startswith("service:"):
+            service = name.split(":", 1)[1]
+            action_or_path = args[0] if args else kwargs.get("action_or_path", "")
+            payload = args[1] if len(args) > 1 else kwargs.get("payload", {})
+            return caller_tool.forward(action_or_path, payload or {}, service=service)
+        raise RuntimeError(f"技能不允许调用未注册能力: {name}")
+
+    def _run_isolated(self, skill_code: str, args: dict, caller_tool: CloudCallTool) -> dict:
+        from ..registry import registry
+
+        try:
+            registry.discover()
+            service_names = [item.get("id") for item in registry.list_services() if item.get("id")]
+        except Exception:
+            service_names = []
+
+        context = multiprocessing.get_context("spawn")
+        parent_conn, child_conn = context.Pipe()
+        process = context.Process(
+            target=_skill_worker_entry,
+            args=(child_conn, skill_code, args, service_names),
+            daemon=True,
+        )
+        approval_elapsed = 0.0
+        approval_started_at = None
+        previous_approval_callback = getattr(caller_tool, "approval_wait_callback", None)
+
+        def mark_approval_waiting(waiting: bool):
+            nonlocal approval_elapsed, approval_started_at
+            if waiting:
+                approval_started_at = time.monotonic()
+            elif approval_started_at is not None:
+                approval_elapsed += time.monotonic() - approval_started_at
+                approval_started_at = None
+
+        caller_tool.approval_wait_callback = mark_approval_waiting
+        try:
+            process.start()
+            child_conn.close()
+        except Exception as exc:
+            caller_tool.approval_wait_callback = previous_approval_callback
+            child_conn.close()
+            parent_conn.close()
+            return {"success": False, "error": f"技能隔离进程启动失败: {exc}"}
+
+        deadline = time.monotonic() + _SKILL_TIMEOUT_SECONDS
+        result_message = None
+        timed_out = False
+        try:
+            while time.monotonic() < deadline:
+                if parent_conn.poll(0.05):
+                    message = parent_conn.recv()
+                    if message.get("kind") == "call":
+                        try:
+                            value = self._dispatch_skill_rpc(caller_tool, message)
+                            parent_conn.send({"kind": "response", "ok": True, "value": value})
+                        except Exception as exc:
+                            parent_conn.send({"kind": "response", "ok": False, "error": str(exc)})
+                        finally:
+                            # Human approval time must not consume the skill deadline.
+                            if approval_elapsed:
+                                deadline += approval_elapsed
+                                approval_elapsed = 0.0
+                    elif message.get("kind") == "result":
+                        result_message = message
+                        break
+                if not process.is_alive():
+                    while parent_conn.poll():
+                        message = parent_conn.recv()
+                        if message.get("kind") == "result":
+                            result_message = message
+                    break
+            else:
+                timed_out = True
+        except (EOFError, OSError) as exc:
+            if result_message is None:
+                result_message = {"kind": "result", "ok": False, "error": str(exc)}
+        finally:
+            caller_tool.approval_wait_callback = previous_approval_callback
+            if timed_out or process.is_alive():
+                process.terminate()
+                process.join(1.0)
+                if process.is_alive() and hasattr(process, "kill"):
+                    process.kill()
+                    process.join(1.0)
+            else:
+                process.join(1.0)
+            parent_conn.close()
+
+        if timed_out:
+            return {"success": False, "error": "执行技能超时，隔离进程已终止（超过 25 秒限制）"}
+        if not result_message:
+            return {"success": False, "error": "技能隔离进程异常退出"}
+        if result_message.get("ok"):
+            return {"success": True, "result": result_message.get("value")}
+        return {"success": False, "error": f"执行技能失败: {result_message.get('error', '未知错误')}"}
+
+    def forward(self, name: str, kwargs: Any | None = None) -> dict:
         skill = self.bot_manager.get_skill(self.bot_id, name)
         if not skill:
             return {"error": f"未找到技能: {name}"}
 
-        # 容错清洗：若 kwargs 为 JSON 字符串，安全反序列化
         args = kwargs
         if isinstance(args, str):
             try:
@@ -583,104 +947,26 @@ class RunSkillTool(Tool):
             except Exception:
                 try:
                     parsed = ast.literal_eval(args.strip())
-                    if isinstance(parsed, dict):
-                        args = parsed
+                    args = parsed if isinstance(parsed, dict) else {}
                 except Exception:
                     args = {}
         if not isinstance(args, dict):
             args = args or {}
 
-        # 静态 AST 安全审计：拦截危险模块与沙箱逃逸属性
         try:
-            parsed_ast = ast.parse(skill.code)
-            BLOCKED_MODULES = ("os", "subprocess", "sys", "shutil", "socket", "pty", "commands", "posix", "builtins")
-            BLOCKED_NAMES = ("eval", "exec", "compile")
-            for node in ast.walk(parsed_ast):
-                if isinstance(node, ast.Import):
-                    for alias in node.names:
-                        mod = alias.name.split(".")[0]
-                        if mod in BLOCKED_MODULES:
-                            return {"success": False, "error": f"安全拦截：技能代码禁止导入高危系统模块 '{alias.name}'"}
-                elif isinstance(node, ast.ImportFrom):
-                    mod = (node.module or "").split(".")[0]
-                    if mod in BLOCKED_MODULES:
-                        return {"success": False, "error": f"安全拦截：技能代码禁止从高危系统模块 '{node.module}' 导入"}
-                elif isinstance(node, ast.Name) and node.id in BLOCKED_NAMES:
-                    return {"success": False, "error": f"安全拦截：技能代码禁止直接调用危险内置函数 '{node.id}'"}
-                elif isinstance(node, ast.Attribute):
-                    if node.attr in ("__subclasses__", "__globals__", "__builtins__", "__bases__", "__class__"):
-                        return {"success": False, "error": f"安全拦截：技能代码禁止访问内省属性 '{node.attr}'"}
-        except Exception as parse_err:
-            return {"success": False, "error": f"技能代码语法解析失败: {str(parse_err)}"}
+            _validate_skill_ast(skill.code)
+        except (SyntaxError, ValueError) as exc:
+            return {"success": False, "error": f"安全拦截：{exc}"}
+        except Exception as exc:
+            return {"success": False, "error": f"技能代码语法解析失败: {exc}"}
 
-        # 构造带有风控审计的调用工具实例
         caller_tool = CloudCallTool(
             approval_requester=self.approval_requester,
             bot_manager=self.bot_manager,
             tim_client=self.tim_client,
-            cloud_client=self.cloud_client
-        )
-
-        # 构造净化后的安全 builtins，剥离 eval/exec/compile，并对 __import__ 施加模块白名单限制
-        raw_builtins = __builtins__ if isinstance(__builtins__, dict) else getattr(__builtins__, "__dict__", {})
-        real_import = __import__
-
-        def safe_import(name, globals=None, locals=None, fromlist=(), level=0):
-            mod_name = str(name).split(".")[0]
-            if mod_name in BLOCKED_MODULES:
-                raise ImportError(f"安全拦截：禁止导入高危系统模块 '{name}'")
-            return real_import(name, globals, locals, fromlist, level)
-
-        safe_builtins = {k: v for k, v in raw_builtins.items() if k not in BLOCKED_NAMES}
-        safe_builtins["__import__"] = safe_import
-
-        # 安全运行沙箱执行该技能 (使用统一工厂装载动态服务宏)
-        local_scope = build_sandbox_scope(
-            caller_tool=caller_tool,
             cloud_client=self.cloud_client,
-            tim_client=self.tim_client,
-            extra_scope={
-                "__builtins__": safe_builtins,
-                "args": args,
-                "kwargs": args,
-                "result": None
-            }
         )
-
-        import concurrent.futures
-        def _exec_target():
-            exec(skill.code, local_scope)
-            if "execute" in local_scope and callable(local_scope["execute"]):
-                import inspect
-                sig = inspect.signature(local_scope["execute"])
-                params = list(sig.parameters.keys())
-                exec_kwargs = dict(args)
-                # 自适应依赖注入：若 execute 声明了系统上下文参数（如 cloud_call, tim_client, tim_call 等），自动完成装配
-                for p_name in params:
-                    if p_name in exec_kwargs:
-                        continue
-                    elif p_name in ("client", "cloud_client"):
-                        exec_kwargs[p_name] = self.cloud_client
-                    elif p_name in ("cloud_call", "tim_call") and p_name in local_scope:
-                        exec_kwargs[p_name] = local_scope[p_name]
-                    elif p_name == "tim_client":
-                        exec_kwargs[p_name] = self.tim_client
-                    elif p_name in local_scope:
-                        exec_kwargs[p_name] = local_scope[p_name]
-                return local_scope["execute"](**exec_kwargs)
-            return local_scope.get("result", "Skill executed successfully")
-
-        executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
-        try:
-            future = executor.submit(_exec_target)
-            res = future.result(timeout=25.0)
-            return {"success": True, "result": res}
-        except concurrent.futures.TimeoutError:
-            return {"success": False, "error": f"执行技能 {name} 超时（超过 25 秒限制）"}
-        except Exception as e:
-            return {"success": False, "error": f"执行技能 {name} 失败: {str(e)}"}
-        finally:
-            executor.shutdown(wait=False, cancel_futures=True)
+        return self._run_isolated(skill.code, args, caller_tool)
 
 
 class CreateBotTool(Tool):
@@ -725,10 +1011,10 @@ class CreateBotTool(Tool):
     def forward(
         self,
         name: str,
-        goal: Optional[str] = None,
-        avatar: Optional[str] = None,
-        base_prompt: Optional[str] = None,
-        suggested_prompts: Optional[list] = None
+        goal: str | None = None,
+        avatar: str | None = None,
+        base_prompt: str | None = None,
+        suggested_prompts: list | None = None
     ) -> dict:
         clean_name = name.strip()
         if not clean_name:
@@ -814,7 +1100,10 @@ class CallAgentTool(Tool):
     }
     output_type = "string"
 
-    def __init__(self, bot_id: str, bot_manager: BotManager, engine: Optional[Any] = None, call_chain: Optional[List[str]] = None):
+    def __init__(self, bot_id: str, bot_manager: BotManager, engine: Any | None = None, call_chain: list[str] | None = None):
+
+
+
         super().__init__()
         self.bot_id = bot_id
         self.bot_manager = bot_manager
@@ -954,12 +1243,12 @@ class ReadFileTool(Tool):
     }
     output_type = "string"
 
-    def __init__(self, bot_id: Optional[str] = None, bot_manager: Optional[BotManager] = None):
+    def __init__(self, bot_id: str | None = None, bot_manager: BotManager | None = None):
         super().__init__()
         self.bot_id = bot_id
         self.bot_manager = bot_manager
 
-    def forward(self, file_path: str, max_chars: Optional[int] = 4000) -> str:
+    def forward(self, file_path: str, max_chars: int | None = 4000) -> str:
         limit = max_chars or 4000
         path = file_path.strip()
         # 若是相对路径或仅文件名，优先在当前 BOT 的 uploads 目录寻找
@@ -970,7 +1259,12 @@ class ReadFileTool(Tool):
             if os.path.exists(candidate):
                 path = candidate
             elif os.path.exists(uploads_dir):
-                for fn in os.listdir(uploads_dir):
+                try:
+                    upload_names = os.listdir(uploads_dir)
+                except OSError:
+                    upload_names = []
+                for fn in upload_names:
+
                     if fn.endswith(path) or path in fn:
                         path = os.path.join(uploads_dir, fn)
                         break
@@ -978,7 +1272,11 @@ class ReadFileTool(Tool):
         if not os.path.exists(path):
             return f"❌ 文件不存在: '{file_path}'"
 
-        from .file_parser import get_file_category_and_type, read_text_with_encoding, parse_file_summary
+        from .file_parser import (
+            get_file_category_and_type,
+            parse_file_summary,
+            read_text_with_encoding,
+        )
         cat, ftype = get_file_category_and_type(os.path.basename(path))
         if ftype == "docx":
             try:
@@ -990,7 +1288,7 @@ class ReadFileTool(Tool):
                     return full_text[:limit] + f"\n\n[... DOCX 内容已截断，共读取前 {limit} 字符]"
                 return full_text or "文档内容为空。"
             except Exception as e:
-                return f"读取 DOCX 失败: {str(e)}"
+                return f"读取 DOCX 失败: {e!s}"
         elif ftype == "pdf":
             try:
                 import pypdf
@@ -1001,7 +1299,7 @@ class ReadFileTool(Tool):
                     return full_text[:limit] + f"\n\n[... PDF 内容已截断，共读取前 {limit} 字符]"
                 return full_text or "PDF 内容为空或仅包含扫描图片。"
             except Exception as e:
-                return f"读取 PDF 失败: {str(e)}"
+                return f"读取 PDF 失败: {e!s}"
         elif ftype in ("xlsx", "xls", "csv"):
             summary_info = parse_file_summary(path, os.path.basename(path))
             return summary_info.get("summary", "")
@@ -1024,7 +1322,7 @@ class SearchKnowledgeTool(Tool):
     }
     output_type = "string"
 
-    def __init__(self, bot_id: str, rag_mgr: Optional[Any] = None):
+    def __init__(self, bot_id: str, rag_mgr: Any | None = None):
         super().__init__()
         self.bot_id = bot_id
         from .rag_manager import rag_manager
@@ -1046,11 +1344,11 @@ def build_bot_tools(
     bot_id: str,
     bot_manager: BotManager,
     tim_client: TimClient,
-    engine: Optional[Any] = None,
-    call_chain: Optional[List[str]] = None,
-    approval_requester: Optional[Any] = None,
-    cloud_client: Optional[Any] = None
-) -> List[Tool]:
+    engine: Any | None = None,
+    call_chain: list[str] | None = None,
+    approval_requester: Any | None = None,
+    cloud_client: Any | None = None
+) -> list[Tool]:
     """为指定 BOT 组装能力工具集（涵盖云直播 API 3.0 与即时通信 IM REST API）"""
     tools = [
         CloudCallTool(

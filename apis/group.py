@@ -77,16 +77,26 @@ class GetGroupInfoApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        gids = input_data.get("GroupIdList") or input_data.get("GroupId") or input_data.get("group_id")
-        if isinstance(gids, str):
-            gids = [x.strip() for x in gids.split(",") if x.strip()]
-        elif isinstance(gids, (list, tuple)):
-            gids = list(gids)
-        elif gids is not None:
-            gids = [str(gids)]
+        if "GroupIdList" in input_data:
+            raw = input_data["GroupIdList"]
+        elif "GroupId" in input_data:
+            raw = input_data["GroupId"]
+        elif "group_id" in input_data:
+            raw = input_data["group_id"]
         else:
-            gids = []
-        return {"GroupIdList": gids}
+            raw = []
+
+        if isinstance(raw, str):
+            group_ids = [value.strip() for value in raw.split(",") if value.strip()]
+        elif isinstance(raw, (list, tuple)):
+            if not all(isinstance(value, str) and value.strip() for value in raw):
+                raise ValueError("GroupIdList 必须是非空字符串列表")
+            group_ids = [value.strip() for value in raw]
+        else:
+            raise ValueError("GroupIdList 必须是字符串或列表")
+        if not group_ids:
+            raise ValueError("GroupIdList 不能为空")
+        return {"GroupIdList": group_ids}
 
 
 class ModifyGroupBaseInfoApi(BaseTimApi):

@@ -32,6 +32,7 @@ ENV/
 
 # Local sensitive configuration (Use config.example.json as template)
 config.json
+config.json.lock
 
 # Local runtime data & Agent persistent storage (API keys, memories, chat history, bot skills)
 data/*

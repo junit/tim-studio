@@ -1,8 +1,8 @@
-# -*- coding: utf-8 -*-
 """
 智能体核心执行引擎：基于 smolagents.CodeAgent 的流式执行与多模型调度
 """
 
+import inspect
 import json
 import logging
 import os
@@ -10,14 +10,40 @@ import re
 import shutil
 import threading
 import time
-from datetime import datetime, timezone
-from typing import Any, AsyncGenerator, Dict, List, Optional, Tuple
+from collections.abc import Iterable
+from datetime import UTC, datetime
+from typing import Any, cast
 
-from smolagents import CodeAgent, OpenAIServerModel, AgentMaxStepsError
 import smolagents.agents as saa
-from smolagents.memory import ActionStep, PlanningStep, ToolCall, FinalAnswerStep
-from smolagents.models import ChatMessageStreamDelta, TokenUsage, ChatMessageToolCallStreamDelta
+from smolagents import AgentMaxStepsError, CodeAgent, OpenAIServerModel
 from smolagents.agents import ActionOutput
+from smolagents.memory import ActionStep, FinalAnswerStep, PlanningStep, ToolCall
+from smolagents.models import (
+    ChatMessageStreamDelta,
+    ChatMessageToolCallStreamDelta,
+    TokenUsage,
+)
+
+from ..cloud_client import UniversalCloudClient
+from .bot_manager import BotManager, bot_manager
+from .constants import (
+    AUTHORIZED_IMPORTS,
+    DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
+    DEFAULT_STREAM_MAX_STEPS,
+    DEFAULT_SUBTASK_MAX_STEPS,
+    DEFAULT_WORKING_MEMORY_CHAR_BUDGET,
+    DEFAULT_WORKING_MEMORY_TURNS,
+    PROVIDER_DEFAULTS,
+)
+from .file_parser import format_file_size, get_file_category_and_type
+from .models import BotConfig, LLMConfig
+from .tools import (
+    CloudCallTool,
+    CloudGetDocTool,
+    CloudSearchApisTool,
+    build_bot_tools,
+    build_sandbox_scope,
+)
 
 # 增强 smolagents 代码块解析器：无缝兼容 DeepSeek 原生 DSML、标准 Markdown 与 XML parameter
 _original_parse_code_blobs = getattr(saa, "parse_code_blobs", None)
@@ -27,8 +53,8 @@ def robust_parse_code_blobs(text: str, code_block_tags: tuple[str, str]) -> str:
     if _original_parse_code_blobs:
         try:
             return _original_parse_code_blobs(text, code_block_tags)
-        except Exception:
-            pass
+        except Exception as parse_error:
+            logger.debug("Primary code parser failed: %s", parse_error)
 
     # 2. 兼容 DeepSeek 原生 DSML 结构: <parameter name="code">...</parameter>
     dsml_match = re.search(r'<parameter name=[\"\']code[\"\']>([\s\S]*?)</parameter>', text)
@@ -52,46 +78,50 @@ def robust_parse_code_blobs(text: str, code_block_tags: tuple[str, str]) -> str:
 if _original_parse_code_blobs:
     saa.parse_code_blobs = robust_parse_code_blobs
 
-from ..config import load_config
-from ..tim_client import TimClient
-from ..cloud_client import UniversalCloudClient
-from ..live_util import generate_live_push_url, generate_live_play_urls
-from .bot_manager import BotManager, bot_manager
-from .file_parser import get_file_category_and_type, format_file_size
-from .constants import (
-    AUTHORIZED_IMPORTS,
-    DEFAULT_MAX_PRINT_OUTPUTS_LENGTH,
-    DEFAULT_SUBTASK_MAX_STEPS,
-    DEFAULT_STREAM_MAX_STEPS,
-    DEFAULT_CONTEXT_HISTORY_LIMIT,
-    DEFAULT_CONTEXT_CONTENT_MAX_CHARS,
-    PROVIDER_DEFAULTS,
-)
-from .models import BotConfig, LLMConfig
-from .tools import (
-    build_bot_tools,
-    build_sandbox_scope,
-    CloudCallTool,
-    CloudSearchApisTool,
-    CloudGetDocTool,
-)
-
 logger = logging.getLogger("tim.agent.engine")
+
+
+def _install_sandbox_scope(agent: Any, scope: dict[str, Any]) -> None:
+    """Install sandbox callables/constants through smolagents' supported channels.
+
+    ``CodeAgent.run`` calls ``send_tools`` before executing code and that method
+    rebuilds ``static_tools``.  Direct writes to ``python_executor.static_tools``
+    are therefore ephemeral.  Callables belong in ``additional_functions``;
+    values such as output directories belong in the agent state sent as
+    variables.
+    """
+    executor = getattr(agent, "python_executor", None)
+    if executor is None:
+        raise RuntimeError("CodeAgent 未初始化 Python executor")
+
+    additional_functions = getattr(executor, "additional_functions", None)
+    if not isinstance(additional_functions, dict):
+        additional_functions = {}
+        executor.additional_functions = additional_functions
+
+    function_scope = {
+        name: value for name, value in scope.items() if inspect.isroutine(value)
+    }
+    state_scope = {
+        name: value for name, value in scope.items() if name not in function_scope
+    }
+    additional_functions.update(function_scope)
+    agent.state.update(state_scope)
 
 
 def render_chart(
     chart_type: str,
     title: str,
-    labels: List[Any],
-    data: List[Any],
-    series_name: Optional[str] = None,
-    options: Optional[Dict[str, Any]] = None
+    labels: list[Any],
+    data: list[Any],
+    series_name: str | None = None,
+    options: dict[str, Any] | None = None
 ) -> str:
     """
     生成就地渲染的 ECharts 交互式图表 Markdown 代码块。
     支持在 Python 沙箱中调用并打印，前端 MarkdownView 自动将其解析为可视化图表。
     """
-    chart_cfg: Dict[str, Any] = {
+    chart_cfg: dict[str, Any] = {
         "type": str(chart_type).lower(),
         "title": str(title),
         "labels": list(labels),
@@ -103,6 +133,23 @@ def render_chart(
         chart_cfg["options"] = options
     return f"\n```echarts\n{json.dumps(chart_cfg, ensure_ascii=False, indent=2)}\n```\n"
 
+
+
+def _confined_open(root_dir: str, file, mode="r", *args, **kwargs):
+    """Open only a basename inside a bot-owned directory, regardless of path type."""
+    raw_path = os.fspath(file)
+    if isinstance(raw_path, bytes):
+        raw_path = os.fsdecode(raw_path)
+    if not isinstance(raw_path, str):
+        raise TypeError("沙箱文件路径必须是字符串或 PathLike")
+    root_path = os.path.realpath(root_dir)
+    candidate = os.path.realpath(os.path.join(root_path, os.path.basename(raw_path)))
+    if os.path.commonpath([root_path, candidate]) != root_path:
+        raise PermissionError("沙箱文件路径超出 BOT 产出物目录")
+    try:
+        return open(candidate, mode, *args, **kwargs)
+    except OSError as exc:
+        raise OSError(f"无法访问沙箱文件: {candidate}") from exc
 
 
 class RobustStreamingOpenAIServerModel(OpenAIServerModel):
@@ -215,7 +262,7 @@ def extract_clean_thought(raw_text: str) -> str:
     return thought
 
 
-def clean_final_answer(raw_answer: str) -> Tuple[str, str]:
+def clean_final_answer(raw_answer: str) -> tuple[str, str]:
     """清洗最终回复，剥离残留的 <think> 思维链、内部 Calling tools: 协议残留与 DSML 标签，规范化代码块"""
     if not raw_answer:
         return "", ""
@@ -281,8 +328,8 @@ def format_execution_observation(raw_obs: Any, step_num: int = 1) -> str:
                 parsed = ast.literal_eval(text)
                 if isinstance(parsed, (dict, list)):
                     formatted_data = json.dumps(parsed, indent=2, ensure_ascii=False)
-            except Exception:
-                pass
+            except Exception as fallback_error:
+                logger.debug("Fallback observation parsing failed: %s", fallback_error)
 
     if formatted_data:
         return f"```json\n{formatted_data}\n```"
@@ -297,13 +344,13 @@ def format_execution_observation(raw_obs: Any, step_num: int = 1) -> str:
 
 
 class AgentEngine:
-    def __init__(self, manager: Optional[BotManager] = None):
+    def __init__(self, manager: BotManager | None = None):
         self.manager = manager or bot_manager
         self.cloud_client = UniversalCloudClient()
         self.tim_client = self.cloud_client.tim_client
         self._local = threading.local()
         # 跨轮多会话 Python 沙箱环境变量存储 (按 bot_id 隔离)
-        self._bot_sandbox_states: Dict[str, Dict[str, Any]] = {}
+        self._bot_sandbox_states: dict[str, dict[str, Any]] = {}
 
     def clear_sandbox(self, bot_id: str):
         """清空指定 BOT 的跨轮沙箱变量缓存"""
@@ -536,7 +583,7 @@ class AgentEngine:
 
         return "\n".join(prompt_parts)
 
-    def record_orchestration(self, record: Dict[str, Any]):
+    def record_orchestration(self, record: dict[str, Any]):
         """记录一条多智能体协同调用事件（支持线程隔离）"""
         self.manager.record_orchestration(record)
         active_list = getattr(self._local, "active_stream_orchestrations", None)
@@ -548,7 +595,7 @@ class AgentEngine:
         caller_bot_id: str,
         target_bot_id: str,
         task: str,
-        call_chain: Optional[List[str]] = None
+        call_chain: list[str] | None = None
     ) -> str:
         """为协同调度执行子任务 (同步返回目标智能体的最终输出)"""
         chain = call_chain or [caller_bot_id]
@@ -590,7 +637,6 @@ class AgentEngine:
             f"请充分发挥你的专业定位与专属工具，高效完成该需求并给出结构化结论与关键数据。"
         )
 
-        import smolagents.local_python_executor as lpe
         agent = CodeAgent(
             tools=tools,
             model=model,
@@ -601,9 +647,9 @@ class AgentEngine:
 
         # 注入目标智能体沙箱环境与产出物工具
         target_uploads_dir = os.path.join(self.manager._bot_dir(target_bot_id), "uploads")
-        os.makedirs(target_uploads_dir, exist_ok=True)
+        os.makedirs(target_uploads_dir, exist_ok=True)  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
 
-        def subtask_save_file(filename: str, data: Any) -> Dict[str, Any]:
+        def subtask_save_file(filename: str, data: Any) -> dict[str, Any]:
             safe_name = os.path.basename(filename)
             dest_path = os.path.join(target_uploads_dir, safe_name)
             if hasattr(data, "to_excel") and safe_name.endswith((".xlsx", ".xls")):
@@ -611,16 +657,16 @@ class AgentEngine:
             elif hasattr(data, "to_csv") and safe_name.endswith(".csv"):
                 data.to_csv(dest_path, index=False)
             elif isinstance(data, (bytes, bytearray)):
-                with open(dest_path, "wb") as f:
+                with open(dest_path, "wb") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     f.write(data)
             elif isinstance(data, str):
-                with open(dest_path, "w", encoding="utf-8") as f:
+                with open(dest_path, "w", encoding="utf-8") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     f.write(data)
             elif isinstance(data, (dict, list)):
-                with open(dest_path, "w", encoding="utf-8") as f:
+                with open(dest_path, "w", encoding="utf-8") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     json.dump(data, f, ensure_ascii=False, indent=2)
             else:
-                with open(dest_path, "w", encoding="utf-8") as f:
+                with open(dest_path, "w", encoding="utf-8") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     f.write(str(data))
             return {
                 "filename": safe_name,
@@ -629,16 +675,13 @@ class AgentEngine:
             }
 
         def subtask_bot_open(file, mode="r", *args, **kwargs):
-            if isinstance(file, str):
-                file = os.path.join(target_uploads_dir, os.path.basename(file))
-            return open(file, mode, *args, **kwargs)
+            return _confined_open(target_uploads_dir, file, mode, *args, **kwargs)
 
         subtask_cloud_call = next((t for t in tools if isinstance(t, CloudCallTool)), None) or CloudCallTool(bot_manager=self.manager, tim_client=self.tim_client)
         subtask_search_tool = next((t for t in tools if isinstance(t, CloudSearchApisTool)), None) or CloudSearchApisTool()
         subtask_doc_tool = next((t for t in tools if isinstance(t, CloudGetDocTool)), None) or CloudGetDocTool()
 
-        agent.python_executor.static_tools = {
-            **lpe.BASE_PYTHON_TOOLS,
+        _install_sandbox_scope(agent, {
             "open": subtask_bot_open,
             "render_chart": render_chart,
             "save_file": subtask_save_file,
@@ -651,7 +694,7 @@ class AgentEngine:
                 cloud_client=self.cloud_client,
                 tim_client=self.tim_client
             )
-        }
+        })
 
         resp = agent.run(task_prompt)
         final_answer = str(resp) if resp is not None else "任务已处理。"
@@ -671,10 +714,10 @@ class AgentEngine:
         self,
         bot_id: str,
         user_message: str,
-        attachments: Optional[List[Dict[str, Any]]] = None,
+        attachments: list[dict[str, Any]] | None = None,
         skip_user_append: bool = False,
-        stop_checker: Optional[Any] = None,
-        approval_requester: Optional[Any] = None
+        stop_checker: Any | None = None,
+        approval_requester: Any | None = None
     ):
         """
         生成器：执行 CodeAgent 并按结构流式产生事件 (Thought, Code, Output, Message)
@@ -745,7 +788,6 @@ class AgentEngine:
             or DEFAULT_STREAM_MAX_STEPS
         )
 
-        import smolagents.local_python_executor as lpe
         agent = CodeAgent(
             tools=tools,
             model=model,
@@ -779,12 +821,12 @@ class AgentEngine:
 
         # 注入当前智能体专属产出物目录与资产中心工具
         uploads_dir = os.path.join(self.manager._bot_dir(bot_id), "uploads")
-        os.makedirs(uploads_dir, exist_ok=True)
+        os.makedirs(uploads_dir, exist_ok=True)  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
 
         run_start_time = time.time()
-        initial_root_files = set(os.listdir("."))
-        initial_uploads_files = set(os.listdir(uploads_dir)) if os.path.exists(uploads_dir) else set()
-        tracked_output_files: List[Dict[str, Any]] = []
+        initial_root_files = set(os.listdir("."))  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
+        initial_uploads_files = set(os.listdir(uploads_dir)) if os.path.exists(uploads_dir) else set()  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
+        tracked_output_files: list[dict[str, Any]] = []
 
         def sync_generated_artifacts():
             """双向探测并归集执行期间生成的文件（包括根目录误写与 uploads 产生的文件）"""
@@ -816,27 +858,29 @@ class AgentEngine:
                             continue
                         stat = os.stat(fp)
                         mtime = stat.st_mtime
-                        if fn not in initial_uploads_files or mtime >= (run_start_time - 2.0):
-                            if not any(f["name"] == fn or f.get("saved_name") == fn for f in tracked_output_files):
-                                cat, ftype = get_file_category_and_type(fn)
-                                orig_name = re.sub(r"^f_\d+_", "", fn)
-                                tracked_output_files.append({
-                                    "id": f"att-{int(time.time()*1000)}-{len(tracked_output_files)}",
-                                    "name": orig_name,
-                                    "saved_name": fn,
-                                    "size": stat.st_size,
-                                    "size_formatted": format_file_size(stat.st_size),
-                                    "category": cat,
-                                    "type": ftype,
-                                    "path": fp,
-                                    "url": f"/api/agent/bots/{bot_id}/files/{fn}",
-                                    "download_url": f"/api/agent/bots/{bot_id}/files/{fn}?download=true",
-                                    "created_at": datetime.fromtimestamp(mtime, tz=timezone.utc).isoformat()
-                                })
+                        if (
+                            (fn not in initial_uploads_files or mtime >= (run_start_time - 2.0))
+                            and not any(f["name"] == fn or f.get("saved_name") == fn for f in tracked_output_files)
+                        ):
+                            cat, ftype = get_file_category_and_type(fn)
+                            orig_name = re.sub(r"^f_\d+_", "", fn)
+                            tracked_output_files.append({
+                                "id": f"att-{int(time.time()*1000)}-{len(tracked_output_files)}",
+                                "name": orig_name,
+                                "saved_name": fn,
+                                "size": stat.st_size,
+                                "size_formatted": format_file_size(stat.st_size),
+                                "category": cat,
+                                "type": ftype,
+                                "path": fp,
+                                "url": f"/api/agent/bots/{bot_id}/files/{fn}",
+                                "download_url": f"/api/agent/bots/{bot_id}/files/{fn}?download=true",
+                                "created_at": datetime.fromtimestamp(mtime, tz=UTC).isoformat()
+                            })
             except Exception as ex:
                 logger.warning("Error scanning uploads in sync_generated_artifacts: %s", ex)
 
-        def save_file(filename: str, data: Any) -> Dict[str, Any]:
+        def save_file(filename: str, data: Any) -> dict[str, Any]:
             """保存文件至当前智能体专属资产中心，自动支持字符串、字节、JSON字典、Pandas DataFrame"""
             safe_name = os.path.basename(filename)
             dest_path = os.path.join(uploads_dir, safe_name)
@@ -845,16 +889,16 @@ class AgentEngine:
             elif hasattr(data, "to_csv") and safe_name.endswith(".csv"):
                 data.to_csv(dest_path, index=False)
             elif isinstance(data, (bytes, bytearray)):
-                with open(dest_path, "wb") as f:
+                with open(dest_path, "wb") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     f.write(data)
             elif isinstance(data, str):
-                with open(dest_path, "w", encoding="utf-8") as f:
+                with open(dest_path, "w", encoding="utf-8") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     f.write(data)
             elif isinstance(data, (dict, list)):
-                with open(dest_path, "w", encoding="utf-8") as f:
+                with open(dest_path, "w", encoding="utf-8") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     json.dump(data, f, ensure_ascii=False, indent=2)
             else:
-                with open(dest_path, "w", encoding="utf-8") as f:
+                with open(dest_path, "w", encoding="utf-8") as f:  # pi-lens-ignore: unchecked-throwing-call-python -- sandbox file capability
                     f.write(str(data))
 
             file_size = os.path.getsize(dest_path)
@@ -874,7 +918,7 @@ class AgentEngine:
                     "path": dest_path,
                     "url": preview_url,
                     "download_url": download_url,
-                    "created_at": datetime.now(timezone.utc).isoformat()
+                    "created_at": datetime.now(UTC).isoformat()
                 })
 
             return {
@@ -888,16 +932,13 @@ class AgentEngine:
 
         def bot_open(file, mode="r", *args, **kwargs):
             """智能沙箱 open：所有文件操作强制限定在 BOT 专属产出物目录"""
-            if isinstance(file, str):
-                file = os.path.join(uploads_dir, os.path.basename(file))
-            return open(file, mode, *args, **kwargs)
+            return _confined_open(uploads_dir, file, mode, *args, **kwargs)
 
         stream_cloud_call = next((t for t in tools if isinstance(t, CloudCallTool)), None) or CloudCallTool(approval_requester=approval_requester, bot_manager=self.manager, tim_client=self.tim_client)
         stream_search_tool = next((t for t in tools if isinstance(t, CloudSearchApisTool)), None) or CloudSearchApisTool()
         stream_doc_tool = next((t for t in tools if isinstance(t, CloudGetDocTool)), None) or CloudGetDocTool()
 
-        agent.python_executor.static_tools = {
-            **lpe.BASE_PYTHON_TOOLS,
+        _install_sandbox_scope(agent, {
             "open": bot_open,
             "render_chart": render_chart,
             "save_file": save_file,
@@ -910,7 +951,7 @@ class AgentEngine:
                 cloud_client=self.cloud_client,
                 tim_client=self.tim_client
             )
-        }
+        })
 
         # 初始化线程隔离的实时协同事件收集器
         self._local.active_stream_orchestrations = []
@@ -958,7 +999,7 @@ class AgentEngine:
 
         try:
             # 采用 agent.run(task, stream=True) 触发真正的 Token 与事件级全流式输出
-            for step in agent.run(task_prompt, stream=True):
+            for step in cast(Iterable[Any], agent.run(task_prompt, stream=True)):
                 if stop_checker and stop_checker():
                     logger.info("Agent run %s was stopped by user request.", bot_id)
                     return
@@ -1018,8 +1059,7 @@ class AgentEngine:
                         raw_code = raw_code[9:]
                     elif raw_code.startswith("```"):
                         raw_code = raw_code[3:]
-                    if raw_code.endswith("```"):
-                        raw_code = raw_code[:-3]
+                    raw_code = raw_code.removesuffix("```")
                     raw_code = raw_code.strip()
 
                     code_item = {
@@ -1061,7 +1101,7 @@ class AgentEngine:
 
                     # 补充思维链
                     if step.model_output and not thought_buffer:
-                        clean_thought = extract_clean_thought(step.model_output)
+                        clean_thought = extract_clean_thought(str(step.model_output))
                         if clean_thought:
                             thought_md = f"#### 💭 步骤 {step.step_number} 推理分析\n\n{clean_thought.strip()}"
                             accumulated_thoughts.append(thought_md)
@@ -1071,7 +1111,7 @@ class AgentEngine:
                             }
 
                     # 若沙箱有额外 observations 输出，且尚未向前端派发
-                    if step.observations and not any(l["step"] == step.step_number for l in accumulated_execution_logs):
+                    if step.observations and not any(log["step"] == step.step_number for log in accumulated_execution_logs):
                         obs_md = format_execution_observation(step.observations, step.step_number)
                         log_item = {
                             "step": step.step_number,
@@ -1178,9 +1218,8 @@ class AgentEngine:
                             logger.warning("Rescue execution failed: %s", str(rex))
 
             # 步数上限友情提示
-            if is_max_steps_reached:
-                if "最大步数" not in final_answer and "步数上限" not in final_answer:
-                    final_answer = final_answer + f"\n\n> ℹ️ **说明**：该轮任务已达单次执行步数上限（已执行 {len(accumulated_code_blocks)} 步并记录沙箱数据）。相关变量与结果已保存在当前会话环境中，您可以直接回复继续操作或导出数据！"
+            if is_max_steps_reached and "最大步数" not in final_answer and "步数上限" not in final_answer:
+                final_answer = final_answer + f"\n\n> ℹ️ **说明**：该轮任务已达单次执行步数上限（已执行 {len(accumulated_code_blocks)} 步并记录沙箱数据）。相关变量与结果已保存在当前会话环境中，您可以直接回复继续操作或导出数据！"
 
             # 全流程产出物最终同步归集
             sync_generated_artifacts()
@@ -1255,8 +1294,8 @@ class AgentEngine:
                         input_tokens = int(raw_in)
                     if isinstance(raw_out, (int, float)):
                         output_tokens = int(raw_out)
-                except Exception:
-                    pass
+                except Exception as usage_error:
+                    logger.debug("Failed to collect token usage: %s", usage_error)
 
             if input_tokens == 0 and output_tokens == 0:
                 # 兼容未回传 token usage 的提供商的保底估算
@@ -1301,8 +1340,9 @@ class AgentEngine:
             # 保存沙箱环境供后续跨轮交互直接复用
             if hasattr(agent, "python_executor") and hasattr(agent.python_executor, "state"):
                 persistent_vars = {}
-                for k, v in agent.python_executor.state.items():
-                    if k.startswith("_") or k in ("open", "render_chart", "save_file", "OUTPUT_DIR", "WORKSPACE_DIR", "final_answer"):
+                executor = cast(Any, agent.python_executor)
+                for k, v in executor.state.items():
+                    if k.startswith("_") or k in ("open", "render_chart", "save_file", "OUTPUT_DIR", "WORKSPACE_DIR", "cloud_client", "final_answer"):
                         continue
                     if callable(v) and not hasattr(v, "__code__"):
                         continue
@@ -1336,7 +1376,7 @@ class AgentEngine:
             }
 
         except Exception as e:
-            err_text = f"智能体执行遇到异常: {str(e)}"
+            err_text = f"智能体执行遇到异常: {e!s}"
             logger.exception("Agent run error: %s", err_text)
             yield {
                 "event": "error",

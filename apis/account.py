@@ -7,6 +7,33 @@
 from .base import BaseTimApi, Field
 
 
+def _normalize_account_items(input_data: dict, target_field: str) -> dict:
+    if target_field in input_data:
+        raw = input_data[target_field]
+    elif "users" in input_data:
+        raw = input_data["users"]
+    elif "user_ids" in input_data:
+        raw = input_data["user_ids"]
+    else:
+        raw = []
+
+    if isinstance(raw, str):
+        values = [value.strip() for value in raw.split(",") if value.strip()]
+    elif isinstance(raw, list):
+        if all(isinstance(value, str) for value in raw):
+            values = [value.strip() for value in raw if value.strip()]
+        elif all(isinstance(value, dict) and isinstance(value.get("UserID"), str) and value["UserID"].strip() for value in raw):
+            values = [value["UserID"].strip() for value in raw]
+        else:
+            raise ValueError(f"{target_field} 必须是字符串账号列表或 UserID 对象列表")
+    else:
+        raise ValueError(f"{target_field} 必须是字符串或列表")
+
+    if not values:
+        raise ValueError(f"{target_field} 不能为空")
+    return {target_field: [{"UserID": value} for value in values]}
+
+
 class AccountImportApi(BaseTimApi):
     api_id = "account_import"
     name = "导入单个帐号"
@@ -68,16 +95,7 @@ class AccountDeleteApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        items = input_data.get("DeleteItem") or input_data.get("users") or input_data.get("user_ids")
-        if isinstance(items, str):
-            users = [u.strip() for u in items.split(",") if u.strip()]
-            return {"DeleteItem": [{"UserID": u} for u in users]}
-        if isinstance(items, list) and items:
-            if isinstance(items[0], str):
-                return {"DeleteItem": [{"UserID": u} for u in items]}
-            if isinstance(items[0], dict) and "UserID" in items[0]:
-                return {"DeleteItem": items}
-        return {"DeleteItem": [{"UserID": str(items)}]} if items else input_data
+        return _normalize_account_items(input_data, "DeleteItem")
 
 
 class AccountCheckApi(BaseTimApi):
@@ -99,16 +117,7 @@ class AccountCheckApi(BaseTimApi):
     }
 
     def build_payload(self, input_data: dict) -> dict:
-        items = input_data.get("CheckItem") or input_data.get("users") or input_data.get("user_ids")
-        if isinstance(items, str):
-            users = [u.strip() for u in items.split(",") if u.strip()]
-            return {"CheckItem": [{"UserID": u} for u in users]}
-        if isinstance(items, list) and items:
-            if isinstance(items[0], str):
-                return {"CheckItem": [{"UserID": u} for u in items]}
-            if isinstance(items[0], dict) and "UserID" in items[0]:
-                return {"CheckItem": items}
-        return {"CheckItem": [{"UserID": str(items)}]} if items else input_data
+        return _normalize_account_items(input_data, "CheckItem")
 
 
 class KickApi(BaseTimApi):

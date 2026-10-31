@@ -1,4 +1,4 @@
-import React, { useMemo, useState, useRef } from 'react'
+import React, { useEffect, useMemo, useState, useRef } from 'react'
 import { marked } from 'marked'
 import hljs from 'highlight.js'
 import 'highlight.js/styles/atom-one-dark.css'
@@ -8,15 +8,38 @@ import { EChartsViewer } from '@/components/agent/EChartsViewer'
 interface MarkdownViewProps {
   content: string
   className?: string
-  /** 是否开启整体复制，默认为 false（避免在聊天气泡或普通段落中遮挡首行文字） */
   copyable?: boolean
-  /** 整体复制按钮展示模式：'header' (顶部独立工具条，不遮挡文字) | 'floating' (右上角悬浮并带安全边距) | 'none' */
   copyMode?: 'header' | 'floating' | 'none'
-  /** 工具条左侧标题（仅在 copyMode === 'header' 时生效） */
   title?: string
-  /** 外层容器类名 */
   containerClassName?: string
 }
+
+const escapeHtml = (value: unknown): string =>
+  String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+
+const sanitizeHref = (value: unknown): string => {
+  const href = String(value ?? '').trim()
+  if (!href || href.startsWith('//')) return '#'
+  if (/^(https?:|mailto:)/i.test(href)) return href
+  if (/^[a-z][a-z0-9+.-]*:/i.test(href)) return '#'
+  return href.startsWith('/') || href.startsWith('./') || href.startsWith('../') || href.startsWith('#')
+    ? href
+    : '#'
+}
+const sanitizeImageSrc = (value: unknown): string => {
+  const src = String(value ?? '').trim()
+  if (/^data:/i.test(src)) {
+    const isSafeBase64Image = /^data:image\/(?:png|jpe?g|gif|webp);base64,[a-z0-9+/]+={0,2}$/i.test(src)
+    return isSafeBase64Image && src.length <= 10 * 1024 * 1024 ? src : '#'
+  }
+  return sanitizeHref(src)
+}
+
 
 // 配置 marked 解析选项：支持换行、GFM 表格与 highlight.js 代码语法高亮与代码块独立复制
 marked.setOptions({
@@ -27,60 +50,91 @@ marked.setOptions({
 marked.use({
   renderer: {
     html({ text }: { text: string }) {
-      // 转义原生 HTML 标签，阻断任何潜在的 XSS 注入（如 <img src=x onerror=...>, <script> 等）
-      return text
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
+      return escapeHtml(text)
     },
     code({ text, lang }: { text: string; lang?: string }) {
       const cleanLang = (lang || '').trim().toLowerCase()
-      const validLang = Boolean(cleanLang && hljs.getLanguage(cleanLang))
-      let highlighted = text
+      const validLang = Boolean(/^[a-z0-9_+-]{1,32}$/.test(cleanLang) && hljs.getLanguage(cleanLang))
+      let highlighted = escapeHtml(text)
       try {
         highlighted = validLang
           ? hljs.highlight(text, { language: cleanLang }).value
           : hljs.highlightAuto(text).value
-      } catch (err) {
-        highlighted = text
+      } catch {
+        highlighted = escapeHtml(text)
       }
       const encoded = encodeURIComponent(text)
       return `
         <div class="code-block-wrapper relative group/code my-2.5 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/90 dark:bg-[#0b0f19] overflow-hidden shadow-2xs">
           <div class="flex items-center justify-between px-3 py-1.5 bg-slate-100/90 dark:bg-slate-900/90 text-[11px] text-slate-500 dark:text-slate-400 font-mono border-b border-slate-200 dark:border-slate-800/80 select-none">
-            <span class="font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">${cleanLang || 'code'}</span>
+            <span class="font-semibold text-slate-700 dark:text-slate-300 uppercase tracking-wider">${escapeHtml(cleanLang || 'code')}</span>
             <button type="button" class="markdown-code-copy-btn flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-slate-200/80 dark:hover:bg-slate-800 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-100 transition-colors cursor-pointer text-[10px]" data-code="${encoded}">
               <svg class="h-3 w-3 copy-icon" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
               <span class="copy-label">复制代码</span>
             </button>
           </div>
-          <pre class="hljs-pre !my-0 !rounded-none !border-0 bg-slate-50 text-slate-800 dark:bg-[#0b0f19] dark:text-[#e2e8f0]"><code class="hljs ${validLang ? 'language-' + cleanLang : ''}">${highlighted}</code></pre>
+          <pre class="hljs-pre !my-0 !rounded-none !border-0 bg-slate-50 text-slate-800 dark:bg-[#0b0f19] dark:text-[#e2e8f0]"><code class="hljs ${validLang ? `language-${escapeHtml(cleanLang)}` : ''}">${highlighted}</code></pre>
         </div>
       `
     },
     link({ href, title, text }: { href: string; title?: string | null; text: string }) {
-      const trimmedHref = (href || '').trim()
-      // 防御 XSS 注入：阻断 javascript:, vbscript:, data:text/html 等伪协议
-      const isDangerousProtocol = /^(javascript|vbscript|data:text\/html)/i.test(trimmedHref)
-      const safeHref = isDangerousProtocol ? '#' : trimmedHref
+      const safeHref = sanitizeHref(href)
+      const isDangerousProtocol = safeHref === '#'
 
-      const isFileDownload =
-        Boolean(safeHref && !isDangerousProtocol && (
+      const isFileDownload = Boolean(safeHref && !isDangerousProtocol && (
           (safeHref.includes('/api/agent/bots/') && safeHref.includes('/files/')) ||
           /\.(xlsx|xls|csv|zip|pdf|docx|parquet)(\?.*)?$/i.test(safeHref) ||
           safeHref.includes('download=true')
         ))
-      const titleAttr = title ? ` title="${title}"` : ''
+      const titleAttr = title ? ` title="${escapeHtml(title)}"` : ''
+      const safeText = escapeHtml(text)
       if (isFileDownload) {
-        return `<a href="${safeHref}" download target="_blank" rel="noopener noreferrer"${titleAttr} class="inline-flex items-center gap-1.5 px-2.5 py-1 my-1 rounded-lg font-medium text-xs text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 transition-colors shadow-2xs no-underline cursor-pointer"><svg class="w-3.5 h-3.5 shrink-0 inline-block text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg><span>${text}</span></a>`
+        return `<a href="${escapeHtml(safeHref)}" download target="_blank" rel="noopener noreferrer"${titleAttr} class="inline-flex items-center gap-1.5 px-2.5 py-1 my-1 rounded-lg font-medium text-xs text-blue-600 dark:text-blue-400 bg-blue-50/90 dark:bg-blue-950/60 hover:bg-blue-100 dark:hover:bg-blue-900/60 border border-blue-200 dark:border-blue-800 transition-colors shadow-2xs no-underline cursor-pointer"><svg class="w-3.5 h-3.5 shrink-0 inline-block text-blue-500" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg><span>${safeText}</span></a>`
       }
-      return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer"${titleAttr} class="text-blue-600 dark:text-blue-400 hover:underline font-medium">${text}</a>`
+      return `<a href="${escapeHtml(safeHref)}" target="_blank" rel="noopener noreferrer"${titleAttr} class="text-blue-600 dark:text-blue-400 hover:underline font-medium">${safeText}</a>`
     },
   },
 })
 
+const SafeMarkdownHtml: React.FC<{ html: string; className?: string }> = ({ html, className = '' }) => {
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const container = containerRef.current
+    if (!container) return
+    const parsed = new DOMParser().parseFromString(`<div>${html}</div>`, 'text/html')
+    const root = parsed.body.firstElementChild
+    if (!root) return
+
+    const blockedTags = new Set(['base', 'embed', 'form', 'iframe', 'link', 'meta', 'object', 'script', 'style'])
+    for (const element of Array.from(root.querySelectorAll('*'))) {
+      if (blockedTags.has(element.tagName.toLowerCase())) {
+        element.remove()
+        continue
+      }
+      for (const attribute of Array.from(element.attributes)) {
+        const name = attribute.name.toLowerCase()
+        if (name.startsWith('on') || name === 'srcdoc' || name === 'style') {
+          element.removeAttribute(attribute.name)
+          continue
+        }
+        if (['action', 'formaction', 'href', 'src', 'xlink:href'].includes(name)) {
+          const safeValue = name === 'src' ? sanitizeImageSrc(attribute.value) : sanitizeHref(attribute.value)
+          element.setAttribute(attribute.name, safeValue)
+        }
+      }
+    }
+
+    const fragment = document.createDocumentFragment()
+    while (root.firstChild) {
+      fragment.appendChild(document.importNode(root.firstChild, true))
+      root.removeChild(root.firstChild)
+    }
+    container.replaceChildren(fragment)
+  }, [html])
+
+  return <div ref={containerRef} className={className} />
+}
 export const MarkdownView: React.FC<MarkdownViewProps> = ({
   content,
   className = '',
@@ -258,19 +312,12 @@ export const MarkdownView: React.FC<MarkdownViewProps> = ({
               html = seg.text
             }
             return (
-              <div
-                key={idx}
-                className="markdown-content"
-                dangerouslySetInnerHTML={{ __html: html }}
-              />
+              <SafeMarkdownHtml html={html} />
             )
           })}
         </div>
       ) : (
-        <div
-          className={`markdown-content ${copyable && copyMode === 'floating' ? 'pr-16' : ''} ${className}`}
-          dangerouslySetInnerHTML={{ __html: htmlContent }}
-        />
+        <SafeMarkdownHtml html={htmlContent} className={`markdown-content ${copyable && copyMode === 'floating' ? 'pr-16' : ''} ${className}`} />
       )}
     </div>
   )
